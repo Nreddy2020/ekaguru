@@ -143,7 +143,7 @@ const TextbookUpload = () => {
                 <Input
                   id="file-upload"
                   type="file"
-                  accept=".txt"
+                  accept=".txt,.pdf,.docx,.jpg,.jpeg,.png,.bmp,.tiff,.gif,.webp,.md,.csv,.json,.xml,.html,.css,.js,.py"
                   onChange={handleFileChange}
                   disabled={uploading}
                   className="cursor-pointer"
@@ -151,7 +151,7 @@ const TextbookUpload = () => {
                 />
                 {file && (
                   <p className="text-sm text-gray-600 mt-2" data-testid="selected-file">
-                    Selected: {file.name}
+                    Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
                   </p>
                 )}
               </div>
