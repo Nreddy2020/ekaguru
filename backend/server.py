@@ -157,6 +157,93 @@ class ChatResponse(BaseModel):
     sources: Optional[List[Dict[str, Any]]] = None
 
 # Helper functions
+def extract_text_from_pdf(file_content: bytes) -> str:
+    """Extract text from PDF file"""
+    try:
+        # Try to extract text directly
+        pdf_file = io.BytesIO(file_content)
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        text = ""
+        
+        for page in pdf_reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+        
+        # If no text extracted, try OCR (for scanned PDFs)
+        if len(text.strip()) < 100:
+            logging.info("PDF appears to be scanned, using OCR...")
+            images = convert_from_bytes(file_content)
+            text = ""
+            for i, image in enumerate(images):
+                logging.info(f"Processing page {i+1} with OCR...")
+                page_text = pytesseract.image_to_string(image)
+                text += page_text + "\n"
+        
+        return text.strip()
+    except Exception as e:
+        logging.error(f"Error extracting text from PDF: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to extract text from PDF: {str(e)}")
+
+def extract_text_from_image(file_content: bytes) -> str:
+    """Extract text from image using OCR"""
+    try:
+        image = Image.open(io.BytesIO(file_content))
+        text = pytesseract.image_to_string(image)
+        return text.strip()
+    except Exception as e:
+        logging.error(f"Error extracting text from image: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to extract text from image: {str(e)}")
+
+def extract_text_from_docx(file_content: bytes) -> str:
+    """Extract text from Word document"""
+    try:
+        doc = Document(io.BytesIO(file_content))
+        text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+        return text.strip()
+    except Exception as e:
+        logging.error(f"Error extracting text from DOCX: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to extract text from Word document: {str(e)}")
+
+def process_file_content(file_content: bytes, filename: str) -> str:
+    """Process file content based on file type"""
+    file_ext = filename.lower().split('.')[-1]
+    
+    # PDF files
+    if file_ext == 'pdf':
+        return extract_text_from_pdf(file_content)
+    
+    # Image files
+    elif file_ext in ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'gif', 'webp']:
+        return extract_text_from_image(file_content)
+    
+    # Word documents
+    elif file_ext in ['docx', 'doc']:
+        if file_ext == 'doc':
+            raise HTTPException(status_code=400, detail="Please convert .doc files to .docx format")
+        return extract_text_from_docx(file_content)
+    
+    # Text files
+    elif file_ext in ['txt', 'md', 'csv', 'json', 'xml', 'html', 'css', 'js', 'py', 'java', 'c', 'cpp']:
+        try:
+            text = file_content.decode('utf-8')
+            return text.strip()
+        except UnicodeDecodeError:
+            # Try other encodings
+            for encoding in ['latin-1', 'iso-8859-1', 'cp1252']:
+                try:
+                    text = file_content.decode(encoding)
+                    return text.strip()
+                except:
+                    continue
+            raise HTTPException(status_code=400, detail="Unable to decode text file")
+    
+    else:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported file type: {file_ext}. Supported types: PDF, images (JPG, PNG, etc.), Word documents (.docx), and text files."
+        )
+
 def chunk_text(text: str, chunk_size: int = 800, overlap: int = 200) -> List[str]:
     """Split text into overlapping chunks"""
     words = text.split()
