@@ -79,7 +79,7 @@ function App() {
             <Route path="/profile" element={<StudentProfile />} />
             <Route path="/upload" element={<TextbookUpload />} />
             <Route path="/learning-path" element={<LearningPath />} />
-            <Route path="/learn" element={<InteractiveLearning />} />
+            <Route path="/learn" element={<VisualLearning />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
