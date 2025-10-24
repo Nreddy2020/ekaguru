@@ -372,11 +372,27 @@ async def upload_textbook(
     title: str = Form(None),
     subject: str = Form(None)
 ):
-    """Upload and process a textbook"""
+    """Upload and process a textbook (supports PDF, images, Word docs, and text files)"""
     try:
         # Read file content
         content = await file.read()
-        text = content.decode('utf-8')
+        
+        # Validate file size (max 50MB)
+        max_size = 50 * 1024 * 1024  # 50MB
+        if len(content) > max_size:
+            raise HTTPException(status_code=400, detail="File size exceeds 50MB limit")
+        
+        # Process file based on type
+        logging.info(f"Processing file: {file.filename}")
+        text = process_file_content(content, file.filename)
+        
+        if not text or len(text) < 50:
+            raise HTTPException(
+                status_code=400, 
+                detail="Insufficient text extracted from file. Please ensure the file contains readable text."
+            )
+        
+        logging.info(f"Extracted {len(text)} characters from {file.filename}")
         
         # Create textbook entry
         textbook_id = str(uuid.uuid4())
@@ -404,7 +420,10 @@ async def upload_textbook(
                 INSERT INTO text_chunks (id, textbook_id, chunk_text, chunk_index, embedding, metadata)
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (chunk_id, textbook_id, chunk, idx, embedding.tolist(), 
-                   json.dumps({"chunk_size": len(chunk.split())})))
+                   json.dumps({
+                       "chunk_size": len(chunk.split()),
+                       "file_type": file.filename.split('.')[-1].lower()
+                   })))
         
         # Update total chunks
         cur.execute("""
@@ -421,8 +440,11 @@ async def upload_textbook(
             "title": title or file.filename,
             "subject": subject or 'General',
             "total_chunks": len(chunks),
+            "characters_extracted": len(text),
             "message": "Textbook uploaded and processed successfully"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"Upload error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
