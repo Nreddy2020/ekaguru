@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Form
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -22,6 +23,7 @@ import pytesseract
 from pdf2image import convert_from_bytes
 from docx import Document
 import io
+import base64
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
