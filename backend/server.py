@@ -113,6 +113,20 @@ def init_db():
         )
     """)
     
+    # Create learning_progress table (tracks chapter completion)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS learning_progress (
+            id VARCHAR(255) PRIMARY KEY,
+            student_id VARCHAR(255) REFERENCES students(id) ON DELETE CASCADE,
+            chapter_id VARCHAR(255) REFERENCES chapters(id) ON DELETE CASCADE,
+            status VARCHAR(50) DEFAULT 'not_started',
+            completion_percentage FLOAT DEFAULT 0.0,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            quiz_score FLOAT DEFAULT 0.0
+        )
+    """)
+    
     # Create chat_history table
     cur.execute("""
         CREATE TABLE IF NOT EXISTS chat_history (
