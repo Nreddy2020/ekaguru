@@ -562,14 +562,23 @@ async def upload_textbook(
         logging.info(f"Extracted {len(chapters)} chapters from textbook")
         
         # Store chapters
-        for chapter in chapters:
+        for idx, chapter in enumerate(chapters):
             chapter_id = str(uuid.uuid4())
+            # Assign images to chapters (distribute evenly)
+            chapter_images = []
+            if images:
+                images_per_chapter = len(images) // len(chapters)
+                start_idx = idx * images_per_chapter
+                end_idx = start_idx + images_per_chapter if idx < len(chapters) - 1 else len(images)
+                chapter_images = images[start_idx:end_idx]
+            
             cur.execute("""
                 INSERT INTO chapters (id, textbook_id, chapter_number, chapter_title, 
-                                     chapter_summary, content_preview, word_count, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                     chapter_summary, content_preview, word_count, created_at, images)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (chapter_id, textbook_id, chapter['chapter_number'], chapter['chapter_title'],
-                  '', chapter['content_preview'], chapter['word_count'], datetime.now(timezone.utc)))
+                  '', chapter['content_preview'], chapter['word_count'], datetime.now(timezone.utc),
+                  json.dumps(chapter_images)))
             
             # Chunk the chapter content
             chapter_chunks = chunk_text(chapter['content'])
