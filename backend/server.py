@@ -824,6 +824,117 @@ async def get_student_progress(student_id: str):
         ]
     }
 
+@api_router.delete("/textbooks/{textbook_id}")
+async def delete_textbook(textbook_id: str):
+    """Delete a textbook and all associated data"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get images to delete from filesystem
+        cur.execute("""
+            SELECT images FROM chapters WHERE textbook_id = %s
+        """, (textbook_id,))
+        
+        chapters = cur.fetchall()
+        
+        # Delete image files
+        for chapter in chapters:
+            if chapter['images']:
+                images = json.loads(chapter['images'])
+                for img_path in images:
+                    try:
+                        file_path = ROOT_DIR / img_path.lstrip('/')
+                        if file_path.exists():
+                            file_path.unlink()
+                    except Exception as e:
+                        logging.error(f"Error deleting image: {e}")
+        
+        # Delete from database (cascades to chapters, chunks, etc.)
+        cur.execute("DELETE FROM textbooks WHERE id = %s", (textbook_id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return {"message": "Textbook deleted successfully"}
+    except Exception as e:
+        logging.error(f"Delete error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/learning/update-progress")
+async def update_learning_progress(student_id: str, chapter_id: str, completion_percentage: float):
+    """Update chapter completion progress"""
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Check if progress exists
+    cur.execute("""
+        SELECT * FROM learning_progress 
+        WHERE student_id = %s AND chapter_id = %s
+    """, (student_id, chapter_id))
+    
+    existing = cur.fetchone()
+    
+    status = 'in_progress'
+    if completion_percentage >= 100:
+        status = 'completed'
+    
+    if existing:
+        # Update
+        cur.execute("""
+            UPDATE learning_progress 
+            SET completion_percentage = %s, status = %s,
+                completed_at = CASE WHEN %s >= 100 THEN %s ELSE completed_at END
+            WHERE id = %s
+        """, (completion_percentage, status, completion_percentage, 
+              datetime.now(timezone.utc), existing['id']))
+    else:
+        # Create new
+        cur.execute("""
+            INSERT INTO learning_progress 
+            (id, student_id, chapter_id, status, started_at, completion_percentage)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (str(uuid.uuid4()), student_id, chapter_id, status, 
+              datetime.now(timezone.utc), completion_percentage))
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return {"message": "Progress updated", "status": status}
+
+@api_router.get("/chapters/{chapter_id}")
+async def get_chapter_details(chapter_id: str):
+    """Get full chapter details with images"""
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cur.execute("""
+        SELECT c.*, t.title as textbook_title, t.subject
+        FROM chapters c
+        JOIN textbooks t ON c.textbook_id = t.id
+        WHERE c.id = %s
+    """, (chapter_id,))
+    
+    chapter = cur.fetchone()
+    cur.close()
+    conn.close()
+    
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    
+    return {
+        "id": chapter['id'],
+        "chapter_number": chapter['chapter_number'],
+        "chapter_title": chapter['chapter_title'],
+        "content_preview": chapter['content_preview'],
+        "word_count": chapter['word_count'],
+        "textbook_title": chapter['textbook_title'],
+        "subject": chapter['subject'],
+        "images": json.loads(chapter['images']) if chapter['images'] else []
+    }
+
 @api_router.get("/textbooks/{textbook_id}/chapters")
 async def get_textbook_chapters(textbook_id: str):
     """Get all chapters from a textbook with images"""
