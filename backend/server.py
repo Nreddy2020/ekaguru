@@ -1047,6 +1047,9 @@ async def interactive_chat(student_id: str, chapter_id: Optional[str] = None, ac
 # Include the router in the main app
 app.include_router(api_router)
 
+# Serve static uploaded images
+app.mount("/uploads", StaticFiles(directory=str(ROOT_DIR / "uploads")), name="uploads")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
