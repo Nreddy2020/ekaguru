@@ -193,6 +193,38 @@ class ChatResponse(BaseModel):
     sources: Optional[List[Dict[str, Any]]] = None
 
 # Helper functions
+def extract_and_save_images_from_pdf(pdf_content: bytes, textbook_id: str) -> List[str]:
+    """Extract images from PDF and save them"""
+    images_paths = []
+    try:
+        # Convert PDF pages to images
+        pdf_images = convert_from_bytes(pdf_content, dpi=150)
+        
+        for idx, img in enumerate(pdf_images):
+            # Save each page as image
+            image_filename = f"{textbook_id}_page_{idx+1}.jpg"
+            image_path = UPLOADS_DIR / image_filename
+            img.save(image_path, 'JPEG', quality=85)
+            images_paths.append(f"/uploads/images/{image_filename}")
+            
+        logging.info(f"Extracted {len(images_paths)} images from PDF")
+    except Exception as e:
+        logging.error(f"Error extracting images from PDF: {e}")
+    
+    return images_paths
+
+def save_image_file(image_content: bytes, textbook_id: str, filename: str) -> str:
+    """Save an image file"""
+    try:
+        img = Image.open(io.BytesIO(image_content))
+        image_filename = f"{textbook_id}_{filename}"
+        image_path = UPLOADS_DIR / image_filename
+        img.save(image_path, 'JPEG', quality=85)
+        return f"/uploads/images/{image_filename}"
+    except Exception as e:
+        logging.error(f"Error saving image: {e}")
+        return None
+
 def extract_text_from_pdf(file_content: bytes) -> str:
     """Extract text from PDF file"""
     try:
