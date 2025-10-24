@@ -134,7 +134,7 @@ const TextbookUpload = () => {
             <CardHeader>
               <CardTitle>Upload New Textbook</CardTitle>
               <CardDescription>
-                Currently supports .txt files. PDF and EPUB support coming soon!
+                Supports: PDF, Images (JPG, PNG, etc.), Word documents (.docx), and all text files. Max size: 50MB
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
