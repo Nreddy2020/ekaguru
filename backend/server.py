@@ -505,9 +505,48 @@ async def upload_textbook(
         
         conn.commit()
         
-        # Chunk the text
+        # Extract chapters from text
+        chapters = extract_chapters_from_text(text)
+        logging.info(f"Extracted {len(chapters)} chapters from textbook")
+        
+        # Store chapters
+        for chapter in chapters:
+            chapter_id = str(uuid.uuid4())
+            cur.execute("""
+                INSERT INTO chapters (id, textbook_id, chapter_number, chapter_title, 
+                                     chapter_summary, content_preview, word_count, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (chapter_id, textbook_id, chapter['chapter_number'], chapter['chapter_title'],
+                  '', chapter['content_preview'], chapter['word_count'], datetime.now(timezone.utc)))
+            
+            # Chunk the chapter content
+            chapter_chunks = chunk_text(chapter['content'])
+            for idx, chunk in enumerate(chapter_chunks):
+                embedding = embedding_model.encode(chunk)
+                chunk_id = str(uuid.uuid4())
+                
+                cur.execute("""
+                    INSERT INTO text_chunks (id, textbook_id, chunk_text, chunk_index, embedding, metadata)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (chunk_id, textbook_id, chunk, idx, embedding.tolist(), 
+                       json.dumps({
+                           "chunk_size": len(chunk.split()),
+                           "file_type": file.filename.split('.')[-1].lower(),
+                           "chapter_id": chapter_id,
+                           "chapter_number": chapter['chapter_number'],
+                           "chapter_title": chapter['chapter_title']
+                       })))
+        
+        # Update total chapters
+        cur.execute("""
+            UPDATE textbooks SET total_chapters = %s WHERE id = %s
+        """, (len(chapters), textbook_id))
+        
+        conn.commit()
+        
+        # Chunk the entire text for general search (legacy)
         chunks = chunk_text(text)
-        logging.info(f"Created {len(chunks)} chunks from textbook")
+        logging.info(f"Created {len(chunks)} total chunks from textbook")
         
         # Generate embeddings and store
         for idx, chunk in enumerate(chunks):
