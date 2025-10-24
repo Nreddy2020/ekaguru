@@ -276,8 +276,8 @@ async def root():
 async def upload_textbook(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    title: str = None,
-    subject: str = None
+    title: str = Form(None),
+    subject: str = Form(None)
 ):
     """Upload and process a textbook"""
     try:
