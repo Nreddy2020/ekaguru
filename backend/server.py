@@ -16,6 +16,12 @@ import numpy as np
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import json
 import re
+import PyPDF2
+from PIL import Image
+import pytesseract
+from pdf2image import convert_from_bytes
+from docx import Document
+import io
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
