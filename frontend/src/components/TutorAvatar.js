@@ -73,14 +73,15 @@ const AnimatedAvatar = ({ isSpeaking }) => {
 
 const TutorAvatar = ({ isSpeaking = false }) => {
   return (
-    <div className="w-full h-64 bg-gradient-to-b from-indigo-50 to-purple-50 rounded-lg overflow-hidden" data-testid="tutor-avatar">
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: 50 }}
-        style={{ background: 'transparent' }}
-      >
-        <AnimatedAvatar isSpeaking={isSpeaking} />
-      </Canvas>
-      
+    <div className="w-full" data-testid="tutor-avatar">
+      <div className="h-64 bg-gradient-to-b from-indigo-50 to-purple-50 rounded-lg overflow-hidden">
+        <Canvas
+          camera={{ position: [0, 0, 5], fov: 50 }}
+          style={{ background: 'transparent' }}
+        >
+          <AnimatedAvatar isSpeaking={isSpeaking} />
+        </Canvas>
+      </div>
       <div className="text-center mt-2">
         <p className="text-sm text-gray-600">
           {isSpeaking ? '🔊 Speaking...' : '👋 Ready to help!'}
