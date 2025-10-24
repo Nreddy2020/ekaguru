@@ -1,66 +1,45 @@
-import React, { useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-
-const AnimatedSphere = ({ isSpeaking }) => {
-  const meshRef = useRef();
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      const time = state.clock.getElapsedTime();
-      meshRef.current.position.y = Math.sin(time) * 0.1;
-      meshRef.current.rotation.y += 0.01;
-      
-      if (isSpeaking) {
-        const scale = 1 + Math.sin(time * 5) * 0.05;
-        meshRef.current.scale.set(scale, scale, scale);
-      } else {
-        meshRef.current.scale.set(1, 1, 1);
-      }
-    }
-  });
-
-  return (
-    <group>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
-      <mesh ref={meshRef}>
-        <sphereGeometry args={[1.5, 32, 32]} />
-        <meshStandardMaterial
-          color={isSpeaking ? '#8b5cf6' : '#6366f1'}
-          roughness={0.3}
-          metalness={0.7}
-        />
-      </mesh>
-      <mesh position={[-0.4, 0.3, 1.3]}>
-        <sphereGeometry args={[0.15, 16, 16]} />
-        <meshStandardMaterial color="white" />
-      </mesh>
-      <mesh position={[0.4, 0.3, 1.3]}>
-        <sphereGeometry args={[0.15, 16, 16]} />
-        <meshStandardMaterial color="white" />
-      </mesh>
-      <mesh position={[-0.4, 0.3, 1.4]}>
-        <sphereGeometry args={[0.07, 16, 16]} />
-        <meshStandardMaterial color="#1e293b" />
-      </mesh>
-      <mesh position={[0.4, 0.3, 1.4]}>
-        <sphereGeometry args={[0.07, 16, 16]} />
-        <meshStandardMaterial color="#1e293b" />
-      </mesh>
-    </group>
-  );
-};
+import React from 'react';
 
 const TutorAvatar = ({ isSpeaking = false }) => {
   return (
     <div className="w-full" data-testid="tutor-avatar">
-      <div className="h-64 bg-gradient-to-b from-indigo-50 to-purple-50 rounded-lg overflow-hidden">
-        <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
-          <AnimatedSphere isSpeaking={isSpeaking} />
-        </Canvas>
+      <div className="h-64 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-lg overflow-hidden flex items-center justify-center relative">
+        {/* Animated background */}
+        <div className={`absolute inset-0 ${isSpeaking ? 'animate-pulse' : ''}`}>
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400 opacity-50"></div>
+        </div>
+        
+        {/* Avatar face */}
+        <div className={`relative z-10 transition-transform duration-300 ${isSpeaking ? 'scale-110' : 'scale-100'}`}>
+          {/* Head */}
+          <div className="w-32 h-32 bg-white rounded-full shadow-2xl flex items-center justify-center">
+            {/* Eyes */}
+            <div className="flex gap-8 mb-4">
+              <div className={`w-6 h-6 bg-gray-800 rounded-full transition-all ${isSpeaking ? 'animate-bounce' : ''}`}></div>
+              <div className={`w-6 h-6 bg-gray-800 rounded-full transition-all ${isSpeaking ? 'animate-bounce' : ''}`}></div>
+            </div>
+          </div>
+          
+          {/* Smile */}
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+            <div className={`w-16 h-8 border-b-4 border-gray-800 rounded-b-full transition-all ${isSpeaking ? 'border-indigo-600' : ''}`}></div>
+          </div>
+        </div>
+        
+        {/* Speaking indicator */}
+        {isSpeaking && (
+          <div className="absolute bottom-4 right-4">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        )}
       </div>
+      
       <div className="text-center mt-2">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 font-medium">
           {isSpeaking ? '🔊 Speaking...' : '👋 Ready to help!'}
         </p>
       </div>
