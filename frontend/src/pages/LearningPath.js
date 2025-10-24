@@ -133,13 +133,46 @@ const LearningPath = () => {
             {learningPath.textbooks.map((textbook) => (
               <Card key={textbook.textbook_id} data-testid={`textbook-${textbook.textbook_id}`}>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-6 w-6 text-indigo-600" />
-                    {textbook.title}
-                  </CardTitle>
-                  <CardDescription>
-                    {textbook.subject} • {textbook.total_chapters} chapters
-                  </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-6 w-6 text-indigo-600" />
+                      <div>
+                        <CardTitle>{textbook.title}</CardTitle>
+                        <CardDescription>
+                          {textbook.subject} • {textbook.total_chapters} chapters
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          data-testid={`delete-textbook-${textbook.textbook_id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Textbook?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{textbook.title}"? This will remove all chapters and images. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteTextbook(textbook.textbook_id, textbook.title)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {textbook.chapters.length > 0 ? (
