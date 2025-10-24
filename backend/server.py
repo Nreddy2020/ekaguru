@@ -826,7 +826,7 @@ async def get_student_progress(student_id: str):
 
 @api_router.get("/textbooks/{textbook_id}/chapters")
 async def get_textbook_chapters(textbook_id: str):
-    """Get all chapters from a textbook"""
+    """Get all chapters from a textbook with images"""
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
@@ -852,7 +852,8 @@ async def get_textbook_chapters(textbook_id: str):
                 "content_preview": ch['content_preview'],
                 "word_count": ch['word_count'],
                 "textbook_title": ch['textbook_title'],
-                "subject": ch['subject']
+                "subject": ch['subject'],
+                "images": json.loads(ch['images']) if ch['images'] else []
             } for ch in chapters
         ]
     }
