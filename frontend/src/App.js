@@ -78,6 +78,8 @@ function App() {
             <Route path="/chat" element={<TutorChat />} />
             <Route path="/profile" element={<StudentProfile />} />
             <Route path="/upload" element={<TextbookUpload />} />
+            <Route path="/learning-path" element={<LearningPath />} />
+            <Route path="/learn" element={<InteractiveLearning />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
