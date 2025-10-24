@@ -941,8 +941,8 @@ async def get_learning_path(student_id: str):
     }
 
 @api_router.post("/chat/interactive")
-async def interactive_chat(student_id: str, chapter_id: Optional[str] = None, action: str = "greet"):
-    """Interactive learning chat with proactive tutor"""
+async def interactive_chat(student_id: str, chapter_id: Optional[str] = None, action: str = "greet", word: Optional[str] = None):
+    """Interactive learning chat with warm, motherly tutor"""
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
@@ -956,15 +956,22 @@ async def interactive_chat(student_id: str, chapter_id: Optional[str] = None, ac
     api_key = os.environ.get('EMERGENT_LLM_KEY')
     
     if action == "greet":
-        # Welcome message
-        system_message = f"""You are an enthusiastic, friendly virtual tutor. 
-        Greet {student['name']} warmly and ask what they'd like to learn today.
-        Be encouraging and make learning exciting!"""
+        system_message = f"""You are a warm, caring, and patient mother-figure tutor. 
+        Speak to {student['name']} with love and encouragement, like a caring mother helping her child learn.
+        Use warm, affectionate language. Be enthusiastic about learning!
+        Ask what they'd like to learn today in a gentle, encouraging way."""
         
-        user_prompt = f"Greet the student and ask what subject or topic they want to explore."
+        user_prompt = f"Greet {student['name']} warmly as a loving mother would, and ask what they want to learn."
+        
+    elif action == "explain_word" and word:
+        system_message = f"""You are a patient, loving mother explaining things to {student['name']}.
+        Explain the word "{word}" in simple, clear terms that a child can understand.
+        Use examples from everyday life. Be warm and encouraging."""
+        
+        user_prompt = f"Explain what '{word}' means in a simple, loving way with an example."
         
     elif action == "suggest_chapter" and chapter_id:
-        # Get chapter info
+        # Get chapter info with images
         cur.execute("""
             SELECT c.*, t.title as textbook_title 
             FROM chapters c
@@ -973,21 +980,40 @@ async def interactive_chat(student_id: str, chapter_id: Optional[str] = None, ac
         """, (chapter_id,))
         chapter = cur.fetchone()
         
-        system_message = f"""You are an engaging virtual tutor for {student['name']}.
-        Introduce Chapter {chapter['chapter_number']}: {chapter['chapter_title']} from {chapter['textbook_title']}.
-        Make it sound interesting and exciting. Ask if they're ready to start learning!"""
+        system_message = f"""You are a loving mother-figure tutor for {student['name']}.
+        Introduce Chapter {chapter['chapter_number']}: {chapter['chapter_title']} with warmth and enthusiasm.
+        Speak like you're telling an exciting story to your child.
+        Make them feel excited and safe to learn. Use phrases like "my dear", "sweetheart", "let's discover together"."""
         
-        user_prompt = f"Introduce this chapter enthusiastically: {chapter['chapter_title']}"
+        user_prompt = f"Introduce this chapter with motherly warmth: {chapter['chapter_title']}. Make it sound like an adventure!"
+        
+    elif action == "explain_with_images" and chapter_id:
+        # Get chapter with images
+        cur.execute("""
+            SELECT c.*, t.title as textbook_title 
+            FROM chapters c
+            JOIN textbooks t ON c.textbook_id = t.id
+            WHERE c.id = %s
+        """, (chapter_id,))
+        chapter = cur.fetchone()
+        
+        system_message = f"""You are a loving mother teaching {student['name']}.
+        Explain this chapter's content step by step, like you're showing pictures in a storybook.
+        Be patient, warm, and use simple language. Encourage questions.
+        Reference "the images we're looking at" to make it feel like you're going through a picture book together."""
+        
+        user_prompt = f"Explain the content of '{chapter['chapter_title']}' warmly, as if showing pictures to your child."
         
     elif action == "check_understanding":
-        system_message = f"""You are a caring tutor checking if {student['name']} understood the topic.
-        Ask them friendly questions to verify their understanding.
-        Be encouraging regardless of their answer."""
+        system_message = f"""You are a gentle, encouraging mother checking if {student['name']} understood.
+        Ask in a kind, non-threatening way. Make them feel safe to say if they don't understand.
+        Use phrases like "Tell mama what you learned", "Can you explain it back to me, sweetie?"
+        Be proud and encouraging of any attempt they make."""
         
-        user_prompt = "Check if the student understood what we just learned. Ask them a simple question."
+        user_prompt = "Gently ask if they understood, in a warm motherly way."
     
     else:
-        return {"response": "Hello! Ready to learn?", "response_type": "greeting"}
+        return {"response": "Hello my dear! Ready to learn together?", "response_type": "greeting"}
     
     try:
         chat = LlmChat(
