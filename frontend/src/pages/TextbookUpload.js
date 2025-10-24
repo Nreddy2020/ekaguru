@@ -21,13 +21,28 @@ const TextbookUpload = () => {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      if (!selectedFile.name.endsWith('.txt')) {
-        toast.error('Please upload a .txt file');
+      const validExtensions = [
+        'txt', 'pdf', 'docx', 
+        'jpg', 'jpeg', 'png', 'bmp', 'tiff', 'gif', 'webp',
+        'md', 'csv', 'json', 'xml', 'html', 'css', 'js', 'py'
+      ];
+      
+      const fileExt = selectedFile.name.split('.').pop().toLowerCase();
+      
+      if (!validExtensions.includes(fileExt)) {
+        toast.error(`Unsupported file type. Please upload: PDF, images, Word documents, or text files.`);
         return;
       }
+      
+      // Check file size (50MB max)
+      if (selectedFile.size > 50 * 1024 * 1024) {
+        toast.error('File size exceeds 50MB limit');
+        return;
+      }
+      
       setFile(selectedFile);
       if (!title) {
-        setTitle(selectedFile.name.replace('.txt', ''));
+        setTitle(selectedFile.name.replace(/\.[^/.]+$/, ''));
       }
     }
   };
