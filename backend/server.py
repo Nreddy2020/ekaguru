@@ -531,6 +531,19 @@ async def upload_textbook(
         
         logging.info(f"Extracted {len(text)} characters from {file.filename}")
         
+        # Extract images based on file type
+        images = []
+        file_ext = file.filename.lower().split('.')[-1]
+        
+        if file_ext == 'pdf':
+            images = extract_and_save_images_from_pdf(content, str(uuid.uuid4()))
+        elif file_ext in ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'gif', 'webp']:
+            image_path = save_image_file(content, str(uuid.uuid4()), file.filename)
+            if image_path:
+                images = [image_path]
+        
+        logging.info(f"Extracted {len(images)} images from file")
+        
         # Create textbook entry
         textbook_id = str(uuid.uuid4())
         conn = get_db_connection()
