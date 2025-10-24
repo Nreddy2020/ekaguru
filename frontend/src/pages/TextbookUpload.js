@@ -223,7 +223,7 @@ const TextbookUpload = () => {
                     <span className="bg-indigo-100 text-indigo-600 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 font-medium">
                       1
                     </span>
-                    <span>Select a .txt file containing your textbook content</span>
+                    <span>Select a file: PDF, images (JPG/PNG), Word docs (.docx), or text files</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="bg-indigo-100 text-indigo-600 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 font-medium">
@@ -235,13 +235,13 @@ const TextbookUpload = () => {
                     <span className="bg-indigo-100 text-indigo-600 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 font-medium">
                       3
                     </span>
-                    <span>Our AI will process the content and create embeddings</span>
+                    <span>Our AI will extract text (using OCR for images/scanned PDFs) and create embeddings</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="bg-indigo-100 text-indigo-600 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 font-medium">
                       4
                     </span>
-                    <span>Start learning! Your tutor can now teach from this textbook</span>
+                    <span>Start learning! Your tutor can now teach from this material</span>
                   </li>
                 </ol>
               </CardContent>
