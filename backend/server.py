@@ -52,7 +52,22 @@ def init_db():
             title VARCHAR(500),
             subject VARCHAR(255),
             upload_date TIMESTAMP,
-            total_chunks INTEGER DEFAULT 0
+            total_chunks INTEGER DEFAULT 0,
+            total_chapters INTEGER DEFAULT 0
+        )
+    """)
+    
+    # Create chapters table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapters (
+            id VARCHAR(255) PRIMARY KEY,
+            textbook_id VARCHAR(255) REFERENCES textbooks(id) ON DELETE CASCADE,
+            chapter_number INTEGER,
+            chapter_title VARCHAR(500),
+            chapter_summary TEXT,
+            content_preview TEXT,
+            word_count INTEGER,
+            created_at TIMESTAMP
         )
     """)
     
