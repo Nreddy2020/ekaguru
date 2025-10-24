@@ -74,17 +74,17 @@ const Dashboard = () => {
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/chat')} data-testid="start-learning-card">
+          <Card className="hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/learning-path')} data-testid="start-learning-card">
             <CardHeader>
               <MessageSquare className="h-12 w-12 text-indigo-600 mb-2" />
               <CardTitle>Start Learning</CardTitle>
               <CardDescription>
-                Chat with your AI tutor and get personalized explanations
+                Begin structured lessons with your AI tutor - chapter by chapter!
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button className="w-full bg-indigo-600 hover:bg-indigo-700" data-testid="start-learning-btn">
-                Open Tutor Chat
+                Start Learning Journey
               </Button>
             </CardContent>
           </Card>
