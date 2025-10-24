@@ -763,6 +763,200 @@ async def get_student_progress(student_id: str):
         ]
     }
 
+@api_router.get("/textbooks/{textbook_id}/chapters")
+async def get_textbook_chapters(textbook_id: str):
+    """Get all chapters from a textbook"""
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cur.execute("""
+        SELECT c.*, t.title as textbook_title, t.subject
+        FROM chapters c
+        JOIN textbooks t ON c.textbook_id = t.id
+        WHERE c.textbook_id = %s
+        ORDER BY c.chapter_number
+    """, (textbook_id,))
+    
+    chapters = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    return {
+        "textbook_id": textbook_id,
+        "chapters": [
+            {
+                "id": ch['id'],
+                "chapter_number": ch['chapter_number'],
+                "chapter_title": ch['chapter_title'],
+                "content_preview": ch['content_preview'],
+                "word_count": ch['word_count'],
+                "textbook_title": ch['textbook_title'],
+                "subject": ch['subject']
+            } for ch in chapters
+        ]
+    }
+
+@api_router.post("/learning/start-chapter")
+async def start_chapter(student_id: str, chapter_id: str):
+    """Start learning a chapter"""
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Check if progress exists
+    cur.execute("""
+        SELECT * FROM learning_progress 
+        WHERE student_id = %s AND chapter_id = %s
+    """, (student_id, chapter_id))
+    
+    existing = cur.fetchone()
+    
+    if existing:
+        # Update status
+        cur.execute("""
+            UPDATE learning_progress 
+            SET status = 'in_progress', started_at = %s
+            WHERE id = %s
+        """, (datetime.now(timezone.utc), existing['id']))
+    else:
+        # Create new progress
+        cur.execute("""
+            INSERT INTO learning_progress 
+            (id, student_id, chapter_id, status, started_at, completion_percentage)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (str(uuid.uuid4()), student_id, chapter_id, 'in_progress', 
+              datetime.now(timezone.utc), 0.0))
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return {"message": "Chapter started successfully"}
+
+@api_router.get("/students/{student_id}/learning-path")
+async def get_learning_path(student_id: str):
+    """Get recommended learning path for student"""
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Get all textbooks with chapters
+    cur.execute("""
+        SELECT t.id, t.title, t.subject, t.total_chapters,
+               c.id as chapter_id, c.chapter_number, c.chapter_title,
+               lp.status, lp.completion_percentage
+        FROM textbooks t
+        LEFT JOIN chapters c ON t.id = c.textbook_id
+        LEFT JOIN learning_progress lp ON c.id = lp.chapter_id AND lp.student_id = %s
+        ORDER BY t.title, c.chapter_number
+    """, (student_id,))
+    
+    results = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    # Organize by textbook
+    textbooks = {}
+    for row in results:
+        if row['id'] not in textbooks:
+            textbooks[row['id']] = {
+                "textbook_id": row['id'],
+                "title": row['title'],
+                "subject": row['subject'],
+                "total_chapters": row['total_chapters'],
+                "chapters": []
+            }
+        
+        if row['chapter_id']:
+            textbooks[row['id']]['chapters'].append({
+                "chapter_id": row['chapter_id'],
+                "chapter_number": row['chapter_number'],
+                "chapter_title": row['chapter_title'],
+                "status": row['status'] or 'not_started',
+                "completion_percentage": row['completion_percentage'] or 0.0
+            })
+    
+    return {
+        "student_id": student_id,
+        "textbooks": list(textbooks.values())
+    }
+
+@api_router.post("/chat/interactive")
+async def interactive_chat(student_id: str, chapter_id: Optional[str] = None, action: str = "greet"):
+    """Interactive learning chat with proactive tutor"""
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Get student info
+    cur.execute("SELECT * FROM students WHERE id = %s", (student_id,))
+    student = cur.fetchone()
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    api_key = os.environ.get('EMERGENT_LLM_KEY')
+    
+    if action == "greet":
+        # Welcome message
+        system_message = f"""You are an enthusiastic, friendly virtual tutor. 
+        Greet {student['name']} warmly and ask what they'd like to learn today.
+        Be encouraging and make learning exciting!"""
+        
+        user_prompt = f"Greet the student and ask what subject or topic they want to explore."
+        
+    elif action == "suggest_chapter" and chapter_id:
+        # Get chapter info
+        cur.execute("""
+            SELECT c.*, t.title as textbook_title 
+            FROM chapters c
+            JOIN textbooks t ON c.textbook_id = t.id
+            WHERE c.id = %s
+        """, (chapter_id,))
+        chapter = cur.fetchone()
+        
+        system_message = f"""You are an engaging virtual tutor for {student['name']}.
+        Introduce Chapter {chapter['chapter_number']}: {chapter['chapter_title']} from {chapter['textbook_title']}.
+        Make it sound interesting and exciting. Ask if they're ready to start learning!"""
+        
+        user_prompt = f"Introduce this chapter enthusiastically: {chapter['chapter_title']}"
+        
+    elif action == "check_understanding":
+        system_message = f"""You are a caring tutor checking if {student['name']} understood the topic.
+        Ask them friendly questions to verify their understanding.
+        Be encouraging regardless of their answer."""
+        
+        user_prompt = "Check if the student understood what we just learned. Ask them a simple question."
+    
+    else:
+        return {"response": "Hello! Ready to learn?", "response_type": "greeting"}
+    
+    try:
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=str(uuid.uuid4()),
+            system_message=system_message
+        ).with_model("openai", "gpt-4o-mini")
+        
+        response = await chat.send_message(UserMessage(text=user_prompt))
+        
+        # Save to chat history
+        cur.execute("""
+            INSERT INTO chat_history (id, student_id, message, role, timestamp, response_type)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (str(uuid.uuid4()), student_id, response, 'assistant', 
+              datetime.now(timezone.utc), action))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return {
+            "response": response,
+            "response_type": action,
+            "action": action
+        }
+    except Exception as e:
+        logging.error(f"Interactive chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
