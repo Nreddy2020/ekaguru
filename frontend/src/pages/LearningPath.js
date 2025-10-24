@@ -66,6 +66,17 @@ const LearningPath = () => {
     }
   };
 
+  const handleDeleteTextbook = async (textbookId, textbookTitle) => {
+    try {
+      await axios.delete(`${API}/textbooks/${textbookId}`);
+      toast.success(`Deleted: ${textbookTitle}`);
+      fetchLearningPath();
+    } catch (error) {
+      console.error('Error deleting textbook:', error);
+      toast.error('Failed to delete textbook');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return 'text-green-600 bg-green-50';
