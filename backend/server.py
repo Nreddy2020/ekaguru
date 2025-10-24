@@ -73,7 +73,8 @@ def init_db():
             chapter_summary TEXT,
             content_preview TEXT,
             word_count INTEGER,
-            created_at TIMESTAMP
+            created_at TIMESTAMP,
+            images JSONB DEFAULT '[]'::jsonb
         )
     """)
     
