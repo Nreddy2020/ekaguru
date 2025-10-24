@@ -273,6 +273,75 @@ def process_file_content(file_content: bytes, filename: str) -> str:
             detail=f"Unsupported file type: {file_ext}. Supported types: PDF, images (JPG, PNG, etc.), Word documents (.docx), and text files."
         )
 
+def extract_chapters_from_text(text: str) -> List[Dict[str, Any]]:
+    """Extract chapters from text based on common patterns"""
+    chapters = []
+    
+    # Common chapter patterns
+    patterns = [
+        r'Chapter\s+(\d+)[:\s]+([^\n]+)',
+        r'CHAPTER\s+(\d+)[:\s]+([^\n]+)',
+        r'Ch\.\s+(\d+)[:\s]+([^\n]+)',
+        r'(\d+)\.\s+([A-Z][^\n]+)',  # Numbered sections
+    ]
+    
+    lines = text.split('\n')
+    current_chapter = None
+    chapter_content = []
+    
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Check if this line matches a chapter pattern
+        is_chapter = False
+        for pattern in patterns:
+            match = re.match(pattern, line)
+            if match:
+                # Save previous chapter if exists
+                if current_chapter and chapter_content:
+                    current_chapter['content'] = '\n'.join(chapter_content)
+                    current_chapter['word_count'] = len(current_chapter['content'].split())
+                    current_chapter['content_preview'] = current_chapter['content'][:300] + '...'
+                    chapters.append(current_chapter)
+                
+                # Start new chapter
+                chapter_num = int(match.group(1)) if match.group(1).isdigit() else len(chapters) + 1
+                chapter_title = match.group(2).strip()
+                
+                current_chapter = {
+                    'chapter_number': chapter_num,
+                    'chapter_title': chapter_title,
+                    'content': '',
+                    'word_count': 0
+                }
+                chapter_content = []
+                is_chapter = True
+                break
+        
+        if not is_chapter and current_chapter:
+            chapter_content.append(line)
+    
+    # Save last chapter
+    if current_chapter and chapter_content:
+        current_chapter['content'] = '\n'.join(chapter_content)
+        current_chapter['word_count'] = len(current_chapter['content'].split())
+        current_chapter['content_preview'] = current_chapter['content'][:300] + '...'
+        chapters.append(current_chapter)
+    
+    # If no chapters found, create one chapter with all content
+    if not chapters:
+        chapters.append({
+            'chapter_number': 1,
+            'chapter_title': 'Complete Content',
+            'content': text,
+            'word_count': len(text.split()),
+            'content_preview': text[:300] + '...'
+        })
+    
+    return chapters
+
 def chunk_text(text: str, chunk_size: int = 800, overlap: int = 200) -> List[str]:
     """Split text into overlapping chunks"""
     words = text.split()
