@@ -1,7 +1,10 @@
-import React, { useRef, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere, MeshDistortMaterial } from '@react-three/drei';
+import React, { useRef } from 'react';
+import { Canvas, useFrame, extend } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
+
+// Extend THREE with geometry
+extend({ SphereGeometry: THREE.SphereGeometry });
 
 const AnimatedAvatar = ({ isSpeaking }) => {
   const meshRef = useRef();
@@ -17,8 +20,14 @@ const AnimatedAvatar = ({ isSpeaking }) => {
       // Speaking animation - more distortion when speaking
       if (isSpeaking) {
         meshRef.current.rotation.y = Math.sin(time * 3) * 0.2;
+        meshRef.current.scale.set(
+          1 + Math.sin(time * 5) * 0.05,
+          1 + Math.sin(time * 5) * 0.05,
+          1 + Math.sin(time * 5) * 0.05
+        );
       } else {
         meshRef.current.rotation.y += 0.005;
+        meshRef.current.scale.set(1, 1, 1);
       }
     }
     
@@ -33,32 +42,35 @@ const AnimatedAvatar = ({ isSpeaking }) => {
       <pointLight ref={lightRef} position={[10, 10, 10]} intensity={1} />
       <directionalLight position={[-5, 5, 5]} intensity={0.5} />
       
-      <Sphere ref={meshRef} args={[1, 64, 64]} scale={1.5}>
-        <MeshDistortMaterial
+      {/* Main head */}
+      <mesh ref={meshRef} position={[0, 0, 0]}>
+        <sphereGeometry args={[1.5, 32, 32]} />
+        <meshStandardMaterial
           color={isSpeaking ? '#8b5cf6' : '#6366f1'}
-          attach="material"
-          distort={isSpeaking ? 0.6 : 0.3}
-          speed={isSpeaking ? 2 : 1}
           roughness={0.2}
           metalness={0.8}
         />
-      </Sphere>
+      </mesh>
       
       {/* Eyes */}
-      <Sphere position={[-0.3, 0.2, 1.2]} args={[0.1, 32, 32]}>
+      <mesh position={[-0.45, 0.3, 1.3]}>
+        <sphereGeometry args={[0.15, 16, 16]} />
         <meshStandardMaterial color="white" />
-      </Sphere>
-      <Sphere position={[0.3, 0.2, 1.2]} args={[0.1, 32, 32]}>
+      </mesh>
+      <mesh position={[0.45, 0.3, 1.3]}>
+        <sphereGeometry args={[0.15, 16, 16]} />
         <meshStandardMaterial color="white" />
-      </Sphere>
+      </mesh>
       
       {/* Pupils */}
-      <Sphere position={[-0.3, 0.2, 1.3]} args={[0.05, 32, 32]}>
+      <mesh position={[-0.45, 0.3, 1.45]}>
+        <sphereGeometry args={[0.08, 16, 16]} />
         <meshStandardMaterial color="#1e293b" />
-      </Sphere>
-      <Sphere position={[0.3, 0.2, 1.3]} args={[0.05, 32, 32]}>
+      </mesh>
+      <mesh position={[0.45, 0.3, 1.45]}>
+        <sphereGeometry args={[0.08, 16, 16]} />
         <meshStandardMaterial color="#1e293b" />
-      </Sphere>
+      </mesh>
     </>
   );
 };
