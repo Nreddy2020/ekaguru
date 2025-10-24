@@ -1,10 +1,6 @@
 import React, { useRef } from 'react';
-import { Canvas, useFrame, extend } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-
-// Extend THREE with geometry
-extend({ SphereGeometry: THREE.SphereGeometry });
 
 const AnimatedAvatar = ({ isSpeaking }) => {
   const meshRef = useRef();
@@ -17,7 +13,7 @@ const AnimatedAvatar = ({ isSpeaking }) => {
       // Gentle floating animation
       meshRef.current.position.y = Math.sin(time) * 0.1;
       
-      // Speaking animation - more distortion when speaking
+      // Speaking animation - rotation when speaking
       if (isSpeaking) {
         meshRef.current.rotation.y = Math.sin(time * 3) * 0.2;
         meshRef.current.scale.set(
@@ -83,12 +79,6 @@ const TutorAvatar = ({ isSpeaking = false }) => {
         style={{ background: 'transparent' }}
       >
         <AnimatedAvatar isSpeaking={isSpeaking} />
-        <OrbitControls
-          enableZoom={false}
-          enablePan={false}
-          maxPolarAngle={Math.PI / 2}
-          minPolarAngle={Math.PI / 2}
-        />
       </Canvas>
       
       <div className="text-center mt-2">
