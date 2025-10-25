@@ -303,31 +303,65 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Route: /learn. Most recent implementation. Side-by-side layout with avatar and chapter content. Interactive learning with deep dive and quiz modes."
+      - working: "NA"
+        agent: "main"
+        comment: "🔧 REBUILT: Complete rewrite with side-by-side layout (Avatar 30% left, Content 70% right). Integrated OpenAI TTS with Nova voice. Canvas-based Perplexity-style avatar with wave animations. NEEDS TESTING."
 
   - task: "Tutor Avatar Component"
     implemented: true
     working: "NA"
     file: "/app/frontend/src/components/TutorAvatar.js"
     stuck_count: 0
-    priority: "medium"
+    priority: "high"
     needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
         comment: "2D animated avatar component. Initially attempted 3D with react-three-fiber but reverted due to rendering issues."
+      - working: "NA"
+        agent: "main"
+        comment: "🔧 REDESIGNED: Perplexity-style animated circle with concentric waves. Canvas-based rendering. Audio level visualization from Web Audio API. Real-time animation when speaking. NEEDS TESTING."
+
+  - task: "OpenAI TTS Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "✨ NEW: Added /api/text-to-speech endpoint. Uses OpenAI gpt-4o-mini-tts model with Nova voice (female). Streaming audio for real-time playback. NEEDS TESTING."
+
+  - task: "Enhanced TOC and Chapter Extraction"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "✨ NEW: Page-by-page PDF analysis. Automatic TOC detection and extraction. TOC saved as Chapter 0. Better Unit/Chapter/Lesson detection. Filters quiz questions. NEEDS COMPREHENSIVE TESTING."
 
 metadata:
   created_by: "main_agent"
-  version: "1.0"
-  test_sequence: 0
+  version: "2.0"
+  test_sequence: 1
   run_ui: false
   backend_url: "${REACT_APP_BACKEND_URL}"
-  notes: "PostgreSQL issue resolved. All services running. Ready for comprehensive testing."
+  notes: "Major update: TTS, TOC extraction, side-by-side layout. Bug fixes: DELETE endpoint, chapter loading. All services running. CRITICAL: Need comprehensive testing before user tests."
 
 test_plan:
   current_focus:
-    - "PostgreSQL Database Setup"
-    - "Student Management API"
+    - "Textbook Upload and Processing"
+    - "Enhanced TOC and Chapter Extraction"
+    - "Chapter Extraction and Management"
+    - "OpenAI TTS Integration"
+    - "Interactive Learning Session"
+    - "Tutor Avatar Component"
     - "Textbook Upload and Processing"
     - "Chapter Extraction and Management"
     - "AI Chat with Emergent LLM"
