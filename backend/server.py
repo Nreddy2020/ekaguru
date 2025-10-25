@@ -229,30 +229,34 @@ def save_image_file(image_content: bytes, textbook_id: str, filename: str) -> st
         logging.error(f"Error saving image: {e}")
         return None
 
-def extract_text_from_pdf(file_content: bytes) -> str:
-    """Extract text from PDF file"""
+def extract_text_from_pdf(file_content: bytes) -> tuple:
+    """Extract text from PDF file and return (text, page_texts)"""
     try:
         # Try to extract text directly
         pdf_file = io.BytesIO(file_content)
         pdf_reader = PyPDF2.PdfReader(pdf_file)
         text = ""
+        page_texts = []
         
-        for page in pdf_reader.pages:
+        for i, page in enumerate(pdf_reader.pages):
             page_text = page.extract_text()
             if page_text:
-                text += page_text + "\n"
+                text += f"\n===PAGE {i+1}===\n" + page_text + "\n"
+                page_texts.append((i+1, page_text))
         
         # If no text extracted, try OCR (for scanned PDFs)
         if len(text.strip()) < 100:
             logging.info("PDF appears to be scanned, using OCR...")
             images = convert_from_bytes(file_content)
             text = ""
+            page_texts = []
             for i, image in enumerate(images):
                 logging.info(f"Processing page {i+1} with OCR...")
                 page_text = pytesseract.image_to_string(image)
-                text += page_text + "\n"
+                text += f"\n===PAGE {i+1}===\n" + page_text + "\n"
+                page_texts.append((i+1, page_text))
         
-        return text.strip()
+        return text.strip(), page_texts
     except Exception as e:
         logging.error(f"Error extracting text from PDF: {e}")
         raise HTTPException(status_code=400, detail=f"Failed to extract text from PDF: {str(e)}")
