@@ -158,6 +158,12 @@ const LearningSession = () => {
   };
 
   const stopSpeaking = () => {
+    // Stop Speech Synthesis API
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    
+    // Legacy audio cleanup (if any)
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
