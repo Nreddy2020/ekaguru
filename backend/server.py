@@ -1160,6 +1160,49 @@ async def interactive_chat(student_id: str, chapter_id: Optional[str] = None, ac
         logging.error(f"Interactive chat error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# TTS Request Model
+class TTSRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
+    voice: Optional[str] = Field(default="nova", description="Voice: nova, shimmer, coral, sage, fable")
+    speed: Optional[float] = Field(default=1.0, ge=0.25, le=4.0)
+
+@api_router.post("/text-to-speech")
+async def text_to_speech(request: TTSRequest):
+    """
+    Convert text to speech using OpenAI TTS with female voice.
+    Returns audio stream for real-time playback.
+    """
+    try:
+        logging.info(f"Generating speech: voice={request.voice}, text_length={len(request.text)}")
+        
+        # Call OpenAI TTS API with streaming
+        response = openai_client.audio.speech.create(
+            model="gpt-4o-mini-tts",
+            voice=request.voice,
+            input=request.text,
+            response_format="mp3",
+            speed=request.speed
+        )
+        
+        # Return streaming response
+        def audio_stream():
+            for chunk in response.iter_bytes(chunk_size=1024):
+                if chunk:
+                    yield chunk
+        
+        return StreamingResponse(
+            audio_stream(),
+            media_type="audio/mpeg",
+            headers={
+                "Content-Disposition": f"attachment; filename=speech.mp3",
+                "Cache-Control": "no-cache"
+            }
+        )
+        
+    except Exception as e:
+        logging.error(f"TTS error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate speech: {str(e)}")
+
 # Include the router in the main app
 app.include_router(api_router)
 
