@@ -320,91 +320,219 @@ def process_file_content(file_content: bytes, filename: str) -> str:
             detail=f"Unsupported file type: {file_ext}. Supported types: PDF, images (JPG, PNG, etc.), Word documents (.docx), and text files."
         )
 
-def extract_chapters_from_text(text: str) -> List[Dict[str, Any]]:
-    """Extract chapters from text with improved TOC detection"""
-    chapters = []
+def extract_table_of_contents(page_texts: List[tuple]) -> List[Dict[str, Any]]:
+    """
+    Extract Table of Contents from the first few pages.
+    Returns list of {chapter_number, chapter_title, page_number}
+    """
+    toc_entries = []
+    toc_found = False
     
-    # First, try to detect Table of Contents
-    toc_patterns = [
-        r'(?:table\s+of\s+contents|contents|index)[\s\S]{0,500}',
-        r'(?:chapter\s+\d+[^\n]+\n)+',
-    ]
-    
-    toc_section = None
-    for pattern in toc_patterns:
-        toc_match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
-        if toc_match:
-            toc_section = toc_match.group(0)
-            logging.info(f"Found TOC section: {toc_section[:200]}")
+    # Check first 10 pages for TOC
+    for page_num, page_text in page_texts[:10]:
+        lines = page_text.split('\n')
+        
+        # Look for TOC markers
+        for i, line in enumerate(lines):
+            line_lower = line.lower().strip()
+            
+            # Detect TOC start
+            if any(marker in line_lower for marker in ['table of contents', 'contents', 'index']):
+                toc_found = True
+                logging.info(f"Found TOC on page {page_num}")
+                
+                # Parse TOC entries (look for patterns like "Chapter 1 ... 5" or "Unit 1: Title ... 10")
+                for j in range(i+1, min(i+50, len(lines))):
+                    toc_line = lines[j].strip()
+                    if not toc_line or len(toc_line) < 5:
+                        continue
+                    
+                    # Match patterns like:
+                    # "Chapter 1: Title ........ 5"
+                    # "Unit 1 Title 10"
+                    # "1. Title ..... 15"
+                    toc_pattern = r'(?:Unit|Chapter|Ch\.?|Lesson)\s*(\d+)[:\.]?\s*([^.\d]{5,60}).*?(\d+)'
+                    match = re.search(toc_pattern, toc_line, re.IGNORECASE)
+                    
+                    if match:
+                        chapter_num = int(match.group(1))
+                        chapter_title = match.group(2).strip()
+                        page_ref = int(match.group(3))
+                        
+                        # Clean title - remove dot leaders
+                        chapter_title = re.sub(r'\.{2,}', '', chapter_title).strip()
+                        
+                        toc_entries.append({
+                            'chapter_number': chapter_num,
+                            'chapter_title': chapter_title,
+                            'page_number': page_ref
+                        })
+                        logging.info(f"TOC entry: Ch{chapter_num} - {chapter_title} (page {page_ref})")
+                
+                if toc_entries:
+                    break
+        
+        if toc_found and toc_entries:
             break
     
-    # Enhanced chapter patterns with more flexibility
+    return toc_entries
+
+def extract_chapters_from_pdf_pages(page_texts: List[tuple], toc_entries: List[Dict] = None) -> List[Dict[str, Any]]:
+    """
+    Extract chapters from PDF pages using page markers and TOC information.
+    Better approach for textbook-style PDFs with clear chapter/unit divisions.
+    """
+    chapters = []
+    current_chapter = None
+    chapter_content = []
+    
+    # Patterns for chapter headers (more specific for textbooks)
+    chapter_patterns = [
+        r'^(?:UNIT|Unit)\s+(\d+)(?:[:\.]?\s*(.{5,80}))?',  # Unit 1: Title or just Unit 1
+        r'^(?:CHAPTER|Chapter)\s+(\d+)(?:[:\.]?\s*(.{5,80}))?',  # Chapter 1: Title
+        r'^(?:LESSON|Lesson)\s+(\d+)(?:[:\.]?\s*(.{5,80}))?',  # Lesson 1: Title
+    ]
+    
+    for page_num, page_text in page_texts:
+        lines = page_text.split('\n')
+        
+        for line in lines:
+            line_stripped = line.strip()
+            
+            # Skip very short lines or lines that look like page numbers
+            if len(line_stripped) < 3 or (len(line_stripped) < 5 and line_stripped.isdigit()):
+                continue
+            
+            # Check if this is a chapter header
+            is_chapter_header = False
+            for pattern in chapter_patterns:
+                match = re.match(pattern, line_stripped, re.IGNORECASE)
+                if match:
+                    # Save previous chapter
+                    if current_chapter and chapter_content:
+                        content = '\n'.join(chapter_content)
+                        if len(content.strip()) > 100:  # Only save substantial chapters
+                            current_chapter['content'] = content
+                            current_chapter['word_count'] = len(content.split())
+                            current_chapter['content_preview'] = content[:800] + ('...' if len(content) > 800 else '')
+                            chapters.append(current_chapter)
+                            logging.info(f"Saved chapter: {current_chapter['chapter_number']} - {current_chapter['chapter_title']}")
+                    
+                    # Start new chapter
+                    chapter_num = int(match.group(1))
+                    chapter_title = match.group(2).strip() if match.group(2) else f"Unit/Chapter {chapter_num}"
+                    
+                    # Try to find title from TOC if available
+                    if toc_entries:
+                        for toc in toc_entries:
+                            if toc['chapter_number'] == chapter_num:
+                                chapter_title = toc['chapter_title']
+                                break
+                    
+                    current_chapter = {
+                        'chapter_number': chapter_num,
+                        'chapter_title': chapter_title,
+                        'page_number': page_num,
+                        'content': '',
+                        'word_count': 0
+                    }
+                    chapter_content = []
+                    is_chapter_header = True
+                    logging.info(f"Found chapter header: Unit/Chapter {chapter_num} - {chapter_title} on page {page_num}")
+                    break
+            
+            # Add content to current chapter
+            if current_chapter and not is_chapter_header:
+                # Filter out likely quiz questions or very short lines
+                if len(line_stripped) > 20 or (len(line_stripped) > 10 and not line_stripped.endswith('?')):
+                    chapter_content.append(line_stripped)
+    
+    # Save last chapter
+    if current_chapter and chapter_content:
+        content = '\n'.join(chapter_content)
+        if len(content.strip()) > 100:
+            current_chapter['content'] = content
+            current_chapter['word_count'] = len(content.split())
+            current_chapter['content_preview'] = content[:800] + ('...' if len(content) > 800 else '')
+            chapters.append(current_chapter)
+            logging.info(f"Saved final chapter: {current_chapter['chapter_number']} - {current_chapter['chapter_title']}")
+    
+    return chapters
+
+def extract_chapters_from_text(text: str, page_texts: List[tuple] = None) -> List[Dict[str, Any]]:
+    """
+    Main chapter extraction function with improved logic.
+    First extracts TOC, then uses it to guide chapter extraction.
+    """
+    chapters = []
+    
+    # If we have page texts (from PDF), use the better extraction method
+    if page_texts and len(page_texts) > 0:
+        logging.info(f"Extracting chapters from {len(page_texts)} pages using page-based method")
+        
+        # Step 1: Extract Table of Contents
+        toc_entries = extract_table_of_contents(page_texts)
+        
+        # Step 2: Add TOC as first "chapter" if found
+        if toc_entries:
+            toc_text = "Table of Contents\n\n"
+            for entry in toc_entries:
+                toc_text += f"Chapter {entry['chapter_number']}: {entry['chapter_title']} (Page {entry['page_number']})\n"
+            
+            chapters.append({
+                'chapter_number': 0,
+                'chapter_title': 'Table of Contents',
+                'content': toc_text,
+                'word_count': len(toc_text.split()),
+                'content_preview': toc_text[:500]
+            })
+            logging.info(f"Added TOC as Chapter 0 with {len(toc_entries)} entries")
+        
+        # Step 3: Extract actual chapters using page-based method
+        extracted_chapters = extract_chapters_from_pdf_pages(page_texts, toc_entries)
+        chapters.extend(extracted_chapters)
+        
+        if chapters:
+            return chapters
+    
+    # Fallback: use text-based extraction (for non-PDF files)
+    logging.info("Using text-based chapter extraction (fallback)")
+    
+    # Enhanced chapter patterns
     patterns = [
-        r'Chapter\s+(\d+)[:\.\s]+([^\n]{3,100})',  # Chapter 1: Title or Chapter 1. Title
-        r'CHAPTER\s+(\d+)[:\.\s]+([^\n]{3,100})',
-        r'Ch\.\s+(\d+)[:\.\s]+([^\n]{3,100})',
-        r'Unit\s+(\d+)[:\.\s]+([^\n]{3,100})',
-        r'Lesson\s+(\d+)[:\.\s]+([^\n]{3,100})',
-        r'Section\s+(\d+)[:\.\s]+([^\n]{3,100})',
-        r'Part\s+(\d+)[:\.\s]+([^\n]{3,100})',
-        r'^(\d+)\.\s+([A-Z][^\n]{3,100})',  # 1. Title (at line start)
-        r'^(\d+)\)\s+([A-Z][^\n]{3,100})',  # 1) Title (at line start)
+        r'(?:^|\n)(?:UNIT|Unit)\s+(\d+)[:\.]?\s*([^\n]{3,100})',
+        r'(?:^|\n)(?:CHAPTER|Chapter)\s+(\d+)[:\.]?\s*([^\n]{3,100})',
+        r'(?:^|\n)(?:LESSON|Lesson)\s+(\d+)[:\.]?\s*([^\n]{3,100})',
+        r'(?:^|\n)(?:Ch\.|CH\.)\s+(\d+)[:\.]?\s*([^\n]{3,100})',
     ]
     
     lines = text.split('\n')
     current_chapter = None
     chapter_content = []
-    in_toc = False
-    toc_end_line = 0
-    
-    # If we found TOC, mark where it ends
-    if toc_section:
-        toc_lines = toc_section.split('\n')
-        for i, line in enumerate(lines[:100]):  # Check first 100 lines
-            if line.strip() in toc_lines:
-                toc_end_line = max(toc_end_line, i + len(toc_lines))
     
     for i, line in enumerate(lines):
         line_stripped = line.strip()
-        if not line_stripped:
+        if not line_stripped or len(line_stripped) < 3:
             continue
         
-        # Skip TOC section
-        if i < toc_end_line:
-            continue
-            
-        # Check if this line matches a chapter pattern
+        # Check for chapter header
         is_chapter = False
         for pattern in patterns:
             match = re.match(pattern, line_stripped, re.IGNORECASE)
             if match:
-                # Verify this is a real chapter header (not just a numbered list item)
-                # Check if next few lines contain substantial content
-                if i + 3 < len(lines):
-                    next_content = ' '.join([lines[j].strip() for j in range(i+1, min(i+4, len(lines)))])
-                    # If next content is too short or looks like another header, skip
-                    if len(next_content) < 20:
-                        continue
-                
-                # Save previous chapter if exists
+                # Save previous chapter
                 if current_chapter and chapter_content:
                     content = '\n'.join(chapter_content)
-                    if len(content.strip()) > 50:  # Only save if has substantial content
+                    if len(content.strip()) > 50:
                         current_chapter['content'] = content
                         current_chapter['word_count'] = len(content.split())
                         current_chapter['content_preview'] = content[:500] + ('...' if len(content) > 500 else '')
                         chapters.append(current_chapter)
                 
                 # Start new chapter
-                try:
-                    chapter_num = int(match.group(1)) if match.group(1).isdigit() else len(chapters) + 1
-                except:
-                    chapter_num = len(chapters) + 1
-                    
+                chapter_num = int(match.group(1))
                 chapter_title = match.group(2).strip()
-                # Clean up chapter title
-                chapter_title = re.sub(r'\.{2,}', '', chapter_title)  # Remove dot leaders
-                chapter_title = re.sub(r'\s+', ' ', chapter_title)  # Normalize spaces
+                chapter_title = re.sub(r'\.{2,}', '', chapter_title).strip()
                 
                 current_chapter = {
                     'chapter_number': chapter_num,
@@ -414,11 +542,9 @@ def extract_chapters_from_text(text: str) -> List[Dict[str, Any]]:
                 }
                 chapter_content = []
                 is_chapter = True
-                logging.info(f"Found Chapter {chapter_num}: {chapter_title}")
                 break
         
         if not is_chapter and current_chapter:
-            # Add content to current chapter
             chapter_content.append(line_stripped)
     
     # Save last chapter
@@ -430,31 +556,7 @@ def extract_chapters_from_text(text: str) -> List[Dict[str, Any]]:
             current_chapter['content_preview'] = content[:500] + ('...' if len(content) > 500 else '')
             chapters.append(current_chapter)
     
-    # If no chapters found, try to split by page breaks or major sections
-    if not chapters:
-        # Try to split by form feed or multiple newlines
-        sections = re.split(r'\n{3,}|\f', text)
-        for idx, section in enumerate(sections):
-            section = section.strip()
-            if len(section) > 100:  # Only include substantial sections
-                # Try to extract a title from first line
-                first_line = section.split('\n')[0].strip()
-                if len(first_line) < 100 and len(first_line) > 3:
-                    title = first_line
-                    content = '\n'.join(section.split('\n')[1:])
-                else:
-                    title = f"Section {idx + 1}"
-                    content = section
-                
-                chapters.append({
-                    'chapter_number': idx + 1,
-                    'chapter_title': title,
-                    'content': content,
-                    'word_count': len(content.split()),
-                    'content_preview': content[:500] + ('...' if len(content) > 500 else '')
-                })
-    
-    # If still no chapters, create one chapter with all content
+    # If no chapters found, create one with all content
     if not chapters:
         chapters.append({
             'chapter_number': 1,
