@@ -404,6 +404,161 @@ def test_textbook_deletion(textbook_id):
     except Exception as e:
         log_test("CRITICAL: Textbook Deletion (JSONB Fix)", "FAIL", f"Exception: {str(e)}")
 
+def test_text_to_speech():
+    """Test OpenAI TTS integration - NEW FEATURE"""
+    try:
+        # Test TTS with valid request
+        tts_data = {
+            "text": "Hello Emma! Welcome to our virtual tutoring session. Today we'll learn about mathematics in a fun and engaging way.",
+            "voice": "nova",
+            "speed": 1.0
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/text-to-speech", json=tts_data, timeout=30)
+        
+        if response.status_code != 200:
+            log_test("NEW: Text-to-Speech", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return
+        
+        # Check if we got audio content
+        content_type = response.headers.get('content-type', '')
+        if 'audio' in content_type.lower():
+            audio_size = len(response.content)
+            if audio_size > 1000:  # Should be substantial audio file
+                log_test("NEW: Text-to-Speech", "PASS", f"Generated {audio_size} bytes of audio (voice: nova)")
+            else:
+                log_test("NEW: Text-to-Speech", "FAIL", f"Audio too small: {audio_size} bytes")
+        else:
+            log_test("NEW: Text-to-Speech", "FAIL", f"Wrong content type: {content_type}")
+        
+        # Test with different voice
+        tts_data_shimmer = {
+            "text": "This is a test with shimmer voice.",
+            "voice": "shimmer",
+            "speed": 1.2
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/text-to-speech", json=tts_data_shimmer, timeout=30)
+        if response.status_code == 200 and 'audio' in response.headers.get('content-type', '').lower():
+            log_test("TTS Voice Options", "PASS", "Multiple voices working (shimmer)")
+        else:
+            log_test("TTS Voice Options", "FAIL", f"Shimmer voice failed: {response.status_code}")
+        
+        # Test character limit (should be 2000 max)
+        long_text = "A" * 2001
+        tts_long = {
+            "text": long_text,
+            "voice": "nova"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/text-to-speech", json=tts_long, timeout=30)
+        if response.status_code == 422:  # Validation error expected
+            log_test("TTS Character Limit", "PASS", "2000 character limit enforced")
+        else:
+            log_test("TTS Character Limit", "FAIL", f"Should reject long text: {response.status_code}")
+        
+    except Exception as e:
+        log_test("NEW: Text-to-Speech", "FAIL", f"Exception: {str(e)}")
+
+def test_enhanced_pdf_upload():
+    """Test enhanced PDF upload with TOC extraction - NEW FEATURE"""
+    try:
+        # Create a simple PDF-like text with clear TOC structure
+        pdf_like_content = """Table of Contents
+
+Chapter 1: Introduction to Science .................. 5
+Chapter 2: The Scientific Method ................... 15  
+Chapter 3: Matter and Energy ....................... 25
+Chapter 4: Forces and Motion ....................... 35
+
+===PAGE 5===
+Chapter 1: Introduction to Science
+
+Science is the systematic study of the natural world through observation and experimentation.
+
+In this chapter, we will explore what science is and why it's important for understanding our world.
+
+===PAGE 15===
+Chapter 2: The Scientific Method
+
+The scientific method is a process used by scientists to investigate questions about the natural world.
+
+Steps of the scientific method:
+1. Observation
+2. Hypothesis
+3. Experiment
+4. Analysis
+5. Conclusion
+
+===PAGE 25===
+Chapter 3: Matter and Energy
+
+Everything around us is made of matter. Matter is anything that has mass and takes up space.
+
+Energy is the ability to do work or cause change.
+
+===PAGE 35===
+Chapter 4: Forces and Motion
+
+A force is a push or pull that can change an object's motion.
+
+Motion is the change in position of an object over time.
+"""
+        
+        files = {
+            'file': ('science_textbook.txt', pdf_like_content.encode('utf-8'), 'text/plain')
+        }
+        data = {
+            'title': 'Elementary Science with TOC',
+            'subject': 'Science'
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/textbooks/upload", files=files, data=data, timeout=30)
+        
+        if response.status_code != 200:
+            log_test("Enhanced PDF Upload", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return None
+        
+        upload_result = response.json()
+        textbook_id = upload_result.get("id")
+        chapters_info = upload_result.get("chapters", [])
+        
+        # Check if TOC was detected and Chapter 0 was created
+        has_toc_chapter = any(ch.get("number") == 0 and "table of contents" in ch.get("title", "").lower() 
+                             for ch in chapters_info)
+        
+        if has_toc_chapter:
+            log_test("NEW: TOC Detection", "PASS", "Table of Contents detected and saved as Chapter 0")
+        else:
+            log_test("NEW: TOC Detection", "FAIL", "TOC not detected or Chapter 0 not created")
+        
+        # Verify better chapter extraction
+        regular_chapters = [ch for ch in chapters_info if ch.get("number", 0) > 0]
+        if len(regular_chapters) >= 3:  # Should extract at least 3 chapters from our test content
+            log_test("Enhanced Chapter Extraction", "PASS", f"Extracted {len(regular_chapters)} chapters with better detection")
+        else:
+            log_test("Enhanced Chapter Extraction", "FAIL", f"Only extracted {len(regular_chapters)} chapters")
+        
+        # Test the chapters endpoint to verify JSONB handling
+        if textbook_id:
+            response = requests.get(f"{BACKEND_URL}/textbooks/{textbook_id}/chapters", timeout=10)
+            if response.status_code == 200:
+                chapter_data = response.json()
+                chapters = chapter_data.get("chapters", [])
+                
+                # Look for Chapter 0 (TOC)
+                toc_chapter = next((ch for ch in chapters if ch.get("chapter_number") == 0), None)
+                if toc_chapter:
+                    log_test("TOC Chapter Verification", "PASS", f"Chapter 0 found: {toc_chapter.get('chapter_title')}")
+                else:
+                    log_test("TOC Chapter Verification", "FAIL", "Chapter 0 (TOC) not found in database")
+        
+        return textbook_id
+        
+    except Exception as e:
+        log_test("Enhanced PDF Upload", "FAIL", f"Exception: {str(e)}")
+        return None
+
 def test_static_file_serving():
     """Test static file serving for images"""
     try:
