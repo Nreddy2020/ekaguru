@@ -281,35 +281,37 @@ def extract_text_from_docx(file_content: bytes) -> str:
         logging.error(f"Error extracting text from DOCX: {e}")
         raise HTTPException(status_code=400, detail=f"Failed to extract text from Word document: {str(e)}")
 
-def process_file_content(file_content: bytes, filename: str) -> str:
-    """Process file content based on file type"""
+def process_file_content(file_content: bytes, filename: str) -> tuple:
+    """Process file content based on file type. Returns (text, page_texts)"""
     file_ext = filename.lower().split('.')[-1]
     
     # PDF files
     if file_ext == 'pdf':
-        return extract_text_from_pdf(file_content)
+        return extract_text_from_pdf(file_content)  # Returns (text, page_texts)
     
     # Image files
     elif file_ext in ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'gif', 'webp']:
-        return extract_text_from_image(file_content)
+        text = extract_text_from_image(file_content)
+        return text, None
     
     # Word documents
     elif file_ext in ['docx', 'doc']:
         if file_ext == 'doc':
             raise HTTPException(status_code=400, detail="Please convert .doc files to .docx format")
-        return extract_text_from_docx(file_content)
+        text = extract_text_from_docx(file_content)
+        return text, None
     
     # Text files
     elif file_ext in ['txt', 'md', 'csv', 'json', 'xml', 'html', 'css', 'js', 'py', 'java', 'c', 'cpp']:
         try:
             text = file_content.decode('utf-8')
-            return text.strip()
+            return text.strip(), None
         except UnicodeDecodeError:
             # Try other encodings
             for encoding in ['latin-1', 'iso-8859-1', 'cp1252']:
                 try:
                     text = file_content.decode(encoding)
-                    return text.strip()
+                    return text.strip(), None
                 except:
                     continue
             raise HTTPException(status_code=400, detail="Unable to decode text file")
