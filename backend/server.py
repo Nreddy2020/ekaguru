@@ -317,41 +317,90 @@ def process_file_content(file_content: bytes, filename: str) -> str:
         )
 
 def extract_chapters_from_text(text: str) -> List[Dict[str, Any]]:
-    """Extract chapters from text based on common patterns"""
+    """Extract chapters from text with improved TOC detection"""
     chapters = []
     
-    # Common chapter patterns
+    # First, try to detect Table of Contents
+    toc_patterns = [
+        r'(?:table\s+of\s+contents|contents|index)[\s\S]{0,500}',
+        r'(?:chapter\s+\d+[^\n]+\n)+',
+    ]
+    
+    toc_section = None
+    for pattern in toc_patterns:
+        toc_match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+        if toc_match:
+            toc_section = toc_match.group(0)
+            logging.info(f"Found TOC section: {toc_section[:200]}")
+            break
+    
+    # Enhanced chapter patterns with more flexibility
     patterns = [
-        r'Chapter\s+(\d+)[:\s]+([^\n]+)',
-        r'CHAPTER\s+(\d+)[:\s]+([^\n]+)',
-        r'Ch\.\s+(\d+)[:\s]+([^\n]+)',
-        r'(\d+)\.\s+([A-Z][^\n]+)',  # Numbered sections
+        r'Chapter\s+(\d+)[:\.\s]+([^\n]{3,100})',  # Chapter 1: Title or Chapter 1. Title
+        r'CHAPTER\s+(\d+)[:\.\s]+([^\n]{3,100})',
+        r'Ch\.\s+(\d+)[:\.\s]+([^\n]{3,100})',
+        r'Unit\s+(\d+)[:\.\s]+([^\n]{3,100})',
+        r'Lesson\s+(\d+)[:\.\s]+([^\n]{3,100})',
+        r'Section\s+(\d+)[:\.\s]+([^\n]{3,100})',
+        r'Part\s+(\d+)[:\.\s]+([^\n]{3,100})',
+        r'^(\d+)\.\s+([A-Z][^\n]{3,100})',  # 1. Title (at line start)
+        r'^(\d+)\)\s+([A-Z][^\n]{3,100})',  # 1) Title (at line start)
     ]
     
     lines = text.split('\n')
     current_chapter = None
     chapter_content = []
+    in_toc = False
+    toc_end_line = 0
+    
+    # If we found TOC, mark where it ends
+    if toc_section:
+        toc_lines = toc_section.split('\n')
+        for i, line in enumerate(lines[:100]):  # Check first 100 lines
+            if line.strip() in toc_lines:
+                toc_end_line = max(toc_end_line, i + len(toc_lines))
     
     for i, line in enumerate(lines):
-        line = line.strip()
-        if not line:
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+        
+        # Skip TOC section
+        if i < toc_end_line:
             continue
             
         # Check if this line matches a chapter pattern
         is_chapter = False
         for pattern in patterns:
-            match = re.match(pattern, line)
+            match = re.match(pattern, line_stripped, re.IGNORECASE)
             if match:
+                # Verify this is a real chapter header (not just a numbered list item)
+                # Check if next few lines contain substantial content
+                if i + 3 < len(lines):
+                    next_content = ' '.join([lines[j].strip() for j in range(i+1, min(i+4, len(lines)))])
+                    # If next content is too short or looks like another header, skip
+                    if len(next_content) < 20:
+                        continue
+                
                 # Save previous chapter if exists
                 if current_chapter and chapter_content:
-                    current_chapter['content'] = '\n'.join(chapter_content)
-                    current_chapter['word_count'] = len(current_chapter['content'].split())
-                    current_chapter['content_preview'] = current_chapter['content'][:300] + '...'
-                    chapters.append(current_chapter)
+                    content = '\n'.join(chapter_content)
+                    if len(content.strip()) > 50:  # Only save if has substantial content
+                        current_chapter['content'] = content
+                        current_chapter['word_count'] = len(content.split())
+                        current_chapter['content_preview'] = content[:500] + ('...' if len(content) > 500 else '')
+                        chapters.append(current_chapter)
                 
                 # Start new chapter
-                chapter_num = int(match.group(1)) if match.group(1).isdigit() else len(chapters) + 1
+                try:
+                    chapter_num = int(match.group(1)) if match.group(1).isdigit() else len(chapters) + 1
+                except:
+                    chapter_num = len(chapters) + 1
+                    
                 chapter_title = match.group(2).strip()
+                # Clean up chapter title
+                chapter_title = re.sub(r'\.{2,}', '', chapter_title)  # Remove dot leaders
+                chapter_title = re.sub(r'\s+', ' ', chapter_title)  # Normalize spaces
                 
                 current_chapter = {
                     'chapter_number': chapter_num,
@@ -361,26 +410,54 @@ def extract_chapters_from_text(text: str) -> List[Dict[str, Any]]:
                 }
                 chapter_content = []
                 is_chapter = True
+                logging.info(f"Found Chapter {chapter_num}: {chapter_title}")
                 break
         
         if not is_chapter and current_chapter:
-            chapter_content.append(line)
+            # Add content to current chapter
+            chapter_content.append(line_stripped)
     
     # Save last chapter
     if current_chapter and chapter_content:
-        current_chapter['content'] = '\n'.join(chapter_content)
-        current_chapter['word_count'] = len(current_chapter['content'].split())
-        current_chapter['content_preview'] = current_chapter['content'][:300] + '...'
-        chapters.append(current_chapter)
+        content = '\n'.join(chapter_content)
+        if len(content.strip()) > 50:
+            current_chapter['content'] = content
+            current_chapter['word_count'] = len(content.split())
+            current_chapter['content_preview'] = content[:500] + ('...' if len(content) > 500 else '')
+            chapters.append(current_chapter)
     
-    # If no chapters found, create one chapter with all content
+    # If no chapters found, try to split by page breaks or major sections
+    if not chapters:
+        # Try to split by form feed or multiple newlines
+        sections = re.split(r'\n{3,}|\f', text)
+        for idx, section in enumerate(sections):
+            section = section.strip()
+            if len(section) > 100:  # Only include substantial sections
+                # Try to extract a title from first line
+                first_line = section.split('\n')[0].strip()
+                if len(first_line) < 100 and len(first_line) > 3:
+                    title = first_line
+                    content = '\n'.join(section.split('\n')[1:])
+                else:
+                    title = f"Section {idx + 1}"
+                    content = section
+                
+                chapters.append({
+                    'chapter_number': idx + 1,
+                    'chapter_title': title,
+                    'content': content,
+                    'word_count': len(content.split()),
+                    'content_preview': content[:500] + ('...' if len(content) > 500 else '')
+                })
+    
+    # If still no chapters, create one chapter with all content
     if not chapters:
         chapters.append({
             'chapter_number': 1,
             'chapter_title': 'Complete Content',
             'content': text,
             'word_count': len(text.split()),
-            'content_preview': text[:300] + '...'
+            'content_preview': text[:500] + ('...' if len(text) > 500 else '')
         })
     
     return chapters
