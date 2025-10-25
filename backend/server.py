@@ -36,6 +36,9 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 # Initialize embedding model
 embedding_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
+# Initialize OpenAI client for TTS
+openai_client = OpenAI(api_key=os.environ.get('EMERGENT_LLM_KEY'))
+
 # PostgreSQL connection
 def get_db_connection():
     return psycopg2.connect(
