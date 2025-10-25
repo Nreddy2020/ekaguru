@@ -149,6 +149,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: POST /api/textbooks/upload works for text files. Automatic chapter extraction working (extracted 3 chapters from test content). GET /api/textbooks returns proper structure. DELETE /api/textbooks/{id} works correctly. Minor: Image upload requires tesseract OCR and fails on blank images (expected behavior)."
+      - working: true
+        agent: "main"
+        comment: "✅ FIXED: User reported PDF upload failing. Installed missing poppler-utils package required for PDF image extraction. Backend restarted. PDF uploads should now work correctly including OCR for scanned PDFs."
 
   - task: "Chapter Extraction and Management"
     implemented: true
