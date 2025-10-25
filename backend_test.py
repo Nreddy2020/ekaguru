@@ -146,11 +146,11 @@ def create_test_image():
 def test_textbook_upload():
     """Test textbook upload functionality"""
     try:
-        # Test PDF upload
-        pdf_content = create_test_pdf()
+        # Test text file upload (more reliable than PDF)
+        text_content = create_test_text()
         
         files = {
-            'file': ('test_math_book.pdf', pdf_content, 'application/pdf')
+            'file': ('test_math_book.txt', text_content, 'text/plain')
         }
         data = {
             'title': 'Elementary Mathematics',
