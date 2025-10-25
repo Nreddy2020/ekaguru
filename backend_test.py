@@ -170,7 +170,7 @@ def test_textbook_upload():
             log_test("PDF Upload", "FAIL", f"No textbook ID returned: {upload_result}")
             return None
         
-        log_test("PDF Upload", "PASS", f"Uploaded textbook: {upload_result.get('title')} (ID: {textbook_id})")
+        log_test("Text File Upload", "PASS", f"Uploaded textbook: {upload_result.get('title')} (ID: {textbook_id})")
         
         # Test image upload
         img_content = create_test_image()
