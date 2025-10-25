@@ -75,43 +75,45 @@ const LearningSession = () => {
 
       setIsSpeaking(true);
       
-      // Call our TTS endpoint
-      const response = await axios.post(
-        `${API}/text-to-speech`,
-        {
-          text: text.substring(0, 2000), // Limit to 2000 characters
-          voice: 'nova', // Female voice
-          speed: 1.0
-        },
-        {
-          responseType: 'blob'
-        }
-      );
-      
-      // Create audio URL from blob
-      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      setCurrentAudioUrl(audioUrl);
-      
-      // Setup audio element
-      if (!audioRef.current) {
-        audioRef.current = new Audio();
-      }
-      
-      audioRef.current.src = audioUrl;
-      audioRef.current.onended = () => {
+      // Use browser's Speech Synthesis API
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text.substring(0, 2000));
+        
+        // Try to get a female voice
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoice = voices.find(v => 
+          v.name.toLowerCase().includes('female') ||
+          v.name.toLowerCase().includes('samantha') ||
+          v.name.toLowerCase().includes('zira') ||
+          v.name.toLowerCase().includes('nova') ||
+          (v.lang.startsWith('en') && v.name.toLowerCase().includes('google'))
+        );
+        
+        if (femaleVoice) utterance.voice = femaleVoice;
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        utterance.volume = 1.0;
+        
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+          // Simulate audio level for animation
+          const interval = setInterval(() => {
+            setAudioLevel(Math.random() * 0.8 + 0.2);
+          }, 100);
+          utterance.onend = () => {
+            clearInterval(interval);
+            setIsSpeaking(false);
+            setAudioLevel(0);
+          };
+        };
+        
+        window.speechSynthesis.speak(utterance);
+      } else {
+        toast.error('Speech synthesis not supported in your browser');
         setIsSpeaking(false);
-        setAudioLevel(0);
-        if (currentAudioUrl) {
-          URL.revokeObjectURL(currentAudioUrl);
-        }
-      };
-      
-      // Setup audio visualization
-      setupAudioVisualization();
-      
-      // Play audio
-      await audioRef.current.play();
+      }
       
     } catch (error) {
       console.error('TTS error:', error);
