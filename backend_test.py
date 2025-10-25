@@ -575,11 +575,12 @@ def test_static_file_serving():
         log_test("Static File Serving", "FAIL", f"Exception: {str(e)}")
 
 def run_all_tests():
-    """Run all backend tests"""
-    print("=" * 60)
-    print("VIRTUAL TUTOR BACKEND API TESTING")
-    print("=" * 60)
+    """Run all backend tests - COMPREHENSIVE CRITICAL BUG FIX TESTING"""
+    print("=" * 80)
+    print("VIRTUAL TUTOR BACKEND API TESTING - CRITICAL BUG FIXES")
+    print("=" * 80)
     print(f"Backend URL: {BACKEND_URL}")
+    print("🚨 PRIORITY: Testing critical bug fixes and new features")
     print()
     
     # Test 1: API Health Check
@@ -587,55 +588,89 @@ def run_all_tests():
         print("\n❌ API is not accessible. Stopping tests.")
         return
     
-    # Test 2: Student Management
+    # Test 2: Student Management (prerequisite for other tests)
     student_id = test_student_management()
     
-    # Test 3: Textbook Upload and Processing
+    # CRITICAL TESTS - Bug Fixes and New Features
+    print("\n" + "🔥" * 50)
+    print("CRITICAL BUG FIX TESTING")
+    print("🔥" * 50)
+    
+    # Test 3: Enhanced PDF Upload with TOC extraction - NEW FEATURE
+    enhanced_textbook_id = test_enhanced_pdf_upload()
+    
+    # Test 4: Regular Textbook Upload (for comparison)
     textbook_id = test_textbook_upload()
     
-    # Test 4: Textbook Listing
+    # Test 5: Textbook Listing
     textbooks = test_textbook_listing()
     
-    # Test 5: Chapter Management
-    chapters = test_chapter_management(textbook_id)
+    # Test 6: Chapter Management - CRITICAL JSONB fixes
+    chapters = test_chapter_management(textbook_id or enhanced_textbook_id)
     
-    # Test 6: AI Chat with LLM
-    test_ai_chat(student_id, textbook_id)
+    # Test 7: NEW Text-to-Speech Feature
+    test_text_to_speech()
     
-    # Test 7: Progress Tracking
+    # Test 8: AI Chat with LLM
+    test_ai_chat(student_id, textbook_id or enhanced_textbook_id)
+    
+    # Test 9: Progress Tracking
     test_progress_tracking(student_id)
     
-    # Test 8: Static File Serving
+    # Test 10: Static File Serving
     test_static_file_serving()
     
-    # Test 9: Textbook Deletion (cleanup)
+    # CRITICAL Test 11: Textbook Deletion - CRITICAL JSONB fix
+    print("\n" + "🚨" * 30)
+    print("TESTING CRITICAL DELETE BUG FIX")
+    print("🚨" * 30)
+    
     if textbook_id:
         test_textbook_deletion(textbook_id)
+    if enhanced_textbook_id and enhanced_textbook_id != textbook_id:
+        test_textbook_deletion(enhanced_textbook_id)
     
     # Print summary
-    print("\n" + "=" * 60)
-    print("TEST SUMMARY")
-    print("=" * 60)
+    print("\n" + "=" * 80)
+    print("COMPREHENSIVE TEST SUMMARY")
+    print("=" * 80)
     
     passed = sum(1 for result in TEST_RESULTS if result["status"] == "PASS")
     failed = sum(1 for result in TEST_RESULTS if result["status"] == "FAIL")
     skipped = sum(1 for result in TEST_RESULTS if result["status"] == "SKIP")
     
+    # Count critical tests
+    critical_tests = [r for r in TEST_RESULTS if "CRITICAL" in r["test"] or "NEW" in r["test"]]
+    critical_passed = sum(1 for r in critical_tests if r["status"] == "PASS")
+    critical_failed = sum(1 for r in critical_tests if r["status"] == "FAIL")
+    
     print(f"Total Tests: {len(TEST_RESULTS)}")
     print(f"✅ Passed: {passed}")
     print(f"❌ Failed: {failed}")
     print(f"⏭️  Skipped: {skipped}")
+    print()
+    print(f"🔥 CRITICAL/NEW Tests: {len(critical_tests)}")
+    print(f"🔥 ✅ Critical Passed: {critical_passed}")
+    print(f"🔥 ❌ Critical Failed: {critical_failed}")
     
     if failed > 0:
-        print("\nFAILED TESTS:")
+        print("\n" + "❌" * 40)
+        print("FAILED TESTS:")
+        print("❌" * 40)
         for result in TEST_RESULTS:
             if result["status"] == "FAIL":
-                print(f"  - {result['test']}: {result['details']}")
+                priority = "🚨 CRITICAL: " if "CRITICAL" in result["test"] or "NEW" in result["test"] else ""
+                print(f"  {priority}{result['test']}: {result['details']}")
+    
+    if critical_failed > 0:
+        print(f"\n🚨 WARNING: {critical_failed} CRITICAL tests failed!")
+        print("These are the bug fixes that were supposed to be working!")
     
     print("\nDETAILED RESULTS:")
     for result in TEST_RESULTS:
         status_icon = "✅" if result["status"] == "PASS" else "❌" if result["status"] == "FAIL" else "⏭️"
-        print(f"  {status_icon} {result['test']}: {result['details']}")
+        priority_marker = "🔥 " if "CRITICAL" in result["test"] or "NEW" in result["test"] else "   "
+        print(f"  {priority_marker}{status_icon} {result['test']}: {result['details']}")
     
     return TEST_RESULTS
 
