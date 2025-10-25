@@ -14,7 +14,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from sentence_transformers import SentenceTransformer
 import numpy as np
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from google import genai 
+from google.genai.types import UserContent, Part
 import json
 import re
 import PyPDF2
@@ -37,7 +38,7 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 embedding_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
 # Initialize OpenAI client for TTS
-openai_client = OpenAI(api_key=os.environ.get('EMERGENT_LLM_KEY'))
+openai_client = OpenAI(api_key=os.environ.get('GOOGLE_LLM_KEY'))
 
 # PostgreSQL connection
 def get_db_connection():
@@ -45,7 +46,7 @@ def get_db_connection():
         dbname=os.environ.get('POSTGRES_DB', 'virtual_tutor'),
         user=os.environ.get('POSTGRES_USER', 'postgres'),
         password=os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-        host=os.environ.get('POSTGRES_HOST', 'localhost'),
+        host=os.environ.get('POSTGRES_HOST', 'postgres'),
         port=os.environ.get('POSTGRES_PORT', '5432')
     )
 
