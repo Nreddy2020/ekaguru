@@ -368,18 +368,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Textbook Upload and Processing"
-    - "Enhanced TOC and Chapter Extraction"
-    - "Chapter Extraction and Management"
     - "OpenAI TTS Integration"
     - "Interactive Learning Session"
     - "Tutor Avatar Component"
-    - "Textbook Upload and Processing"
-    - "Chapter Extraction and Management"
-    - "AI Chat with Emergent LLM"
-  stuck_tasks: []
-  test_all: true
-  test_priority: "high_first"
+  stuck_tasks:
+    - "OpenAI TTS Integration"
+  test_all: false
+  test_priority: "stuck_first"
 
 agent_communication:
   - agent: "main"
