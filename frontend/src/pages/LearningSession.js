@@ -24,8 +24,7 @@ const LearningSession = () => {
   const [audioLevel, setAudioLevel] = useState(0);
   const [currentAudioUrl, setCurrentAudioUrl] = useState(null);
   const audioRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
+  // Removed unused audio context refs
 
   useEffect(() => {
     if (!currentStudent) {
