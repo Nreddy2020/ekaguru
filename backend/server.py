@@ -1094,14 +1094,14 @@ async def update_learning_progress(student_id: str, chapter_id: str, completion_
     
     return {"message": "Progress updated", "status": status}
 
-@api_router.get("/chapters/{chapter_id}")
+@api_router.get("/chapter/{chapter_id}")
 async def get_chapter_details(chapter_id: str):
     """Get full chapter details with images"""
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     cur.execute("""
-        SELECT c.*, t.title as textbook_title, t.subject
+        SELECT c.*, t.title as textbook_title, t.subject, t.id as textbook_id
         FROM chapters c
         JOIN textbooks t ON c.textbook_id = t.id
         WHERE c.id = %s
@@ -1114,16 +1114,26 @@ async def get_chapter_details(chapter_id: str):
     if not chapter:
         raise HTTPException(status_code=404, detail="Chapter not found")
     
+    # Handle images - JSONB is already parsed as list
+    images = chapter['images'] if isinstance(chapter['images'], list) else (json.loads(chapter['images']) if chapter['images'] else [])
+    
     return {
         "id": chapter['id'],
+        "textbook_id": chapter['textbook_id'],
         "chapter_number": chapter['chapter_number'],
         "chapter_title": chapter['chapter_title'],
+        "chapter_summary": chapter.get('chapter_summary', ''),
         "content_preview": chapter['content_preview'],
         "word_count": chapter['word_count'],
         "textbook_title": chapter['textbook_title'],
         "subject": chapter['subject'],
-        "images": json.loads(chapter['images']) if chapter['images'] else []
+        "images": images
     }
+
+@api_router.get("/chapters/{chapter_id}")
+async def get_chapter_details_alt(chapter_id: str):
+    """Alternative endpoint for chapter details (backwards compatibility)"""
+    return await get_chapter_details(chapter_id)
 
 @api_router.get("/textbooks/{textbook_id}/chapters")
 async def get_textbook_chapters(textbook_id: str):
@@ -1150,11 +1160,12 @@ async def get_textbook_chapters(textbook_id: str):
                 "id": ch['id'],
                 "chapter_number": ch['chapter_number'],
                 "chapter_title": ch['chapter_title'],
+                "chapter_summary": ch.get('chapter_summary', ''),
                 "content_preview": ch['content_preview'],
                 "word_count": ch['word_count'],
                 "textbook_title": ch['textbook_title'],
                 "subject": ch['subject'],
-                "images": json.loads(ch['images']) if ch['images'] else []
+                "images": ch['images'] if isinstance(ch['images'], list) else (json.loads(ch['images']) if ch['images'] else [])
             } for ch in chapters
         ]
     }
