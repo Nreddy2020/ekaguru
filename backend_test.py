@@ -96,35 +96,37 @@ def test_student_management():
         log_test("Student Management", "FAIL", f"Exception: {str(e)}")
         return None
 
-def create_test_pdf():
-    """Create a simple test PDF content"""
-    try:
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import letter
-        
-        buffer = io.BytesIO()
-        p = canvas.Canvas(buffer, pagesize=letter)
-        
-        # Add some test content
-        p.drawString(100, 750, "Chapter 1: Introduction to Mathematics")
-        p.drawString(100, 720, "Mathematics is the study of numbers, shapes, and patterns.")
-        p.drawString(100, 690, "In this chapter, we will learn about basic arithmetic operations.")
-        p.drawString(100, 660, "Addition is combining two or more numbers to get a sum.")
-        p.drawString(100, 630, "Subtraction is taking away one number from another.")
-        
-        p.showPage()
-        
-        p.drawString(100, 750, "Chapter 2: Basic Operations")
-        p.drawString(100, 720, "Let's practice addition and subtraction with examples.")
-        p.drawString(100, 690, "Example 1: 5 + 3 = 8")
-        p.drawString(100, 660, "Example 2: 10 - 4 = 6")
-        
-        p.save()
-        buffer.seek(0)
-        return buffer.getvalue()
-    except ImportError:
-        # If reportlab is not available, create a simple text file instead
-        return b"Chapter 1: Introduction to Mathematics\nMathematics is the study of numbers, shapes, and patterns.\n\nChapter 2: Basic Operations\nLet's practice addition and subtraction."
+def create_test_text():
+    """Create a simple test text content"""
+    content = """Chapter 1: Introduction to Mathematics
+
+Mathematics is the study of numbers, shapes, and patterns. In this chapter, we will learn about basic arithmetic operations.
+
+Addition is combining two or more numbers to get a sum. For example, when we add 2 + 3, we get 5.
+
+Subtraction is taking away one number from another. For example, when we subtract 5 - 2, we get 3.
+
+Chapter 2: Basic Operations
+
+Let's practice addition and subtraction with examples.
+
+Example 1: Addition
+5 + 3 = 8
+This means we start with 5 and add 3 more to get 8.
+
+Example 2: Subtraction  
+10 - 4 = 6
+This means we start with 10 and take away 4 to get 6.
+
+Chapter 3: Advanced Concepts
+
+Now that we understand basic operations, let's explore more complex mathematical concepts.
+
+Multiplication is repeated addition. For example, 3 × 4 means adding 3 four times: 3 + 3 + 3 + 3 = 12.
+
+Division is the opposite of multiplication. It means splitting a number into equal parts.
+"""
+    return content.encode('utf-8')
 
 def create_test_image():
     """Create a simple test image with text"""
