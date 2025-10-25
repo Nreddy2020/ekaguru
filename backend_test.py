@@ -375,26 +375,34 @@ def test_progress_tracking(student_id):
         log_test("Progress Tracking", "FAIL", f"Exception: {str(e)}")
 
 def test_textbook_deletion(textbook_id):
-    """Test textbook deletion"""
+    """Test textbook deletion - CRITICAL BUG FIX: JSONB parsing error fixed"""
     if not textbook_id:
         log_test("Textbook Deletion", "SKIP", "No textbook ID available")
         return
     
     try:
+        # CRITICAL TEST: DELETE /api/textbooks/{textbook_id} - Fixed JSONB handling
         response = requests.delete(f"{BACKEND_URL}/textbooks/{textbook_id}", timeout=10)
         
         if response.status_code != 200:
-            log_test("Textbook Deletion", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            log_test("CRITICAL: Textbook Deletion (JSONB Fix)", "FAIL", f"HTTP {response.status_code}: {response.text}")
             return
         
         result = response.json()
         if result.get("message") == "Textbook deleted successfully":
-            log_test("Textbook Deletion", "PASS", "Textbook deleted successfully")
+            log_test("CRITICAL: Textbook Deletion (JSONB Fix)", "PASS", "Textbook deleted successfully - JSONB parsing fixed")
+            
+            # Verify cascade deletion worked - check if chapters are also deleted
+            response = requests.get(f"{BACKEND_URL}/textbooks/{textbook_id}/chapters", timeout=10)
+            if response.status_code == 404 or (response.status_code == 200 and len(response.json().get("chapters", [])) == 0):
+                log_test("Cascade Deletion Verification", "PASS", "Chapters properly deleted with textbook")
+            else:
+                log_test("Cascade Deletion Verification", "FAIL", "Chapters may not have been deleted")
         else:
-            log_test("Textbook Deletion", "FAIL", f"Unexpected response: {result}")
+            log_test("CRITICAL: Textbook Deletion (JSONB Fix)", "FAIL", f"Unexpected response: {result}")
         
     except Exception as e:
-        log_test("Textbook Deletion", "FAIL", f"Exception: {str(e)}")
+        log_test("CRITICAL: Textbook Deletion (JSONB Fix)", "FAIL", f"Exception: {str(e)}")
 
 def test_static_file_serving():
     """Test static file serving for images"""
