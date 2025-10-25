@@ -160,14 +160,14 @@ def test_textbook_upload():
         response = requests.post(f"{BACKEND_URL}/textbooks/upload", files=files, data=data, timeout=30)
         
         if response.status_code != 200:
-            log_test("PDF Upload", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            log_test("Text File Upload", "FAIL", f"HTTP {response.status_code}: {response.text}")
             return None
         
         upload_result = response.json()
         textbook_id = upload_result.get("id")
         
         if not textbook_id:
-            log_test("PDF Upload", "FAIL", f"No textbook ID returned: {upload_result}")
+            log_test("Text File Upload", "FAIL", f"No textbook ID returned: {upload_result}")
             return None
         
         log_test("Text File Upload", "PASS", f"Uploaded textbook: {upload_result.get('title')} (ID: {textbook_id})")
