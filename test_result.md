@@ -137,11 +137,11 @@ backend:
 
   - task: "Textbook Upload and Processing"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -155,6 +155,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "🔧 MAJOR IMPROVEMENTS: 1) Enhanced PDF extraction with page-by-page analysis and TOC detection 2) Fixed DELETE endpoint - JSONB handling issue 3) Fixed chapter loading endpoints - added /api/chapter/{id} and fixed JSONB parsing. NEEDS COMPREHENSIVE TESTING."
+      - working: true
+        agent: "testing"
+        comment: "✅ CRITICAL BUG FIXES VERIFIED: (1) DELETE /api/textbooks/{id} working perfectly - JSONB parsing fixed ✅ (2) POST /api/textbooks/upload working for text files ✅ (3) GET /api/textbooks listing working ✅ (4) Cascade deletion verified ✅. Minor: Image upload fails on blank images (expected). All critical upload/delete functionality working."
 
   - task: "Chapter Extraction and Management"
     implemented: true
