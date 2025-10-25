@@ -231,45 +231,68 @@ def test_textbook_listing():
         return []
 
 def test_chapter_management(textbook_id):
-    """Test chapter extraction and management"""
+    """Test chapter extraction and management - CRITICAL BUG FIX TESTING"""
     if not textbook_id:
         log_test("Chapter Management", "SKIP", "No textbook ID available")
         return []
     
     try:
-        # Test getting chapters for a textbook
+        # CRITICAL TEST 1: GET /api/textbooks/{textbook_id}/chapters - Fixed JSONB handling
         response = requests.get(f"{BACKEND_URL}/textbooks/{textbook_id}/chapters", timeout=10)
         
         if response.status_code != 200:
-            log_test("Chapter Listing", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            log_test("CRITICAL: Chapter Listing (JSONB Fix)", "FAIL", f"HTTP {response.status_code}: {response.text}")
             return []
         
         chapter_data = response.json()
         chapters = chapter_data.get("chapters", [])
         
         if not isinstance(chapters, list):
-            log_test("Chapter Listing", "FAIL", f"Expected list, got: {type(chapters)}")
+            log_test("CRITICAL: Chapter Listing (JSONB Fix)", "FAIL", f"Expected list, got: {type(chapters)}")
             return []
         
-        log_test("Chapter Listing", "PASS", f"Retrieved {len(chapters)} chapters for textbook")
+        # Verify JSONB images field is properly handled
+        for chapter in chapters:
+            if 'images' in chapter:
+                images = chapter['images']
+                if not isinstance(images, list):
+                    log_test("CRITICAL: JSONB Images Parsing", "FAIL", f"Images should be list, got: {type(images)}")
+                    return []
         
-        # Test getting individual chapter details
+        log_test("CRITICAL: Chapter Listing (JSONB Fix)", "PASS", f"Retrieved {len(chapters)} chapters with proper JSONB handling")
+        
+        # CRITICAL TEST 2: GET /api/chapter/{chapter_id} - NEW ENDPOINT
         if chapters:
             chapter_id = chapters[0].get("id")
             if chapter_id:
-                response = requests.get(f"{BACKEND_URL}/chapters/{chapter_id}", timeout=10)
+                # Test the NEW endpoint /api/chapter/{id}
+                response = requests.get(f"{BACKEND_URL}/chapter/{chapter_id}", timeout=10)
                 
                 if response.status_code == 200:
                     chapter_detail = response.json()
-                    required_fields = ['id', 'chapter_number', 'chapter_title', 'content_preview', 'word_count']
+                    required_fields = ['id', 'textbook_id', 'chapter_number', 'chapter_title', 
+                                     'chapter_summary', 'content_preview', 'word_count', 
+                                     'textbook_title', 'subject', 'images']
                     missing_fields = [field for field in required_fields if field not in chapter_detail]
                     
                     if missing_fields:
-                        log_test("Chapter Details", "FAIL", f"Missing fields: {missing_fields}")
+                        log_test("CRITICAL: New Chapter Endpoint", "FAIL", f"Missing fields: {missing_fields}")
                     else:
-                        log_test("Chapter Details", "PASS", f"Chapter details complete: {chapter_detail.get('chapter_title')}")
+                        # Verify JSONB images field
+                        images = chapter_detail.get('images', [])
+                        if not isinstance(images, list):
+                            log_test("CRITICAL: New Chapter Endpoint JSONB", "FAIL", f"Images should be list, got: {type(images)}")
+                        else:
+                            log_test("CRITICAL: New Chapter Endpoint", "PASS", f"Chapter details complete with JSONB: {chapter_detail.get('chapter_title')}")
                 else:
-                    log_test("Chapter Details", "FAIL", f"HTTP {response.status_code}: {response.text}")
+                    log_test("CRITICAL: New Chapter Endpoint", "FAIL", f"HTTP {response.status_code}: {response.text}")
+                
+                # Also test the old endpoint for backwards compatibility
+                response = requests.get(f"{BACKEND_URL}/chapters/{chapter_id}", timeout=10)
+                if response.status_code == 200:
+                    log_test("Backwards Compatibility: Old Chapter Endpoint", "PASS", "Old endpoint still works")
+                else:
+                    log_test("Backwards Compatibility: Old Chapter Endpoint", "FAIL", f"HTTP {response.status_code}")
         
         return chapters
         
