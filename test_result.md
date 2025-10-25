@@ -330,15 +330,18 @@ frontend:
 
   - task: "OpenAI TTS Integration"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "✨ NEW: Added /api/text-to-speech endpoint. Uses OpenAI gpt-4o-mini-tts model with Nova voice (female). Streaming audio for real-time playback. NEEDS TESTING."
+        comment: "✨ NEW: Added /api/text-to-speech endpoint. Uses OpenAI gpt-4o-mini-tts model with Nova voice (female). Streaming audio for real-time playbook. NEEDS TESTING."
+      - working: false
+        agent: "testing"
+        comment: "❌ TTS API KEY ISSUE: POST /api/text-to-speech failing with 401 error. Problem: Code uses EMERGENT_LLM_KEY for OpenAI client, but this is an Emergent key (sk-emergent-*), not OpenAI key (sk-*). Need proper OpenAI API key or modify to use Emergent integration for TTS. Endpoint structure and validation working correctly."
 
   - task: "Enhanced TOC and Chapter Extraction"
     implemented: true
