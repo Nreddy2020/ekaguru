@@ -7,7 +7,7 @@ import TutorChat from '@/pages/TutorChat';
 import StudentProfile from '@/pages/StudentProfile';
 import TextbookUpload from '@/pages/TextbookUpload';
 import LearningPath from '@/pages/LearningPath';
-import VisualLearning from '@/pages/VisualLearning';
+import LearningSession from '@/pages/LearningSession';
 import { Toaster } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
