@@ -121,40 +121,7 @@ const LearningSession = () => {
     }
   };
 
-  const setupAudioVisualization = () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      
-      const source = audioContextRef.current.createMediaElementSource(audioRef.current);
-      source.connect(analyserRef.current);
-      analyserRef.current.connect(audioContextRef.current.destination);
-      
-      analyserRef.current.fftSize = 256;
-      
-      // Animate audio level
-      const updateAudioLevel = () => {
-        if (!analyserRef.current || !isSpeaking) {
-          setAudioLevel(0);
-          return;
-        }
-        
-        const bufferLength = analyserRef.current.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        analyserRef.current.getByteFrequencyData(dataArray);
-        
-        // Calculate average audio level
-        const average = dataArray.reduce((a, b) => a + b) / bufferLength;
-        setAudioLevel(average / 255);
-        
-        if (isSpeaking) {
-          requestAnimationFrame(updateAudioLevel);
-        }
-      };
-      
-      updateAudioLevel();
-    }
-  };
+  // Audio visualization removed - now using Speech Synthesis API
 
   const stopSpeaking = () => {
     // Stop Speech Synthesis API
