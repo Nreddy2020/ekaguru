@@ -173,6 +173,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: GET /api/textbooks/{textbook_id}/chapters returns proper chapter list with all required fields. GET /api/chapters/{chapter_id} returns complete chapter details including chapter_number, title, content_preview, word_count, images array. Chapter extraction from text working correctly."
+      - working: true
+        agent: "testing"
+        comment: "✅ CRITICAL BUG FIXES VERIFIED: (1) GET /api/textbooks/{textbook_id}/chapters - JSONB images parsing fixed ✅ (2) NEW GET /api/chapter/{chapter_id} endpoint working perfectly with all required fields ✅ (3) Backwards compatibility maintained with old /api/chapters/{id} endpoint ✅ (4) JSONB images field properly handled as arrays ✅. All chapter management functionality working correctly."
 
   - task: "Vector Embedding and Search"
     implemented: true
