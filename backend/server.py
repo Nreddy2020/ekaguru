@@ -1030,7 +1030,8 @@ async def delete_textbook(textbook_id: str):
         # Delete image files
         for chapter in chapters:
             if chapter['images']:
-                images = json.loads(chapter['images'])
+                # images is already a list (JSONB), no need to parse
+                images = chapter['images'] if isinstance(chapter['images'], list) else json.loads(chapter['images'])
                 for img_path in images:
                     try:
                         file_path = ROOT_DIR / img_path.lstrip('/')
