@@ -710,7 +710,7 @@ async def upload_textbook(
         
         # Process file based on type
         logging.info(f"Processing file: {file.filename}")
-        text = process_file_content(content, file.filename)
+        text, page_texts = process_file_content(content, file.filename)
         
         if not text or len(text) < 50:
             raise HTTPException(
@@ -746,8 +746,8 @@ async def upload_textbook(
         
         conn.commit()
         
-        # Extract chapters from text
-        chapters = extract_chapters_from_text(text)
+        # Extract chapters from text (pass page_texts for better extraction)
+        chapters = extract_chapters_from_text(text, page_texts)
         logging.info(f"Extracted {len(chapters)} chapters from textbook")
         
         # Store chapters
