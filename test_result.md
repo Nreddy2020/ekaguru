@@ -137,11 +137,11 @@ backend:
 
   - task: "Textbook Upload and Processing"
     implemented: true
-    working: true
+    working: "NA"
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
@@ -152,6 +152,9 @@ backend:
       - working: true
         agent: "main"
         comment: "✅ FIXED: User reported PDF upload failing. Installed missing poppler-utils package required for PDF image extraction. Backend restarted. PDF uploads should now work correctly including OCR for scanned PDFs."
+      - working: "NA"
+        agent: "main"
+        comment: "🔧 MAJOR IMPROVEMENTS: 1) Enhanced PDF extraction with page-by-page analysis and TOC detection 2) Fixed DELETE endpoint - JSONB handling issue 3) Fixed chapter loading endpoints - added /api/chapter/{id} and fixed JSONB parsing. NEEDS COMPREHENSIVE TESTING."
 
   - task: "Chapter Extraction and Management"
     implemented: true
