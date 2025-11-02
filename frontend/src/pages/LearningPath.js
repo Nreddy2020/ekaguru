@@ -58,7 +58,7 @@ const LearningPath = () => {
       });
       
       toast.success(`Starting: ${chapterTitle}`);
-      // Navigate to interactive chat with chapter context
+      // Navigate to interactive learning session page
       navigate(`/learn?chapter=${chapterId}`);
     } catch (error) {
       console.error('Error starting chapter:', error);
