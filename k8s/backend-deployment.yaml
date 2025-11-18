@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: emergent
+  labels:
+    app: emergent-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emergent-backend
+  template:
+    metadata:
+      labels:
+        app: emergent-backend
+    spec:
+      containers:
+        - name: backend
+          image: 10.43.249.111:5000/emergent-backend:2025-11-18
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          env:
+            - name: EMERGENT_LLM_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: google-llm-secret
+                  key: EMERGENT_LLM_KEY
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: google-llm-secret
+                  key: EMERGENT_LLM_KEY
+            - name: GOOGLE_LLM_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: google-llm-secret
+                  key: EMERGENT_LLM_KEY
+            - name: POSTGRES_HOST
+              value: "postgres"
+            - name: POSTGRES_DB
+              value: "virtual_tutor"
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              value: "postgres"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: emergent
+  labels:
+    app: emergent-backend
+spec:
+  selector:
+    app: emergent-backend
+  ports:
+    - protocol: TCP
+      port: 8001
+      targetPort: 8001
+  type: ClusterIP

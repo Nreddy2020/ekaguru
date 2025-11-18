@@ -1,6 +1,7 @@
-from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Form
+from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Form, Request, Response
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+import httpx
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -1550,6 +1551,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Reverse-proxy: forward non-API and non-upload requests to the frontend service
+@app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
+async def proxy_to_frontend(request: Request, full_path: str):
+    # Let API and uploads be handled by existing routes/mounts
+    if request.url.path.startswith("/api") or request.url.path.startswith("/uploads"):
+        raise HTTPException(status_code=404)
+
+    # Construct target URL for the in-cluster frontend service (correct port)
+    target = f"http://frontend:3000/{full_path}"
+    if request.url.query:
+        target += "?" + request.url.query
+
+    # Filter hop-by-hop headers
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length", "accept-encoding", "connection")}
+
+    async with httpx.AsyncClient() as client:
+        body = await request.body()
+        resp = await client.request(request.method, target, headers=headers, content=body, timeout=60.0)
+
+    # Return proxied response with key headers
+    response_headers = {}
+    if "content-type" in resp.headers:
+        response_headers["content-type"] = resp.headers.get("content-type")
+
+    return Response(content=resp.content, status_code=resp.status_code, headers=response_headers)
 
 # Configure logging
 logging.basicConfig(

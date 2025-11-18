@@ -1,19 +1,29 @@
-FROM node:20-alpine
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
-# Copy package files
+# Do not open browser during build/start
+ENV BROWSER=none
+
+# Copy package files and install deps
 COPY package*.json ./
 COPY yarn.lock* ./
+RUN yarn install --frozen-lockfile
 
-# Install dependencies
-RUN yarn install
-
-# Copy application code
+# Copy source and build static assets
 COPY . .
+RUN yarn build
 
-# Expose port
-EXPOSE 3000
+FROM nginx:stable-alpine
 
-# Start the app
-CMD ["yarn", "start"]
+# Copy built static files to nginx
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Add custom nginx config to allow large uploads
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose standard HTTP port
+EXPOSE 80
+
+# Run nginx
+CMD ["nginx", "-g", "daemon off;"]
