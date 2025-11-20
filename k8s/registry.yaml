@@ -17,13 +17,14 @@ spec:
 
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: registry
   namespace: emergent
   labels:
     app: registry
 spec:
+  serviceName: registry
   replicas: 1
   selector:
     matchLabels:
@@ -39,9 +40,33 @@ spec:
           ports:
             - containerPort: 5000
               name: registry
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
           volumeMounts:
             - name: registry-storage
               mountPath: /var/lib/registry
-      volumes:
-        - name: registry-storage
-          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: registry-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi

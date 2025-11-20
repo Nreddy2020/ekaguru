@@ -60,9 +60,9 @@ function Build-And-Push($name, $path, $imageTag) {
 Build-And-Push -name "backend" -path ".\backend" -imageTag $BackendImage
 Build-And-Push -name "frontend" -path ".\frontend" -imageTag $FrontendImage
 
-Write-Host "Applying Kubernetes manifests in k8s/ (namespace already applied)"
-kubectl apply -f .\k8s\
-
-Pop-Location
+Write-Host "Applying application deployments and ingress..."
+kubectl apply -f .\k8s\backend-deployment.yaml
+kubectl apply -f .\k8s\frontend-deployment.yaml
+kubectl apply -f .\k8s\ingress.yaml
 
 Write-Host "Done. Use 'kubectl -n $Namespace get pods' to inspect workloads."

@@ -17,10 +17,29 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: 10.43.249.111:5000/emergent-frontend:large-upload
+          image: registry:5000/emergent-frontend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
 
 ---
 apiVersion: v1

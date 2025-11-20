@@ -41,121 +41,141 @@ embedding_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 # Initialize OpenAI client for TTS
 openai_client = OpenAI(api_key=os.environ.get('GOOGLE_LLM_KEY'))
 
+# --- Improved Database Connection Pooling ---
+from psycopg2 import pool
+
+db_pool = None
+
+def init_db_pool():
+    global db_pool
+    if db_pool is None:
+        logging.info("Initializing database connection pool...")
+        db_pool = pool.SimpleConnectionPool(1, 10, # min, max connections
+            dbname=os.environ.get('POSTGRES_DB', 'virtual_tutor'),
+            user=os.environ.get('POSTGRES_USER', 'postgres'),
+            password=os.environ.get('POSTGRES_PASSWORD', 'postgres'),
+            host=os.environ.get('POSTGRES_HOST', 'postgres'),
+            port=os.environ.get('POSTGRES_PORT', '5432')
+        )
+
 # PostgreSQL connection
 def get_db_connection():
-    return psycopg2.connect(
-        dbname=os.environ.get('POSTGRES_DB', 'virtual_tutor'),
-        user=os.environ.get('POSTGRES_USER', 'postgres'),
-        password=os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-        host=os.environ.get('POSTGRES_HOST', 'postgres'),
-        port=os.environ.get('POSTGRES_PORT', '5432')
-    )
+    """Gets a connection from the pool."""
+    return db_pool.getconn()
+
+def put_db_connection(conn):
+    """Returns a connection to the pool."""
+    db_pool.putconn(conn)
 
 # Initialize database tables
 def init_db():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    # Create textbooks table
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS textbooks (
-            id VARCHAR(255) PRIMARY KEY,
-            filename VARCHAR(500),
-            title VARCHAR(500),
-            subject VARCHAR(255),
-            upload_date TIMESTAMP,
-            total_chunks INTEGER DEFAULT 0,
-            total_chapters INTEGER DEFAULT 0
-        )
-    """)
-    
-    # Create chapters table
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS chapters (
-            id VARCHAR(255) PRIMARY KEY,
-            textbook_id VARCHAR(255) REFERENCES textbooks(id) ON DELETE CASCADE,
-            chapter_number INTEGER,
-            chapter_title VARCHAR(500),
-            chapter_summary TEXT,
-            content_preview TEXT,
-            word_count INTEGER,
-            created_at TIMESTAMP,
-            images JSONB DEFAULT '[]'::jsonb
-        )
-    """)
-    
-    # Create text_chunks table with vector extension
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS text_chunks (
-            id VARCHAR(255) PRIMARY KEY,
-            textbook_id VARCHAR(255) REFERENCES textbooks(id) ON DELETE CASCADE,
-            chunk_text TEXT,
-            chunk_index INTEGER,
-            embedding vector(384),
-            metadata JSONB
-        )
-    """)
-    
-    # Create vector index for efficient similarity search
-    cur.execute("""
-        CREATE INDEX IF NOT EXISTS text_chunks_embedding_idx 
-        ON text_chunks USING hnsw (embedding vector_cosine_ops)
-    """)
-    
-    # Create students table
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS students (
-            id VARCHAR(255) PRIMARY KEY,
-            name VARCHAR(255),
-            grade_level VARCHAR(50),
-            created_at TIMESTAMP,
-            avatar_preference VARCHAR(100) DEFAULT 'default'
-        )
-    """)
-    
-    # Create knowledge_state table (tracks what student knows)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS knowledge_state (
-            id VARCHAR(255) PRIMARY KEY,
-            student_id VARCHAR(255) REFERENCES students(id) ON DELETE CASCADE,
-            topic VARCHAR(500),
-            mastery_level FLOAT DEFAULT 0.0,
-            last_tested TIMESTAMP,
-            correct_answers INTEGER DEFAULT 0,
-            total_attempts INTEGER DEFAULT 0
-        )
-    """)
-    
-    # Create learning_progress table (tracks chapter completion)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS learning_progress (
-            id VARCHAR(255) PRIMARY KEY,
-            student_id VARCHAR(255) REFERENCES students(id) ON DELETE CASCADE,
-            chapter_id VARCHAR(255) REFERENCES chapters(id) ON DELETE CASCADE,
-            status VARCHAR(50) DEFAULT 'not_started',
-            completion_percentage FLOAT DEFAULT 0.0,
-            started_at TIMESTAMP,
-            completed_at TIMESTAMP,
-            quiz_score FLOAT DEFAULT 0.0
-        )
-    """)
-    
-    # Create chat_history table
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS chat_history (
-            id VARCHAR(255) PRIMARY KEY,
-            student_id VARCHAR(255) REFERENCES students(id) ON DELETE CASCADE,
-            message TEXT,
-            role VARCHAR(50),
-            timestamp TIMESTAMP,
-            response_type VARCHAR(50)
-        )
-    """)
-    
-    conn.commit()
-    cur.close()
-    conn.close()
-    logging.info("Database initialized successfully")
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Create textbooks table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS textbooks (
+                id VARCHAR(255) PRIMARY KEY,
+                filename VARCHAR(500),
+                title VARCHAR(500),
+                subject VARCHAR(255),
+                upload_date TIMESTAMP,
+                total_chunks INTEGER DEFAULT 0,
+                total_chapters INTEGER DEFAULT 0
+            )
+        """)
+        
+        # Create chapters table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS chapters (
+                id VARCHAR(255) PRIMARY KEY,
+                textbook_id VARCHAR(255) REFERENCES textbooks(id) ON DELETE CASCADE,
+                chapter_number INTEGER,
+                chapter_title VARCHAR(500),
+                chapter_summary TEXT,
+                content_preview TEXT,
+                word_count INTEGER,
+                created_at TIMESTAMP,
+                images JSONB DEFAULT '[]'::jsonb
+            )
+        """)
+        
+        # Create text_chunks table with vector extension
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS text_chunks (
+                id VARCHAR(255) PRIMARY KEY,
+                textbook_id VARCHAR(255) REFERENCES textbooks(id) ON DELETE CASCADE,
+                chunk_text TEXT,
+                chunk_index INTEGER,
+                embedding vector(384),
+                metadata JSONB
+            )
+        """)
+        
+        # Create vector index for efficient similarity search
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS text_chunks_embedding_idx 
+            ON text_chunks USING hnsw (embedding vector_cosine_ops)
+        """)
+        
+        # Create students table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS students (
+                id VARCHAR(255) PRIMARY KEY,
+                name VARCHAR(255),
+                grade_level VARCHAR(50),
+                created_at TIMESTAMP,
+                avatar_preference VARCHAR(100) DEFAULT 'default'
+            )
+        """)
+        
+        # Create knowledge_state table (tracks what student knows)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS knowledge_state (
+                id VARCHAR(255) PRIMARY KEY,
+                student_id VARCHAR(255) REFERENCES students(id) ON DELETE CASCADE,
+                topic VARCHAR(500),
+                mastery_level FLOAT DEFAULT 0.0,
+                last_tested TIMESTAMP,
+                correct_answers INTEGER DEFAULT 0,
+                total_attempts INTEGER DEFAULT 0
+            )
+        """)
+        
+        # Create learning_progress table (tracks chapter completion)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS learning_progress (
+                id VARCHAR(255) PRIMARY KEY,
+                student_id VARCHAR(255) REFERENCES students(id) ON DELETE CASCADE,
+                chapter_id VARCHAR(255) REFERENCES chapters(id) ON DELETE CASCADE,
+                status VARCHAR(50) DEFAULT 'not_started',
+                completion_percentage FLOAT DEFAULT 0.0,
+                started_at TIMESTAMP,
+                completed_at TIMESTAMP,
+                quiz_score FLOAT DEFAULT 0.0
+            )
+        """)
+        
+        # Create chat_history table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS chat_history (
+                id VARCHAR(255) PRIMARY KEY,
+                student_id VARCHAR(255) REFERENCES students(id) ON DELETE CASCADE,
+                message TEXT,
+                role VARCHAR(50),
+                timestamp TIMESTAMP,
+                response_type VARCHAR(50)
+            )
+        """)
+        
+        conn.commit()
+        cur.close()
+        logging.info("Database initialized successfully")
+    finally:
+        if conn:
+            put_db_connection(conn)
 
 # Create the main app
 app = FastAPI()
@@ -1561,7 +1581,7 @@ async def proxy_to_frontend(request: Request, full_path: str):
         raise HTTPException(status_code=404)
 
     # Construct target URL for the in-cluster frontend service (correct port)
-    target = f"http://frontend:3000/{full_path}"
+    target = f"http://frontend:80/{full_path}"
     if request.url.query:
         target += "?" + request.url.query
 
@@ -1588,9 +1608,14 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def startup_event():
+    init_db_pool()
     init_db()
     logger.info("Virtual Tutor API started successfully")
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    global db_pool
+    if db_pool:
+        db_pool.closeall()
+        logger.info("Database connection pool closed.")
     logger.info("Virtual Tutor API shutting down")

@@ -98,4 +98,51 @@ docker-compose logs backend
 docker-compose logs frontend  
 docker-compose logs postgres
 ```
+## 🚀 Kubernetes Deployment with Kaniko
+
+This project can be deployed to a Kubernetes cluster using the provided scripts and manifests. The build process uses Kaniko to build container images directly in the cluster.
+
+### System Requirements
+- A running Kubernetes cluster
+- `kubectl` configured to connect to your cluster
+- PowerShell
+
+### Deployment Steps
+
+1.  **Configure Environment:**
+    Before deploying, you need to configure your Google LLM API key. The deployment will use a Kubernetes secret for this. Create a file named `secret-google-llm.yaml` in the `k8s` directory with the following content:
+
+    ```yaml
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: google-llm-key
+      namespace: emergent
+    type: Opaque
+    stringData:
+      key: "YOUR_GOOGLE_LLM_KEY"
+    ```
+    Replace `"YOUR_GOOGLE_LLM_KEY"` with your actual API key.
+
+2.  **Run the Deployment Script:**
+    Open a PowerShell terminal and run the following command from the root of the project:
+
+    ```powershell
+    .\scripts\kaniko-build.ps1
+    ```
+
+    This script will:
+    - Create the `emergent` namespace.
+    - Deploy an in-cluster Docker registry.
+    - Use Kaniko to build the backend and frontend images and push them to the in-cluster registry.
+    - Deploy the PostgreSQL database, backend, and frontend applications.
+    - Create an ingress resource to expose the services.
+
+3.  **Access the Application:**
+    Once the script is finished, you can access the application through the ingress. The exact URL will depend on your cluster's ingress controller configuration. You can find the ingress details by running:
+
+    ```bash
+    kubectl -n emergent get ingress
+    ```
+
 # Here are your Instructions
