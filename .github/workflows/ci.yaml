@@ -1,0 +1,62 @@
+name: Ekaguru CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest flake8 black
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        
+    - name: Test with pytest
+      run: |
+        # Run all verification scripts as tests
+        pytest **/verify_*.py
+
+  build-and-push:
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: Build and Push Images
+      run: |
+        # Build loop for all services
+        for service in memory_service orchestrator_service diagnosis_agent teaching_agent struggle_agent reflection_agent transfer_agent parent_dashboard avatar_controller; do
+          if [ -d "$service" ]; then
+            echo "Building $service..."
+            docker build -t ekaguru/$service:${{ github.sha }} $service
+            docker push ekaguru/$service:${{ github.sha }}
+            docker tag ekaguru/$service:${{ github.sha }} ekaguru/$service:latest
+            docker push ekaguru/$service:latest
+          fi
+        done

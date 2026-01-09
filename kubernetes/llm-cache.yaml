@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-cache-redis
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-cache
+  template:
+    metadata:
+      labels:
+        app: llm-cache
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.0-alpine
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 6379

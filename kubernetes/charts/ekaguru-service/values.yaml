@@ -1,0 +1,28 @@
+# Default values for ekaguru-service
+replicaCount: 1
+
+image:
+  repository: ekaguru/service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+securityContext:
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+
+env: {}

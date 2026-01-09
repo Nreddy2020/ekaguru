@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+data:
+  learning-dashboard.json: |
+    {
+      "title": "Ekaguru Learning Health",
+      "panels": [
+        {
+          "title": "Fear Index (Real-time)",
+          "type": "gauge",
+          "datasource": "Prometheus",
+          "targets": [
+            { "expr": "sum(rate(learning_event_fear_detected_total[5m]))" }
+          ]
+        },
+        {
+          "title": "Concept Mastery Rate",
+          "type": "graph",
+          "targets": [
+            { "expr": "sum(student_concept_state_mastered_total) / sum(student_concept_state_total)" }
+          ]
+        },
+        {
+          "title": "Agent Response Latency (p95)",
+          "type": "timseries",
+          "targets": [
+            { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m]) by (le)))" }
+          ]
+        }
+      ]
+    }
