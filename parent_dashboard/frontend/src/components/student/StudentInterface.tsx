@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import AvatarCanvas from './AvatarCanvas';
 import { voiceService } from '../../services/voice';
 import { Mic, MicOff } from 'lucide-react';
+import GamificationPanel from './GamificationPanel';
 
 export default function StudentInterface() {
     const [status, setStatus] = useState<string>("Ready to learn!");
@@ -73,7 +74,12 @@ export default function StudentInterface() {
     }, []);
 
     return (
-        <div className="flex flex-col h-screen bg-slate-900 text-white items-center justify-center p-4">
+        <div className="flex flex-col h-screen bg-slate-900 text-white items-center justify-center p-4 relative">
+
+            {/* Gamification Overlay */}
+            <div className="absolute top-4 right-4 z-10 w-80 hidden md:block">
+                <GamificationPanel />
+            </div>
 
             {/* Avatar Stage */}
             <div className="relative w-80 h-80 md:w-96 md:h-96 bg-slate-800 rounded-full shadow-2xl border-4 border-slate-700 flex items-center justify-center overflow-hidden mb-8">
