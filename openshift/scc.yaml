@@ -1,0 +1,28 @@
+kind: SecurityContextConstraints
+apiVersion: security.openshift.io/v1
+metadata:
+  name: ekaguru-scc
+  annotations:
+    kubernetes.io/description: "Standard SCC for Ekaguru services, dropping root privileges."
+allowPrivilegedContainer: false
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+runAsUser:
+  type: MustRunAsRange # Forces arbitrary UID (OpenShift default)
+seLinuxContext:
+  type: MustRunAs
+fsGroup:
+  type: MustRunAs
+groups: []
+users:
+- system:serviceaccount:ekaguru-prod:default
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- persistentVolumeClaim
+- projected
+- secret
