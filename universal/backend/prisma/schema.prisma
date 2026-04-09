@@ -1,0 +1,246 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Module 1: Domain Model ---
+
+enum SubjectCategory {
+  TECHNOLOGY
+  ACADEMIC
+  SOFT_SKILL
+  LANGUAGE
+  ARTS
+}
+
+enum TargetRole {
+  KID
+  STUDENT
+  PROFESSIONAL
+  ARCHITECT
+  PROFESSOR
+  RESEARCHER
+}
+
+enum SubjectStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  DEPRECATED
+}
+
+model Subject {
+  id          String          @id @default(uuid())
+  name        String
+  category    SubjectCategory
+  description String
+  version     String          @default("1.0.0")
+  status      SubjectStatus   @default(DRAFT)
+  
+  targetRoles TargetRole[]
+  metaTags    String[]        // e.g. ["Cloud", "DevOps"]
+
+  phases      Phase[]
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Phase {
+  id          String   @id @default(uuid())
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  
+  name        String   // e.g. "Beginner", "Advanced"
+  orderIndex  Int
+  outcome     String   // "Able to write basic code"
+
+  modules     Module[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  phaseId     String
+  phase       Phase    @relation(fields: [phaseId], references: [id])
+  
+  title       String
+  objectives  String[]
+  durationMin Int      @default(60)
+
+  topics      Topic[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Topic {
+  id          String   @id @default(uuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id])
+  
+  title       String
+  
+  // The "20-Field" Standard stored as JSON to allow flexibility/evolution
+  // Includes: arch, security, performance, troubleshooting, etc.
+  contentData Json 
+  
+  // Multi-Persona Explanations (Legacy - migrating to Lenses)
+  // { "kid": "...", "pro": "..." }
+  explanations Json
+
+  // Relationships
+  atoms       ConceptAtom[] // The Micro-Knowledge Graph Children
+
+  labs        Lab[]
+  assessments Assessment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- Module 3: Knowledge Graph (The Brain) ---
+
+enum AtomType {
+  CONCEPT     // Abstract idea (e.g. "Velocity")
+  ENTITY      // Concrete object (e.g. "Car")
+  PROCESS     // Action/Verb (e.g. "Moving")
+  PRINCIPLE   // Law/Rule (e.g. "F=ma")
+}
+
+model ConceptAtom {
+  id          String   @id @default(uuid())
+  topicId     String
+  topic       Topic    @relation(fields: [topicId], references: [id])
+  
+  name        String
+  type        AtomType
+  
+  // The "Beautiful Data" - definitions in purest form
+  definition  String
+  
+  // Graph Connections
+  outgoing    ConceptRelation[] @relation("SourceAtom")
+  incoming    ConceptRelation[] @relation("TargetAtom")
+  
+  // Adaptive Content
+  lenses      ComplexityLens[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum RelationType {
+  PREREQUISITE    // A must be known before B
+  COMPONENT_OF    // A is part of B
+  ANALOGY_FOR     // A is like B
+  EVOLUTION_OF    // B came from A
+}
+
+model ConceptRelation {
+  id          String       @id @default(uuid())
+  
+  sourceId    String
+  source      ConceptAtom  @relation("SourceAtom", fields: [sourceId], references: [id])
+  
+  targetId    String
+  target      ConceptAtom  @relation("TargetAtom", fields: [targetId], references: [id])
+  
+  type        RelationType
+  weight      Float        @default(1.0) // Strength of connection
+  description String?      // Explain WHY they are related
+  
+  createdAt   DateTime     @default(now())
+}
+
+model ComplexityLens {
+  id          String      @id @default(uuid())
+  atomId      String
+  atom        ConceptAtom @relation(fields: [atomId], references: [id])
+  
+  role        TargetRole  // KID, STUDENT, GENIUS
+  
+  narrative   String      // The story
+  analogy     String      // "Imagine a..."
+  visualPrompt String?    // For GenAI image generation
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@unique([atomId, role]) // One lens per role per atom
+}
+
+// --- Module 5: Labs ---
+
+model Lab {
+  id          String   @id @default(uuid())
+  topicId     String
+  topic       Topic    @relation(fields: [topicId], references: [id])
+
+  title       String
+  instructions String
+  commands     String[] // or Json
+  solution     String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- Module 6: Assessments ---
+
+enum QuestionType {
+  MCQ
+  SCENARIO
+  DESIGN
+}
+
+model Assessment {
+  id          String     @id @default(uuid())
+  topicId     String
+  topic       Topic      @relation(fields: [topicId], references: [id])
+
+  questions   Question[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Question {
+  id           String       @id @default(uuid())
+  assessmentId String
+  assessment   Assessment   @relation(fields: [assessmentId], references: [id])
+
+  text         String
+  type         QuestionType
+  options      String[]     // For MCQ
+  correctAnswer String
+  explanation  String
+  complexity   Int          // 1-10
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+// --- Module 2: AI Templates ---
+
+model PromptTemplate {
+  id             String   @id @default(uuid())
+  name           String   @unique // e.g. "topic_deep_dive"
+  version        Int      @default(1)
+  
+  systemPrompt   String
+  userPrompt     String   // with {{variables}}
+  outputSchema   Json     // Zod/JSON Schema
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

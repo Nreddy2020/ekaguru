@@ -1,0 +1,204 @@
+# Tutor Module V1 - Implementation Plan
+
+## Goal Description
+Build a **Jarvis-style AI Tutor** that can teach subjects with structured, persona-aware explanations. The system will support book uploads, extract knowledge, generate visuals, and guide learners from basics to advanced topics.
+
+**Core Philosophy**: A personal AI teacher, not a chatbot.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Scope Confirmation**: This plan focuses on Tutor Module V1 (MVP). Advanced features like Labs, Exams, and Personalization are explicitly out of scope for this phase.
+
+> [!WARNING]
+> **AI Cost Consideration**: Content generation will use AI APIs (OpenAI/Claude/Gemini). Ensure API keys and budget are configured.
+
+## Proposed Changes
+
+### Phase 1: Database Schema & Models
+
+#### [NEW] `universal/backend/src/domain/topic.entity.ts`
+Entity for storing topic content with structured JSON fields:
+- `id`: UUID
+- `subject_id`: Foreign key to subjects
+- `title`: Topic name
+- `content_json`: Structured content (what, why, how, where, components, examples)
+- `created_at`, `updated_at`: Timestamps
+
+#### [NEW] `universal/backend/src/domain/persona-explanation.entity.ts`
+Entity for persona-specific explanations:
+- `id`: UUID
+- `topic_id`: Foreign key to topics
+- `persona`: Enum (kid, student, professional, architect, professor)
+- `explanation_text`: Persona-tailored explanation
+- `created_at`: Timestamp
+
+#### [NEW] `universal/backend/src/domain/tutor-session.entity.ts`
+Entity for tracking tutor conversations:
+- `id`: UUID
+- `user_id`: User identifier (nullable for guest mode)
+- `topic_id`: Current topic
+- `messages_json`: Array of {role, content, timestamp}
+- `created_at`, `updated_at`: Timestamps
+
+---
+
+### Phase 2: Tutor Content Engine
+
+#### [NEW] `universal/backend/src/ai/tutor-templates.ts`
+Prompt templates for consistent AI generation:
+```typescript
+export const TUTOR_TEMPLATES = {
+  TOPIC_EXPLANATION: `Explain {TOPIC} in a structured way:
+1. What it is
+2. Why it exists
+3. How it works
+4. Where it is used
+5. Key components
+6. Simple explanation
+7. Advanced explanation`,
+  
+  PERSONA_EXPLANATION: `Explain {TOPIC} for a {PERSONA} using appropriate language and depth.`,
+  
+  CONTEXT_QA: `Answer the user's question using ONLY the topic content provided. If the question is out of scope, say so.`,
+  
+  LEARNING_GUIDE: `Based on the current topic, suggest the next logical topic to learn.`
+};
+```
+
+#### [NEW] `universal/backend/src/ai/tutor-content-generator.service.ts`
+Service for generating tutor content:
+- `generateTopicContent(topicName: string)`: Generate structured explanation
+- `generatePersonaExplanation(topicId: string, persona: Persona)`: Generate persona-specific content
+- `validateContent(content: any)`: Ensure quality and completeness
+
+---
+
+### Phase 3: Tutor API Endpoints
+
+#### [MODIFY] `universal/backend/src/domain/tutor.controller.ts`
+New controller for tutor endpoints:
+
+**GET /tutor/topic/:id**
+- Returns structured topic explanation
+- Includes all sections (what, why, how, where, components, simple, advanced)
+
+**GET /tutor/explain/:id?persona=student**
+- Returns persona-specific explanation
+- Validates persona parameter
+- Generates on-demand if not cached
+
+**POST /tutor/ask**
+- Body: `{ topicId, question }`
+- Returns context-aware answer
+- Detects out-of-scope questions
+
+**GET /tutor/guide/:id**
+- Returns learning guidance
+- Suggests next topic
+- Provides learning path
+
+#### [NEW] `universal/backend/src/domain/tutor.service.ts`
+Business logic for tutor operations:
+- `getTopicExplanation(topicId: string)`
+- `getPersonaExplanation(topicId: string, persona: Persona)`
+- `answerQuestion(topicId: string, question: string)`
+- `getLearningGuidance(topicId: string)`
+
+---
+
+### Phase 4: Book Upload & Processing (V2 Enhancement)
+
+#### [NEW] `universal/backend/src/ai/book-processor.service.ts`
+Service for processing uploaded books:
+- `extractText(file: Buffer, fileType: string)`: Extract text from PDF/DOCX/EPUB
+- `detectStructure(text: string)`: Identify chapters and sections
+- `generateTopicHierarchy(chapters: Chapter[])`: Convert to learning structure
+
+#### [NEW] `universal/backend/src/ai/visual-generator.service.ts`
+Service for generating visuals:
+- `generateDiagramDescription(topic: string)`: Create diagram specs
+- `createMermaidDiagram(description: string)`: Generate Mermaid.js code
+- `suggestVideos(topic: string)`: Find relevant video resources
+
+---
+
+### Phase 5: Frontend UI Components
+
+#### [NEW] `universal/frontend/app/tutor/topic/[id]/page.tsx`
+Topic view screen:
+- Display topic title and structured explanation
+- Persona selector dropdown
+- Visual content (diagrams, images)
+- "Ask Tutor" button
+
+#### [NEW] `universal/frontend/app/tutor/ask/page.tsx`
+Ask Tutor screen:
+- Question input textarea
+- Submit button
+- Answer display with formatting
+- Out-of-scope message handling
+
+#### [NEW] `universal/frontend/app/tutor/guide/page.tsx`
+Learning guide screen:
+- Current topic summary
+- Next recommended topic card
+- Learning path visualization
+- Progress indicator
+
+#### [NEW] `universal/frontend/components/PersonaSelector.tsx`
+Reusable persona selector component:
+- Dropdown with 5 personas (Kid, Student, Professional, Architect, Professor)
+- Icon for each persona
+- Smooth transition when changing
+
+---
+
+### Phase 6: Safety & Quality Rules
+
+#### [NEW] `universal/backend/src/ai/tutor-validator.service.ts`
+Content validation service:
+- `validateTopicContent(content: any)`: Check completeness
+- `detectHallucination(answer: string, context: string)`: Ensure context-only answers
+- `checkPersonaAppropriate(explanation: string, persona: Persona)`: Verify depth matches persona
+
+**Quality Rules**:
+✅ Never answer outside topic context
+✅ Never hallucinate
+✅ Always be structured
+✅ Always be human-readable
+✅ Always match persona level
+
+---
+
+## Verification Plan
+
+### Automated Tests
+1. **API Tests**: Verify all tutor endpoints return correct data
+2. **Content Quality Tests**: Ensure explanations are complete and persona-appropriate
+3. **Context Tests**: Verify Q&A stays within topic scope
+
+### Manual Verification
+1. **Topic Loading**: Navigate to `/tutor/topic/1`, verify structured explanation appears
+2. **Persona Switching**: Change persona dropdown, verify explanation updates
+3. **Ask Tutor**: Ask a valid question, verify context-based answer
+4. **Out-of-Scope**: Ask invalid question, verify "Out of scope" message
+5. **Learning Guide**: Check next topic suggestion is logical
+
+### Content Verification
+- Beginner explanation uses simple language
+- Advanced explanation includes technical details
+- No missing sections in structured content
+- No contradictions between persona levels
+
+---
+
+## Out of Scope for V1
+- ❌ Labs & Hands-on Exercises
+- ❌ Exams & Assessments
+- ❌ User Personalization
+- ❌ Analytics & Progress Tracking
+- ❌ Real-time Collaborative Learning
+- ❌ LMS Integrations
+
+These features will be added in future iterations.

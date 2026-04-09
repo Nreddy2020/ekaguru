@@ -1,0 +1,39 @@
+# Implementation Plan - AI Tutor Refinement
+
+## Goal Description
+The user wants to focus the application on the **AI Tutor** module. The "Home" button and sidebar should primarily show this module. Additionally, the "engine logic" for fetching/generating curriculum seems disconnected from the UI, as the page isn't updating or reflecting new data. We need to fix the navigation and ensuring the backend logic drives the frontend UI.
+
+## User Review Required
+- **Navigation Changes**: I will hide other modules (if any) from the visible sidebar/home for now, focusing solely on the "AI Tutor" / Student experience.
+- **Data Flow**: I will ensure the "Ingest" or "Create Subject" flow actually persists data and the UI reacts to it.
+
+## Proposed Changes
+
+### Frontend Navigation ([universal/frontend](file:///e:/Ekaguru/universal/frontend))
+#### [MODIFY] `components/Sidebar.tsx` (or equivalent)
+- Filter menu items to show only AI Tutor/Student related links.
+- Ensure "Home" redirects to the Student Dashboard/Welcome page if appropriate.
+
+### Frontend Data Integration ([universal/frontend](file:///e:/Ekaguru/universal/frontend))
+#### [MODIFY] [app/subject/ingest/page.tsx](file:///e:/Ekaguru/universal/frontend/app/subject/ingest/page.tsx) (or relevant page)
+- Check how `useEffect` or data fetching hooks are used.
+- Ensure it polls or waits for the backend "Ingest" process to complete.
+- Verify it displays the *real* data from the backend, not mock data.
+
+### Backend Logic (`universal/backend`)
+#### [MODIFY] `src/domain/subject.service.ts`
+- Add `findAll()` method to return all subjects from the in-memory DB.
+#### [MODIFY] `src/domain/subject.controller.ts`
+- Add `@Get()` endpoint to call `subjectService.findAll()`.
+
+### Frontend Data Integration (`universal/frontend`)
+#### [MODIFY] `app/student/welcome/page.tsx`
+- Replace static `SUBJECTS` mock data with data fetched from `http://localhost:3001/subjects`.
+- Ensure the UI handles loading states and empty states.
+- This ensures that when a user "ingests" a subject, it actually appears on their home page.
+
+### Navigation Fix
+#### [MODIFY] `app/student/welcome/page.tsx`
+- Review the navigation elements. The user mentioned a "left side" button, but currently a bottom bar exists.
+- I will ensure the navigation available is focused on the Student/Tutor experience.
+

@@ -1,0 +1,16 @@
+# Real-time Book Analysis (Phase 5)
+
+## Backend Enhancements
+- [ ] Install `pdf-parse` for text extraction
+- [x] Create [BookService](file:///e:/Ekaguru/universal/backend/src/domain/book.service.ts#24-112) skeleton (already done)
+- [ ] Implement `extractText` in [BookService](file:///e:/Ekaguru/universal/backend/src/domain/book.service.ts#24-112) using `pdf-parse`
+- [ ] Implement `analyzeContent` logic to detect hierarchy (regex-based for demo)
+- [ ] Update [UploadController](file:///e:/Ekaguru/universal/backend/src/domain/upload.controller.ts#7-52) to pass file buffer to service
+
+## Frontend Enhancements
+- [ ] Update [UploadPage](file:///e:/Ekaguru/universal/frontend/app/upload/page.tsx#9-207) success view to handle larger knowledge graphs
+- [ ] Add "Depth Analysis" progress steps (e.g., "Extracting text...", "Generating hierarchy...")
+
+## Verification
+- [ ] Test with [C:\Users\nirwa\Downloads\book.pdf](file:///Users/nirwa/Downloads/book.pdf)
+- [ ] Verify Chapter/Topic extraction matches actual content

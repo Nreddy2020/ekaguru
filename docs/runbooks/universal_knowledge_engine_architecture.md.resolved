@@ -1,0 +1,94 @@
+# Universal Knowledge Engine (UKE) Architecture
+> **Mission**: To transform any raw input (PDF, Image, Text) into "Beautiful Data"—a structured, interconnected Knowledge Graph—and deliver it through an interface that adapts from "Kid" to "World-Class Genius".
+
+---
+
+## 1. The Core Philosophy: "Beautiful Data"
+Raw text is not knowledge. To create a "world-best" engine, we must move from **Linear Processing** (reading line-by-line) to **Semantic Architecting** (understanding relationships).
+
+**The Pivot:**
+*   *Old Way*: Extract Text -> Show Text.
+*   *UKE Way*: Extract Text -> Identify Concepts -> Map Relationships -> Generate Analogies -> Render Adaptive Content.
+
+---
+
+## 2. Component Architecture
+
+### Phase 1: The Omni-Ingestor (Input Layer)
+*Logic required to handle "messy" real-world data.*
+
+1.  **Visual Layout Analysis (VLA)**:
+    *   **Logic**: Before reading text, the engine "looks" at the page.
+    *   *Detection*: Identifies Headers, Sidebars, Captions, and Diagrams distinct from body text.
+    *   *Why*: Prevents mixing a diagram caption with a main paragraph (a common bug in simple parsers).
+2.  **Multi-Modal Fusion**:
+    *   **OCR + Text Layer**: If a page is an image, use OCR. If it has text layer, verify it against OCR to fix encoding errors.
+    *   **Image Contextualization**: If an image is detected, generate a descriptive alt-text using Vision AI to "read" charts and graphs.
+
+### Phase 2: The Cognitive Core (Processing Layer)
+*The "Brain" that structures the data.*
+
+1.  **Concept Extraction & Atomization**:
+    *   **Logic**: Break books down into "Atomic Concepts" (smallest learnable units) rather than just "Chapters".
+    *   *Example*: Instead of just "Chapter 2: Motion", extract atoms like "Velocity", "Acceleration", "Vectors".
+2.  **Knowledge Graph Construction**:
+    *   **Logic**: Link atoms using directional edges.
+    *   *Dependencies*: "Understanding 'Acceleration' REQUIRES 'Velocity'."
+    *   *Hierarchy*: Unit -> Chapter -> Concept -> Sub-concept.
+3.  **Metadata Enrichment**:
+    *   For every concept, generate:
+        *   **Analogy**: "Like a car speeding up..."
+        *   **Strict Definition**: "Rate of change of velocity..."
+        *   **Historical Context**: "Newton's formulation..."
+
+### Phase 3: The Adaptive Pedagogical Engine (Output Layer)
+*The "Kid to Genius" Logic.*
+
+This engine uses **Complexity Toggles**. It takes the *same* Knowledge Graph node and renders it through different "Lenses".
+
+#### Lens 1: The Storyteller (Target: Kids/Beginners)
+*   **Logic**: Semantic simplifier + Narrative wrapper.
+*   **Format**: "Once upon a time..." or gaming analogies.
+*   **Focus**: HOW it feels, WHY it matters.
+*   **Visuals**: Cartoons, bright colors.
+
+#### Lens 2: The Analyst (Target: Students/Intermediate)
+*   **Logic**: Structural breakdown + Standard curriculum alignment.
+*   **Format**: Textbooks definitions, bullet points, formula derivation.
+*   **Focus**: WHAT it is, HOW to calculate it.
+*   **Visuals**: Flowcharts, standard graphs.
+
+#### Lens 3: The First-Principles Thinker (Target: Genius/Advanced)
+*   **Logic**: Abstract generalization + Interdisciplinary connection.
+*   **Format**: Socratic questioning, edge-case analysis, research papers.
+*   **Focus**: Deep derivation, limitations of the theory, connection to other fields (e.g., tying "Velocity" in Physics to "Rate of Change" in Economics).
+*   **Visuals**: 3D data models, complex topology.
+
+---
+
+## 3. Implementation Roadmap (The "How-To")
+
+### Step 1: Upgrading BookService (Immediate)
+*   **Action**: Move beyond regex. Implement a `StructuredParser` that identifies hierarchy based on font size and indentation (simulating Visual Layout Analysis).
+*   **Goal**: 99% accuracy in separating "Headers" from "Content".
+
+### Step 2: Integrating AI Logic (Vision)
+*   **Action**: Connect a Vision Model (local or API) to process the images within the PDF.
+*   **Goal**: Turn "Figure 1.1" into selectable, searchable knowledge.
+
+### Step 3: The matrix_db (Storage)
+*   **Action**: specific database schema to store *Relationships*, not just text.
+*   **Schema**:
+    ```json
+    {
+      "concept_id": "velocity_01",
+      "prerequisites": ["distance", "time"],
+      "explanations": {
+        "level_1": "Speed with a direction, like a car going North.",
+        "level_5": "The vector quantity that denotes the rate of change of position with respect to a frame of reference."
+      }
+    }
+    ```
+
+## 4. Summary
+To build the "World's Best," we don't just "read" books. We **deconstruct** them into pure knowledge atoms and then **reconstruct** them instantly to fit the user's mind—whether that mind belongs to a 5-year-old or a Nobel laureate. This architecture ensures that **Data Beauty** is preserved at every step.
