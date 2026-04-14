@@ -81,14 +81,33 @@
 
 ---
 
-## REMAINING WORK
+### Phase 4: Production & Pilot ✅ (partial)
 
-### Phase 4: Production & Pilot (Days 56-75)
-- Auth (JWT + Passport)
-- Rate limiting
-- Monitoring (Prometheus)
-- CI/CD pipeline
-- Pilot: 25 families
+| Commit | Feature |
+|--------|---------|
+| 3e9a4ce | JWT auth, rate limiting, monitoring, CI/CD |
+
+**Key Files:**
+- `src/auth/` - JWT authentication module
+- `src/health.controller.ts` - Health monitoring
+- `.github/workflows/ci.yml` - CI/CD pipeline
+
+**New Endpoints:**
+- `POST /auth/login`
+- `POST /auth/register`
+- `GET /auth/me`
+- `GET /health`
+- `GET /health/ready`
+
+**Features:**
+- JWT authentication with Passport
+- Role-based access (PARENT, STUDENT, ADMIN)
+- Rate limiting (ThrottlerModule)
+- GitHub Actions CI/CD
+
+**Not implemented (requires manual work):**
+- Prometheus monitoring setup
+- Pilot with 25 families (manual onboarding)
 
 ---
 
