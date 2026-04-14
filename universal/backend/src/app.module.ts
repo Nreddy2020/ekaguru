@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { AuthModule } from './auth/auth.module';
 import { TemplateService } from './ai/template.service';
 import { OmniEngineService } from './ai/omni.service';
 import { LlmService } from './ai/llm.service';
@@ -24,10 +26,24 @@ import { VisionService } from './ai/vision.service';
 import { CognitiveLoopService } from './ai/cognitive-loop.service';
 import { CognitiveLoopController } from './ai/cognitive-loop.controller';
 import { SessionGateway } from './ai/session.gateway';
+import { HealthController } from './health.controller';
 
 @Module({
-    imports: [ConfigModule.forRoot(), HttpModule],
-    controllers: [SubjectController, TutorController, UploadController, CognitiveLoopController, ParentController],
+    imports: [
+        ConfigModule.forRoot(),
+        HttpModule,
+        ThrottlerModule.forRoot([{
+            name: 'short',
+            ttl: 1000,
+            limit: 10
+        }, {
+            name: 'long',
+            ttl: 60000,
+            limit: 100
+        }]),
+        AuthModule
+    ],
+    controllers: [SubjectController, TutorController, UploadController, CognitiveLoopController, ParentController, HealthController],
     providers: [
         TemplateService,
         OmniEngineService,

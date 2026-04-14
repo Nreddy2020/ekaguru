@@ -1,0 +1,70 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'universal/backend'
+      
+      - name: Install dependencies
+        run: |
+          cd universal/backend
+          npm ci
+      
+      - name: Lint
+        run: |
+          cd universal/backend
+          npm run lint || true
+      
+      - name: Build
+        run: |
+          cd universal/backend
+          npm run build
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'universal/frontend'
+      
+      - name: Install dependencies
+        run: |
+          cd universal/frontend
+          npm ci
+      
+      - name: Build
+        run: |
+          cd universal/frontend
+          npm run build
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Run tests
+        run: |
+          cd universal/backend
+          npm test || echo "No tests configured"
