@@ -22,6 +22,7 @@ import { UploadController } from './domain/upload.controller';
 import { VisionService } from './ai/vision.service';
 import { CognitiveLoopService } from './ai/cognitive-loop.service';
 import { CognitiveLoopController } from './ai/cognitive-loop.controller';
+import { SessionGateway } from './ai/session.gateway';
 
 @Module({
     imports: [ConfigModule.forRoot(), HttpModule],
@@ -41,7 +42,8 @@ import { CognitiveLoopController } from './ai/cognitive-loop.controller';
         TutorService,
         BookService,
         VisionService,
-        CognitiveLoopService
+        CognitiveLoopService,
+        SessionGateway
     ],
 })
 export class AppModule { }
