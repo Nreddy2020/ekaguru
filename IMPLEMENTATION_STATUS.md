@@ -83,14 +83,6 @@
 
 ## REMAINING WORK
 
-### Phase 3: Trust & Human Layer (Days 36-55)
-- Real parent analytics (`/parent/dashboard`)
-- Child profile management
-- Fear/confidence tracking
-- Session recordings
-- COPPA consent flow
-- Avatar integration
-
 ### Phase 4: Production & Pilot (Days 56-75)
 - Auth (JWT + Passport)
 - Rate limiting
