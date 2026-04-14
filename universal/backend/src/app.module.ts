@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TemplateService } from './ai/template.service';
 import { OmniEngineService } from './ai/omni.service';
+import { LlmService } from './ai/llm.service';
 import { SubjectService } from './domain/subject.service';
 import { LabService } from './domain/lab.service';
 import { AssessmentService } from './domain/assessment.service';
@@ -18,11 +20,12 @@ import { UploadController } from './domain/upload.controller';
 import { VisionService } from './ai/vision.service';
 
 @Module({
-    imports: [],
+    imports: [ConfigModule.forRoot()],
     controllers: [SubjectController, TutorController, UploadController],
     providers: [
         TemplateService,
         OmniEngineService,
+        LlmService,
         SubjectService,
         LabService,
         AssessmentService,
@@ -32,7 +35,7 @@ import { VisionService } from './ai/vision.service';
         QualityService,
         TutorService,
         BookService,
-        VisionService // Added VisionService
+        VisionService
     ],
 })
 export class AppModule { }

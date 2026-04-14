@@ -9,6 +9,7 @@ export interface GeneratedLens {
     narrative: string;
     analogy: string;
     visualPrompt: string;
+    historicalContext?: string;
 }
 
 export interface ConceptEdge {

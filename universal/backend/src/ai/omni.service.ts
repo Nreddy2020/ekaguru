@@ -1,10 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PROMPT_TEMPLATES } from './prompts';
 import { ExtractedAtom, GeneratedLens, ConceptEdge } from './omni.types';
+import { LlmService } from './llm.service';
 
 @Injectable()
 export class OmniEngineService {
     private readonly logger = new Logger(OmniEngineService.name);
+    private llmService: LlmService;
+
+    constructor(llmService: LlmService) {
+        this.llmService = llmService;
+    }
 
     // The 6 Dimensions of the Hexagonal Search
     private readonly DIMENSIONS = [
@@ -34,12 +40,25 @@ export class OmniEngineService {
 
     /**
      * EXTRACTS Atomic Concepts from raw text.
-     * Uses frequency analysis with stopword filtering.
+     * Uses LLM when available, falls back to frequency analysis.
      */
     async extractAtomicConcepts(text: string): Promise<ExtractedAtom[]> {
         this.logger.log(`Parsing text for atomic concepts... (Length: ${text.length})`);
 
-        // 1. Clean and tokenize text
+        if (this.llmService.isReady()) {
+            try {
+                const atoms = await this.llmService.extractAtomicConcepts(text);
+                return atoms.map(a => ({
+                    name: a.name,
+                    type: (a.type?.toUpperCase() as any) || 'CONCEPT',
+                    definition: a.definition
+                }));
+            } catch (error) {
+                this.logger.warn('LLM extraction failed, falling back to frequency analysis', error);
+            }
+        }
+
+        // Fallback: Frequency Analysis
         const cleanText = text.replace(/[^a-zA-Z\s]/g, '').toLowerCase();
         const words = cleanText.split(/\s+/).filter(w => w.length > 3 && !this.STOPWORDS.has(w));
 
@@ -70,13 +89,26 @@ export class OmniEngineService {
      * Creates: Kid (Story), Student (Analogy), Genius (First Principles).
      */
     async generateLenses(conceptName: string, context: string): Promise<GeneratedLens[]> {
-        // Dynamic Reasoning Core - "The Mind within the Machine"
-        // Instead of hardcoded mocks, we use Algorithmic Templates to simulate different cognitive modes.
+        if (this.llmService.isReady()) {
+            try {
+                const lenses = await this.llmService.generateThreeLenses(conceptName, context);
+                return lenses.map(l => ({
+                    role: l.role.includes('KID') ? 'KID' : l.role.includes('STUDENT') ? 'STUDENT' : 'FIRST_PRINCIPLES',
+                    narrative: l.narrative,
+                    analogy: l.analogy,
+                    visualPrompt: l.visualPrompt,
+                    historicalContext: l.historicalContext
+                }));
+            } catch (error) {
+                this.logger.warn('LLM lens generation failed, falling back to algorithmic', error);
+            }
+        }
 
+        // Fallback: Algorithmic templates
         return [
             this.generateKidLens(conceptName),
             this.generateStudentLens(conceptName, context),
-            this.generateFirstPrinciplesLens(conceptName) // The "Super-Intelligence" Mode
+            this.generateFirstPrinciplesLens(conceptName)
         ];
     }
 
@@ -93,7 +125,8 @@ export class OmniEngineService {
             role: 'KID',
             narrative: randomNarrative,
             analogy: `It's just like a magic trick!`,
-            visualPrompt: `Cartoon character representing ${concept} in a bright, colorful world`
+            visualPrompt: `Cartoon character representing ${concept} in a bright, colorful world`,
+            historicalContext: `A basic introduction to ${concept} for young learners.`
         };
     }
 
@@ -103,7 +136,8 @@ export class OmniEngineService {
             role: 'STUDENT',
             narrative: `${concept} is a fundamental concept defined by its properties and interactions within the system.`,
             analogy: `Think of it as a building block for larger structures.`,
-            visualPrompt: `Educational diagram with clear labels explaining ${concept}`
+            visualPrompt: `Educational diagram with clear labels explaining ${concept}`,
+            historicalContext: `This concept emerged from foundational work in the field.`
         };
     }
 
@@ -118,7 +152,8 @@ export class OmniEngineService {
             role: 'FIRST_PRINCIPLES',
             narrative: `Fundamentally, ${concept} is an emergent property of underlying constraints. If we strip away the abstraction, we find a raw interaction of forces.`,
             analogy: `Socratic Question: Does ${concept} exist independently of our observation? (Interdisciplinary: Maps to Entropy in ${chosenDiscipline})`,
-            visualPrompt: `Abstract 3D topology showing the phase space of ${concept}`
+            visualPrompt: `Abstract 3D topology showing the phase space of ${concept}`,
+            historicalContext: `Historically linked to ${chosenDiscipline} - first formulated in this context.`
         };
     }
 

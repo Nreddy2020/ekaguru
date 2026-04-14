@@ -172,6 +172,7 @@ model ComplexityLens {
   narrative   String      // The story
   analogy     String      // "Imagine a..."
   visualPrompt String?    // For GenAI image generation
+  historicalContext String? // Historical background, e.g. "Newton first formulated..."
   
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
