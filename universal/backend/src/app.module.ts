@@ -18,6 +18,7 @@ import { BookService } from './domain/book.service';
 import { SubjectController } from './domain/subject.controller';
 import { TutorController } from './domain/tutor.controller';
 import { UploadController } from './domain/upload.controller';
+import { ParentController } from './domain/parent.controller';
 
 import { VisionService } from './ai/vision.service';
 import { CognitiveLoopService } from './ai/cognitive-loop.service';
@@ -26,7 +27,7 @@ import { SessionGateway } from './ai/session.gateway';
 
 @Module({
     imports: [ConfigModule.forRoot(), HttpModule],
-    controllers: [SubjectController, TutorController, UploadController, CognitiveLoopController],
+    controllers: [SubjectController, TutorController, UploadController, CognitiveLoopController, ParentController],
     providers: [
         TemplateService,
         OmniEngineService,
