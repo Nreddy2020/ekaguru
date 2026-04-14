@@ -81,15 +81,18 @@
 
 ---
 
-### Phase 4: Production & Pilot ✅ (partial)
+### Phase 4: Production & Pilot ✅
 
 | Commit | Feature |
 |--------|---------|
 | 3e9a4ce | JWT auth, rate limiting, monitoring, CI/CD |
+| a50ac16 | Prometheus metrics, session recordings |
 
 **Key Files:**
 - `src/auth/` - JWT authentication module
 - `src/health.controller.ts` - Health monitoring
+- `src/metrics.controller.ts` - Prometheus metrics
+- `src/ai/session-recording.service.ts` - Session recordings
 - `.github/workflows/ci.yml` - CI/CD pipeline
 
 **New Endpoints:**
@@ -98,23 +101,28 @@
 - `GET /auth/me`
 - `GET /health`
 - `GET /health/ready`
+- `GET /metrics`
+- `POST /recordings/start`, `/event`, `/:sessionId/end`
+- `GET /recordings/:sessionId`, `/child/:childId`, `/recent`
 
 **Features:**
 - JWT authentication with Passport
 - Role-based access (PARENT, STUDENT, ADMIN)
 - Rate limiting (ThrottlerModule)
+- Prometheus metrics (requests, errors, LLM calls, cache, sessions, uptime)
+- Session recordings for replay
 - GitHub Actions CI/CD
 
-**Not implemented (requires manual work):**
-- Prometheus monitoring setup
-- Pilot with 25 families (manual onboarding)
+**Pilot-ready:** ✅ All core features implemented
 
 ---
 
 ## NOTES
 
 - GEMINI_API_KEY is set in `.env.example`
+- JWT_SECRET required in environment
 - Python orchestrator runs on port 8001
 - Backend runs on port 20000
 - WebSocket enabled for real-time sessions
 - LLM features fall back to algorithmic if no API key
+- Session recordings available via `/recordings` endpoints
