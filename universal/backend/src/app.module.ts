@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TemplateService } from './ai/template.service';
 import { OmniEngineService } from './ai/omni.service';
 import { LlmService } from './ai/llm.service';
+import { LlmCacheService } from './ai/llm-cache.service';
 import { SubjectService } from './domain/subject.service';
 import { LabService } from './domain/lab.service';
 import { AssessmentService } from './domain/assessment.service';
@@ -26,6 +27,7 @@ import { VisionService } from './ai/vision.service';
         TemplateService,
         OmniEngineService,
         LlmService,
+        LlmCacheService,
         SubjectService,
         LabService,
         AssessmentService,

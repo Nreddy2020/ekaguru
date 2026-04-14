@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { LlmCacheService } from './llm-cache.service';
 
 @Injectable()
 export class LlmService {
@@ -8,7 +9,7 @@ export class LlmService {
     private model: any = null;
     private isConfigured = false;
 
-    constructor() {
+    constructor(private cacheService: LlmCacheService) {
         this.initialize();
     }
 
@@ -31,6 +32,10 @@ export class LlmService {
     }
 
     async generateContent(prompt: string, systemInstruction?: string): Promise<string> {
+        const cacheKey = this.cacheService.generateKey(prompt + (systemInstruction || ''), 'content');
+        const cached = this.cacheService.get<string>(cacheKey);
+        if (cached) return cached;
+
         if (!this.isConfigured || !this.model) {
             return this.fallbackResponse(prompt);
         }
@@ -58,7 +63,9 @@ export class LlmService {
             });
 
             const response = result.response;
-            return response.text();
+            const text = response.text();
+            this.cacheService.set(cacheKey, text, 3600000);
+            return text;
         } catch (error) {
             this.logger.error('LLM generation error:', error);
             return this.fallbackResponse(prompt);
