@@ -176,4 +176,9 @@ Keep answers concise and age-appropriate.`;
     isReady(): boolean {
         return this.isConfigured;
     }
+
+    async analyzeImage(imageBuffer: Uint8Array, contextHints: string): Promise<string> {
+        const prompt = `Analyze this image and describe what it shows. Context: ${contextHints}. Describe any diagrams, charts, or text visible.`;
+        return this.generateContent(prompt);
+    }
 }
