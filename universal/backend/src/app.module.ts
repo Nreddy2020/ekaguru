@@ -21,10 +21,11 @@ import { UploadController } from './domain/upload.controller';
 
 import { VisionService } from './ai/vision.service';
 import { CognitiveLoopService } from './ai/cognitive-loop.service';
+import { CognitiveLoopController } from './ai/cognitive-loop.controller';
 
 @Module({
     imports: [ConfigModule.forRoot(), HttpModule],
-    controllers: [SubjectController, TutorController, UploadController],
+    controllers: [SubjectController, TutorController, UploadController, CognitiveLoopController],
     providers: [
         TemplateService,
         OmniEngineService,

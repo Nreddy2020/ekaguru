@@ -16,8 +16,7 @@ export interface SessionState {
 export class CognitiveLoopService {
     private readonly logger = new Logger(CognitiveLoopService.name);
     private httpService: HttpService;
-    private orchestratorUrl = process.env.ORCHESTRATOR_URL || 'http://localhost:8000';
-    private activeSessions = new Map<string, SessionState>();
+    private orchestratorUrl = process.env.ORCHESTRATOR_URL || 'http://localhost:8001';
 
     constructor(private httpService: HttpService) { }
 
@@ -37,7 +36,33 @@ export class CognitiveLoopService {
         this.activeSessions.set(sessionId, state);
         this.logger.log(`Started cognitive session ${sessionId} for student ${studentId}, concept: ${concept}`);
 
+        // Try to call orchestrator
+        try {
+            const response = await this.callOrchestrator({
+                student_id: studentId,
+                concept_id: concept,
+                current_state: 'unknown'
+            });
+            this.logger.log(`Orchestrator response: ${JSON.stringify(response)}`);
+        } catch (error) {
+            this.logger.warn('Orchestrator not available, using in-memory fallback');
+        }
+
         return state;
+    }
+
+    private async callOrchestrator(data: any): Promise<any> {
+        try {
+            const response = await this.httpService.axiosRef.post(
+                `${this.orchestratorUrl}/orchestrate`,
+                data,
+                { timeout: 10000 }
+            );
+            return response.data;
+        } catch (error) {
+            this.logger.warn(`Orchestrator call failed: ${error}`);
+            throw error;
+        }
     }
 
     async getSession(sessionId: string): Promise<SessionState | null> {
@@ -52,6 +77,27 @@ export class CognitiveLoopService {
 
         this.logger.log(`Processing response in phase ${session.currentPhase}`);
 
+        // Try orchestrator first
+        try {
+            const orchResponse = await this.callOrchestrator({
+                student_id: session.studentId,
+                concept_id: session.concept,
+                response: response,
+                current_state: session.currentPhase
+            });
+            
+            if (orchResponse && orchResponse.next_state) {
+                session.currentPhase = orchResponse.next_state as any;
+                return {
+                    nextPhase: orchResponse.next_state,
+                    content: { phase: orchResponse.next_state, sessionId, agent: orchResponse.next_agent }
+                };
+            }
+        } catch (error) {
+            this.logger.warn('Orchestrator unavailable, using fallback transitions');
+        }
+
+        // Fallback: Simple transitions
         const transitions: Record<string, string> = {
             'observe': 'diagnose',
             'diagnose': 'struggle',
