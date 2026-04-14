@@ -26,7 +26,10 @@ import { VisionService } from './ai/vision.service';
 import { CognitiveLoopService } from './ai/cognitive-loop.service';
 import { CognitiveLoopController } from './ai/cognitive-loop.controller';
 import { SessionGateway } from './ai/session.gateway';
+import { SessionRecordingService } from './ai/session-recording.service';
+import { SessionRecordingController } from './ai/session-recording.controller';
 import { HealthController } from './health.controller';
+import { MetricsController } from './metrics.controller';
 
 @Module({
     imports: [
@@ -43,7 +46,7 @@ import { HealthController } from './health.controller';
         }]),
         AuthModule
     ],
-    controllers: [SubjectController, TutorController, UploadController, CognitiveLoopController, ParentController, HealthController],
+    controllers: [SubjectController, TutorController, UploadController, CognitiveLoopController, ParentController, HealthController, MetricsController, SessionRecordingController],
     providers: [
         TemplateService,
         OmniEngineService,
@@ -60,7 +63,8 @@ import { HealthController } from './health.controller';
         BookService,
         VisionService,
         CognitiveLoopService,
-        SessionGateway
+        SessionGateway,
+        SessionRecordingService
     ],
 })
 export class AppModule { }
