@@ -385,4 +385,28 @@ Examples: ${topic.examples.join('; ')}
             recommendation: `Focus on completing ${currentLevel} milestones before advancing to ${levelOrder[currentIndex + 1]}`
         };
     }
+
+    async getPrerequisites(topicId: string): Promise<{ topicId: string; prerequisites: { id: string; name: string; description: string }[] }> {
+        this.logger.log(`Getting prerequisites for: ${topicId}`);
+
+        const prerequisitesMap: Record<string, { name: string; description: string }[]> = {
+            'kubernetes-architecture': [
+                { id: 'containers', name: 'Containers', description: 'Understanding containerization is prerequisite to understanding Kubernetes orchestration.' },
+                { id: 'docker', name: 'Docker Basics', description: 'Docker provides the container runtime that Kubernetes manages.' }
+            ],
+            'kubernetes-networking': [
+                { id: 'kubernetes-architecture', name: 'Kubernetes Architecture', description: 'Must understand the basic architecture before networking.' }
+            ],
+            'kubernetes-storage': [
+                { id: 'kubernetes-architecture', name: 'Kubernetes Architecture', description: 'Storage concepts build on the base architecture.' }
+            ]
+        };
+
+        const prerequisites = prerequisitesMap[topicId] || [];
+
+        return {
+            topicId,
+            prerequisites: prerequisites.map(p => ({ id: p.id, name: p.name, description: p.description }))
+        };
+    }
 }

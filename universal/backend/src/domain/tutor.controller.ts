@@ -84,4 +84,11 @@ export class TutorController {
         res.setHeader('Content-Type', 'text/html');
         res.send(html);
     }
+
+    @Get('prerequisites/:topicId')
+    async getPrerequisites(@Param('topicId') topicId: string) {
+        this.logger.log(`GET /tutor/prerequisites/${topicId}`);
+        const prerequisites = await this.tutorService.getPrerequisites(topicId);
+        return prerequisites;
+    }
 }
