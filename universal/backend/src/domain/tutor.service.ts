@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SubjectService } from './subject.service';
+import { LlmService } from '../ai/llm.service';
 
 export interface TopicContent {
     whatItIs: string;
@@ -48,8 +49,10 @@ export class TutorService {
     // Mock topic database - in production, this would come from a real database
     private topics = new Map<string, TopicContent>();
 
-    constructor(private readonly subjectService: SubjectService) {
-        // Initialize with some sample topics
+    constructor(
+        private readonly subjectService: SubjectService,
+        private llmService: LlmService
+    ) {
         this.initializeSampleTopics();
     }
 
@@ -214,7 +217,27 @@ export class TutorService {
             };
         }
 
-        // Simple keyword matching for demo - in production, use AI
+        // Build context from topic content
+        const context = `
+Topic: ${topicId}
+What it is: ${topic.whatItIs}
+Why it exists: ${topic.whyItExists}
+How it works: ${topic.howItWorks.join('; ')}
+Key components: ${topic.keyComponents.join('; ')}
+Examples: ${topic.examples.join('; ')}
+        `.trim();
+
+        // Use LLM for contextual answering
+        if (this.llmService.isReady()) {
+            try {
+                const answer = await this.llmService.answerQuestion(question, context);
+                return { answer, isOutOfScope: false };
+            } catch (error) {
+                this.logger.warn('LLM answer failed, falling back to keyword matching', error);
+            }
+        }
+
+        // Fallback: Simple keyword matching
         const questionLower = question.toLowerCase();
 
         if (questionLower.includes('what') && questionLower.includes('is')) {

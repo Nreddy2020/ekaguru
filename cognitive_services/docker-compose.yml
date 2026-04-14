@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ekaguru-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ekaguru
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  memory-service:
+    build:
+      context: ./memory_service
+      dockerfile: Dockerfile
+    container_name: ekaguru-memory
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ekaguru
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    container_name: ekaguru-orchestrator
+    ports:
+      - "8001:8001"
+    environment:
+      MEMORY_SERVICE_URL: http://memory-service:8000
+      DIAGNOSIS_SERVICE_URL: http://diagnosis:8002
+      TEACHING_SERVICE_URL: http://teaching:8003
+      STRUGGLE_SERVICE_URL: http://struggle:8004
+      REFLECTION_SERVICE_URL: http://reflection:8005
+      TRANSFER_SERVICE_URL: http://transfer:8007
+    depends_on:
+      - memory-service
+      - diagnosis
+      - teaching
+      - struggle
+      - reflection
+      - transfer
+    restart: unless-stopped
+
+  diagnosis:
+    build:
+      context: ./diagnosis
+      dockerfile: Dockerfile
+    container_name: ekaguru-diagnosis
+    ports:
+      - "8002:8002"
+    restart: unless-stopped
+
+  teaching:
+    build:
+      context: ./teaching
+      dockerfile: Dockerfile
+    container_name: ekaguru-teaching
+    ports:
+      - "8003:8003"
+    restart: unless-stopped
+
+  struggle:
+    build:
+      context: ./struggle
+      dockerfile: Dockerfile
+    container_name: ekaguru-struggle
+    ports:
+      - "8004:8004"
+    restart: unless-stopped
+
+  reflection:
+    build:
+      context: ./reflection
+      dockerfile: Dockerfile
+    container_name: ekaguru-reflection
+    ports:
+      - "8005:8005"
+    restart: unless-stopped
+
+  parent:
+    build:
+      context: ./parent
+      dockerfile: Dockerfile
+    container_name: ekaguru-parent
+    ports:
+      - "8006:8006"
+    restart: unless-stopped
+
+  transfer:
+    build:
+      context: ./transfer
+      dockerfile: Dockerfile
+    container_name: ekaguru-transfer
+    ports:
+      - "8007:8007"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

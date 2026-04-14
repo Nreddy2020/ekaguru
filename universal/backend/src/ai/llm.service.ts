@@ -145,6 +145,30 @@ Keep answers concise and age-appropriate.`;
         return this.generateContent(question, systemInstruction + '\n\nContext: ' + context);
     }
 
+    async generateConceptEdges(atoms: any[]): Promise<any[]> {
+        const atomNames = atoms.map(a => a.name).join(', ');
+        const prompt = `Given these concepts: ${atomNames}
+Generate their relationships.
+Return ONLY valid JSON array:
+[
+    {"source": "ConceptA", "target": "ConceptB", "relation": "PREREQUISITE|COMPONENT_OF|ANALOGY_FOR|EVOLUTION_OF", "weight": 0.0-1.0, "description": "How they relate"}
+]`;
+
+        return this.generateJson<any[]>(prompt) || [];
+    }
+
+    async validateAtomQuality(atom: any): Promise<{ valid: boolean; score: number; issues: string[] }> {
+        const prompt = `Evaluate this concept for quality:
+Name: ${atom.name}
+Definition: ${atom.definition}
+
+Return ONLY valid JSON:
+{"valid": true/false, "score": 0-1, "issues": ["issue1", "issue2"]}`;
+
+        const result = await this.generateJson<any>(prompt);
+        return result || { valid: true, score: 0.8, issues: [] };
+    }
+
     private fallbackResponse(prompt: string): string {
         this.logger.warn('Using fallback LLM response');
         return 'LLM not configured. Please set GEMINI_API_KEY to enable AI features.';

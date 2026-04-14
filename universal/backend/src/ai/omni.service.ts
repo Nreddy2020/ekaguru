@@ -76,12 +76,38 @@ export class OmniEngineService {
 
         this.logger.log(`  Top keywords: ${topWords.join(', ')}`);
 
-        // 4. Generate Atoms
-        return topWords.map(word => ({
+        // 4. Generate Atoms with quality scoring
+        let atoms = topWords.map(word => ({
             name: word,
-            type: "CONCEPT",
+            type: "CONCEPT" as const,
             definition: `Core concept derived from analysis: ${word}`
         }));
+
+        // 5. Validate atoms if LLM is available
+        if (this.llmService.isReady()) {
+            atoms = await this.validateAtoms(atoms);
+        }
+
+        return atoms;
+    }
+
+    private async validateAtoms(atoms: ExtractedAtom[]): Promise<ExtractedAtom[]> {
+        const validated: ExtractedAtom[] = [];
+
+        for (const atom of atoms) {
+            try {
+                const validation = await this.llmService.validateAtomQuality(atom);
+                if (validation.valid && validation.score >= 0.5) {
+                    validated.push(atom);
+                } else {
+                    this.logger.warn(`Atom "${atom.name}" filtered out: ${validation.issues.join(', ')}`);
+                }
+            } catch {
+                validated.push(atom);
+            }
+        }
+
+        return validated.length > 0 ? validated : atoms;
     }
 
     /**
@@ -159,13 +185,25 @@ export class OmniEngineService {
 
     /**
      * MAPS Relationships between atoms.
-     * Identifies Prerequisites (A requires B) and Hierarchy (A is part of B).
+     * Uses LLM for dynamic edge generation when available.
      */
     async mapRelationships(atoms: ExtractedAtom[]): Promise<ConceptEdge[]> {
         this.logger.log(`Mapping relationships between ${atoms.length} atoms...`);
-        const edges: ConceptEdge[] = [];
 
-        // Mock Logic for Physics Example
+        if (this.llmService.isReady() && atoms.length >= 2) {
+            try {
+                const edges = await this.llmService.generateConceptEdges(atoms);
+                if (edges && edges.length > 0) {
+                    this.logger.log(`LLM generated ${edges.length} concept edges`);
+                    return edges;
+                }
+            } catch (error) {
+                this.logger.warn('LLM edge generation failed, using fallback', error);
+            }
+        }
+
+        // Fallback: Mock Logic for Physics Example
+        const edges: ConceptEdge[] = [];
         const atomNames = atoms.map(a => a.name);
 
         if (atomNames.includes('Velocity') && atomNames.includes('Time')) {
