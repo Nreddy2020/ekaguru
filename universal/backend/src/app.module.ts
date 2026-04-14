@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 import { TemplateService } from './ai/template.service';
 import { OmniEngineService } from './ai/omni.service';
 import { LlmService } from './ai/llm.service';
@@ -19,9 +20,10 @@ import { TutorController } from './domain/tutor.controller';
 import { UploadController } from './domain/upload.controller';
 
 import { VisionService } from './ai/vision.service';
+import { CognitiveLoopService } from './ai/cognitive-loop.service';
 
 @Module({
-    imports: [ConfigModule.forRoot()],
+    imports: [ConfigModule.forRoot(), HttpModule],
     controllers: [SubjectController, TutorController, UploadController],
     providers: [
         TemplateService,
@@ -37,7 +39,8 @@ import { VisionService } from './ai/vision.service';
         QualityService,
         TutorService,
         BookService,
-        VisionService
+        VisionService,
+        CognitiveLoopService
     ],
 })
 export class AppModule { }
