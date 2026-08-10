@@ -396,6 +396,22 @@ enum AlignmentDecisionType {
   NEW_CONCEPT
 }
 
+enum BoardType {
+  CBSE
+  ICSE
+  CAMBRIDGE
+  STATE_BOARD
+  INTERNATIONAL_BACCALAUREATE
+}
+
+enum CurriculumStatus {
+  DRAFT
+  VALIDATING
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
 enum GradeBand {
   EARLY_CHILDHOOD
   PRIMARY
@@ -662,6 +678,7 @@ model Concept {
   candidates      ConceptCandidate[]
   proposals       ConceptAlignmentProposal[]
   curatorRules    CuratorRule[]
+  curriculumNodes CurriculumNode[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -812,6 +829,8 @@ model LearningObjective {
   complexityLevel Int      @default(1) // Mastery depth (1-10)
   bloomTaxonomy   String?  // REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
 
+  nodeObjectives  CurriculumNodeObjective[]
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -932,4 +951,136 @@ model LearningEvidence {
   @@index([conceptId])
   @@index([evidenceType])
   @@index([observedAt])
+}
+
+// ------------------------------------------------------------
+// Phase 2.6 Additions: Universal Curriculum & Board Mappings
+// ------------------------------------------------------------
+
+// 1. Immutable Master Curriculum Version Snapshot
+model CurriculumStructure {
+  id                 String           @id @default(uuid())
+  version            Int              @unique
+  name               String           @default("EKAGURU Universal Curriculum")
+  description        String?
+  domain             String           @default("General")
+  status             CurriculumStatus @default(DRAFT)
+
+  inputFingerprint   String           @default("FINGERPRINT_DEFAULT") // SHA256 of active concepts, edges & objectives
+
+  createdBy          String           @default("SYSTEM")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  nodes              CurriculumNode[]
+  prerequisites      CurriculumPrerequisite[]
+  boardMappings      BoardCurriculumMapping[]
+
+  @@unique([domain, inputFingerprint])
+  @@index([domain])
+}
+
+// 2. Universal Curriculum Node (Backbone Sequence)
+model CurriculumNode {
+  id                    String              @id @default(uuid())
+  structureId           String
+  structure             CurriculumStructure @relation(fields: [structureId], references: [id])
+
+  conceptId             String
+  concept               Concept             @relation(fields: [conceptId], references: [id])
+
+  gradeBand             GradeBand
+  sequenceIndex         Int                 // Deterministic topological index
+  masteryDepthLevel     Int                 @default(1) // Mastery depth 1-10
+
+  createdAt             DateTime            @default(now())
+
+  nodeObjectives        CurriculumNodeObjective[]
+  boardMappings         BoardNodeMapping[]
+
+  outgoingPrereqs       CurriculumPrerequisite[] @relation("PrereqSource")
+  incomingPrereqs       CurriculumPrerequisite[] @relation("PrereqTarget")
+
+  @@unique([structureId, conceptId, gradeBand])
+  @@index([structureId, sequenceIndex])
+  @@index([conceptId])
+  @@index([gradeBand])
+}
+
+// 3. Node-to-Objective Join Model
+model CurriculumNodeObjective {
+  id                    String            @id @default(uuid())
+  curriculumNodeId      String
+  curriculumNode        CurriculumNode    @relation(fields: [curriculumNodeId], references: [id])
+
+  learningObjectiveId   String
+  learningObjective     LearningObjective @relation(fields: [learningObjectiveId], references: [id])
+
+  sequenceIndex         Int               @default(1)
+  createdAt             DateTime          @default(now())
+
+  @@unique([curriculumNodeId, learningObjectiveId])
+  @@index([curriculumNodeId])
+}
+
+// 4. Explicit Versioned Prerequisite Edge Model
+model CurriculumPrerequisite {
+  id                    String              @id @default(uuid())
+  structureId           String
+  structure             CurriculumStructure @relation(fields: [structureId], references: [id])
+
+  sourceNodeId          String
+  sourceNode            CurriculumNode      @relation("PrereqSource", fields: [sourceNodeId], references: [id])
+
+  targetNodeId          String
+  targetNode            CurriculumNode      @relation("PrereqTarget", fields: [targetNodeId], references: [id])
+
+  prerequisiteType      String              @default("PREREQUISITE")
+  confidence            Float               @default(1.0)
+  createdAt             DateTime            @default(now())
+
+  @@unique([structureId, sourceNodeId, targetNodeId])
+  @@index([structureId])
+}
+
+// 5. Board Curriculum Alignment Mapping (CBSE / ICSE / Cambridge Projection)
+model BoardCurriculumMapping {
+  id                 String              @id @default(uuid())
+  structureId        String
+  structure          CurriculumStructure @relation(fields: [structureId], references: [id])
+
+  boardType          BoardType
+  boardCode          String              // e.g. "CBSE_INDIA", "TELANGANA_STATE"
+  jurisdiction       String              @default("INDIA")
+  academicYear       String              @default("2026-2027")
+  boardGrade         String              // e.g. "Class 1", "Grade 2"
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  nodeMappings       BoardNodeMapping[]
+
+  @@unique([structureId, boardCode, academicYear, boardGrade])
+  @@index([boardType])
+  @@index([boardCode])
+}
+
+// 6. Board Node Specific Sequence Projection & Conflict Flagging
+model BoardNodeMapping {
+  id                 String                 @id @default(uuid())
+  boardMappingId     String
+  boardMapping       BoardCurriculumMapping @relation(fields: [boardMappingId], references: [id])
+
+  curriculumNodeId   String
+  curriculumNode     CurriculumNode         @relation(fields: [curriculumNodeId], references: [id])
+
+  boardSequenceIndex Int                    // Board specific ordering index
+  hasSequenceConflict Boolean              @default(false)
+  conflictNotes      String?
+
+  createdAt          DateTime               @default(now())
+
+  @@unique([boardMappingId, curriculumNodeId])
+  @@index([curriculumNodeId])
+  @@index([hasSequenceConflict])
 }

@@ -35,6 +35,11 @@ import { MultiFactorPolicyService } from './knowledge/alignment/multi-factor-pol
 import { CuratorWorkflowService } from './knowledge/alignment/curator-workflow.service';
 import { AlignmentController } from './knowledge/alignment/alignment.controller';
 
+import { TopologicalSortService } from './knowledge/curriculum/topological-sort.service';
+import { CurriculumBackboneService } from './knowledge/curriculum/curriculum-backbone.service';
+import { BoardMappingService } from './knowledge/curriculum/board-mapping.service';
+import { CurriculumController } from './knowledge/curriculum/curriculum.controller';
+
 @Module({
   controllers: [
     LearnerController,
@@ -44,6 +49,7 @@ import { AlignmentController } from './knowledge/alignment/alignment.controller'
     ExtractionController,
     KnowledgeController,
     AlignmentController,
+    CurriculumController,
   ],
   providers: [
     PrismaService,
@@ -71,6 +77,9 @@ import { AlignmentController } from './knowledge/alignment/alignment.controller'
     EmbeddingService,
     MultiFactorPolicyService,
     CuratorWorkflowService,
+    TopologicalSortService,
+    CurriculumBackboneService,
+    BoardMappingService,
   ],
   exports: [
     PrismaService,
@@ -96,6 +105,9 @@ import { AlignmentController } from './knowledge/alignment/alignment.controller'
     EmbeddingService,
     MultiFactorPolicyService,
     CuratorWorkflowService,
+    TopologicalSortService,
+    CurriculumBackboneService,
+    BoardMappingService,
   ],
 })
 export class LearningLibraryModule {}
