@@ -1,4 +1,4 @@
-// TypeScript type definitions for the Jarvis Tutor App
+// TypeScript type definitions for EKAGURU.
 
 export interface Topic {
     id: string;

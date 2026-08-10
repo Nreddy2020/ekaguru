@@ -3,12 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 17, 24, 39; /* gray-900 */
-  --background-end-rgb: 17, 24, 39;
+  --foreground-rgb: 241, 245, 249;
+  --background-start-rgb: 7, 17, 31;
+  --background-end-rgb: 13, 29, 51;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-start-rgb));
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.3);
+  color: white;
 }

@@ -1,11 +1,11 @@
-// Design tokens for the Jarvis Tutor App
+// Design tokens for EKAGURU.
 export const colors = {
-    primary: '#3B82F6',      // Blue
-    accent: '#22D3EE',       // Cyan
-    darkBg: '#0F172A',       // Dark background
+    primary: '#7C3AED',      // Indigo
+    accent: '#2DD4BF',       // Teal
+    darkBg: '#07111F',       // Night blue
     lightBg: '#F8FAFC',      // Light background
-    card: '#1E293B',         // Card background
-    border: '#334155',       // Border color
+    card: '#102038',         // Card background
+    border: '#29415F',       // Border color
     textLight: '#E5E7EB',    // Light text
     textDark: '#0F172A',     // Dark text
 };

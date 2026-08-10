@@ -6,6 +6,10 @@ import { motion } from 'framer-motion';
 import { api } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 
+interface UploadResult {
+    structure?: unknown;
+}
+
 export default function UploadPage() {
     const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
@@ -47,7 +51,7 @@ export default function UploadPage() {
         setError(null);
 
         try {
-            const response = await api.uploadBook(file, setProgress);
+            const response = await api.uploadBook(file, setProgress) as UploadResult;
             setResult(response);
             // Store for dashboard
             if (typeof window !== 'undefined') {
@@ -68,8 +72,9 @@ export default function UploadPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-8"
                 >
-                    <h1 className="text-4xl font-bold mb-4">Upload Your Book</h1>
-                    <p className="text-gray-400">Transform any book into a structured learning experience</p>
+                    <p className="text-sm font-bold uppercase tracking-[0.18em] text-teal-200 mb-3">Learning Library</p>
+                    <h1 className="text-4xl font-bold mb-4">Add learning material</h1>
+                    <p className="text-gray-400">Transform a learning source into a structured experience. PDF, DOCX and EPUB are available today; image and note ingestion follow in the next phase.</p>
                 </motion.div>
 
                 <div className="space-y-6">
@@ -84,7 +89,7 @@ export default function UploadPage() {
                         onClick={() => document.getElementById('file-input')?.click()}
                     >
                         <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                        <p className="text-xl font-semibold mb-2">Drop your book here</p>
+                        <p className="text-xl font-semibold mb-2">Drop learning material here</p>
                         <p className="text-gray-400 mb-2">or click to browse</p>
                         <p className="text-sm text-gray-500">PDF, DOCX, EPUB (max 50MB)</p>
                     </div>
@@ -128,7 +133,7 @@ export default function UploadPage() {
                                     onClick={handleUpload}
                                     className="w-full mt-2 bg-cyan-500 hover:bg-cyan-600 py-3 rounded-lg font-semibold transition-colors"
                                 >
-                                    Analyze Book
+                                    Analyze material
                                 </button>
                             )}
                         </motion.div>
@@ -163,7 +168,7 @@ export default function UploadPage() {
                             <div className="flex items-center gap-3 mb-4">
                                 <CheckCircle className="w-6 h-6 text-green-500" />
                                 <div>
-                                    <p className="text-green-500 font-semibold text-lg">Book Structure Analyzed!</p>
+                                    <p className="text-green-500 font-semibold text-lg">Learning material analysed</p>
                                     <p className="text-gray-400 text-sm">
                                         Target Audience: {
                                             result.structure?.chapters?.[0]?.topics?.[0]?.difficulty === 'beginner'
@@ -202,10 +207,10 @@ export default function UploadPage() {
                             </div>
 
                             <button
-                                onClick={() => router.push(`/tutor/dashboard`)}
+                                onClick={() => router.push(`/library`)}
                                 className="w-full bg-cyan-500 hover:bg-cyan-600 py-3 rounded-lg font-semibold transition-colors"
                             >
-                                Start Learning Journey →
+                                Return to Learning Library →
                             </button>
                         </motion.div>
                     )}

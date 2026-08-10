@@ -1,4 +1,4 @@
-// API client for the Jarvis Tutor App
+// API client for EKAGURU.
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:20000';
 
 class APIError extends Error {

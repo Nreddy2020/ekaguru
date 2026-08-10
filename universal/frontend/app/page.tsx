@@ -1,131 +1,45 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { BookOpen, Upload } from 'lucide-react';
-import { api } from '@/lib/api-client';
+import { ArrowRight, BrainCircuit, Compass, Library, Lightbulb, Sparkles } from 'lucide-react';
 
-const CATEGORIES = [
-    { name: 'Technology', icon: '💻', color: 'from-blue-500 to-cyan-500' },
-    { name: 'Schooling', icon: '🎓', color: 'from-purple-500 to-pink-500' },
-    { name: 'Medical', icon: '🏥', color: 'from-red-500 to-orange-500' },
-    { name: 'Mechanical', icon: '⚙️', color: 'from-gray-500 to-slate-500' },
-    { name: 'Business', icon: '💼', color: 'from-green-500 to-emerald-500' },
+const journey = [
+    { title: 'Understand', description: 'Build strong foundations, not quick answers.', icon: Lightbulb },
+    { title: 'Question', description: 'Turn curiosity into deeper thinking.', icon: Compass },
+    { title: 'Explore', description: 'Connect ideas across your own learning materials.', icon: Library },
+    { title: 'Grow independently', description: 'See evidence of what is becoming easier.', icon: Sparkles },
 ];
 
 export default function HomePage() {
-    const [subjects, setSubjects] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchSubjects = async () => {
-            try {
-                const data = await api.getAllSubjects();
-                setSubjects(data);
-            } catch (error) {
-                console.error('Failed to fetch subjects:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSubjects();
-    }, []);
-
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-6">
-            <div className="max-w-7xl mx-auto">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-12"
-                >
-                    <h1 className="text-4xl font-bold mb-4">Choose Your Learning Path</h1>
-                    <p className="text-gray-400">Select a category or upload your own book to start learning</p>
-                </motion.div>
-
-                {/* Category Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                    {CATEGORIES.map((category, idx) => (
-                        <Link key={category.name} href={`/category/${category.name.toLowerCase()}`}>
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.1 }}
-                                className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors cursor-pointer group h-full"
-                            >
-                                <div className={`w-16 h-16 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform`}>
-                                    {category.icon}
-                                </div>
-                                <h3 className="text-xl font-semibold">{category.name}</h3>
-                            </motion.div>
-                        </Link>
-                    ))}
-
-                    {/* Upload Book Card */}
-                    <Link href="/upload">
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5 }}
-                            className="bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg p-6 hover:shadow-lg hover:shadow-cyan-500/50 transition-all cursor-pointer group"
-                        >
-                            <div className="w-16 h-16 rounded-lg bg-white/20 flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform">
-                                <Upload className="w-8 h-8" />
-                            </div>
-                            <h3 className="text-xl font-semibold">Upload Book</h3>
-                            <p className="text-sm text-white/80 mt-2">Start learning from your own materials</p>
-                        </motion.div>
-                    </Link>
-                </div>
-
-                {/* Continue Learning Section */}
-                {!loading && subjects.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6 }}
-                    >
-                        <h2 className="text-2xl font-bold mb-6">Continue Learning</h2>
-                        <div className="space-y-4">
-                            {subjects.map((subject) => (
-                                <Link key={subject.id} href={`/tutor/${subject.id}`}>
-                                    <div className="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-colors flex items-center justify-between group">
-                                        <div className="flex items-center gap-4">
-                                            <BookOpen className="w-6 h-6 text-cyan-400" />
-                                            <div>
-                                                <h3 className="font-semibold group-hover:text-cyan-400 transition-colors">{subject.name}</h3>
-                                                <p className="text-sm text-gray-400">{subject.category || 'General'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-32 bg-gray-700 rounded-full h-2">
-                                                <div
-                                                    className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full"
-                                                    style={{ width: `${subject.progress || 0}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-sm text-gray-400">{subject.progress || 0}%</span>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-
-                {!loading && subjects.length === 0 && (
-                    <div className="text-center py-12">
-                        <p className="text-gray-400 mb-4">No subjects yet. Upload a book to get started!</p>
-                        <Link href="/upload">
-                            <button className="bg-cyan-500 hover:bg-cyan-600 px-6 py-3 rounded-lg font-semibold">
-                                Upload Your First Book
-                            </button>
-                        </Link>
+        <main className="overflow-hidden">
+            <section className="relative isolate px-5 pb-24 pt-20 lg:px-8 lg:pb-32 lg:pt-28">
+                <div className="absolute inset-x-0 top-[-16rem] -z-10 mx-auto h-[38rem] max-w-5xl rounded-full bg-indigo-600/25 blur-3xl" />
+                <div className="absolute right-[-8rem] top-16 -z-10 h-80 w-80 rounded-full bg-teal-300/10 blur-3xl" />
+                <div className="mx-auto max-w-5xl text-center">
+                    <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200/20 bg-teal-200/10 px-4 py-2 text-sm font-medium text-teal-100"><BrainCircuit className="h-4 w-4" /> Universal Learning Intelligence</p>
+                    <h1 className="mx-auto max-w-4xl text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">Every mind can become more <span className="bg-gradient-to-r from-teal-200 to-indigo-300 bg-clip-text text-transparent">independent.</span></h1>
+                    <p className="mx-auto mt-7 max-w-2xl text-lg leading-8 text-slate-300">EKAGURU helps learners understand, question, explore, practise and create—using the material and evidence that matter to them.</p>
+                    <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
+                        <Link href="/learn" className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-300 px-5 py-3.5 font-bold text-slate-950 transition hover:bg-teal-200">Start learning <ArrowRight className="h-4 w-4" /></Link>
+                        <Link href="/library" className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 py-3.5 font-bold text-white transition hover:bg-white/10">Explore your library</Link>
                     </div>
-                )}
-            </div>
-        </div>
+                </div>
+            </section>
+
+            <section className="border-y border-white/10 bg-white/[0.03] px-5 py-16 lg:px-8">
+                <div className="mx-auto max-w-6xl">
+                    <p className="text-center text-sm font-bold uppercase tracking-[0.18em] text-teal-200">A better learning loop</p>
+                    <div className="mt-9 grid gap-4 md:grid-cols-4">
+                        {journey.map(({ title, description, icon: Icon }, index) => (
+                            <div key={title} className="rounded-2xl border border-white/10 bg-[#0c1b30] p-6">
+                                <span className="text-sm font-bold text-teal-200">0{index + 1}</span>
+                                <Icon className="mt-5 h-6 w-6 text-indigo-300" />
+                                <h2 className="mt-5 text-lg font-bold text-white">{title}</h2>
+                                <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        </main>
     );
 }
