@@ -137,7 +137,7 @@ $ChildMarker = @"
 
 if ($SchemaText -notmatch "(?m)^\s*learner\s+Learner\?\s*$") {
 
-    $ChildPattern = '(?s)(model Child \{.*?createdAt\s+DateTime\s+@default\(now\)\s*)'
+    $ChildPattern = '(?s)(model Child \{.*?progress\s+ChildProgress\?\s*)'
 
     if ($SchemaText -notmatch $ChildPattern) {
         throw "Could not safely locate Child model."
@@ -155,7 +155,7 @@ if ($SchemaText -notmatch "(?m)^\s*learner\s+Learner\?\s*$") {
 # BRIDGE EXISTING CONCEPT ATOM
 # ============================================================
 
-$ConceptAtomPattern = '(?s)(model ConceptAtom \{.*?lenses\s+ComplexityLens\[\])'
+$ConceptAtomPattern = '(?s)(model ConceptAtom \{.*?lenses\s+ComplexityLens\[\]\s*)'
 
 if ($SchemaText -notmatch "(?m)^\s*canonicalConcept\s+Concept\?\s*$") {
 
