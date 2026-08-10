@@ -549,7 +549,7 @@ model Concept {
   legacyAtom     ConceptAtom? @relation(fields: [legacyAtomId], references: [id])
 
   canonicalName  String
-  normalizedName String       @unique
+  normalizedName String
   definition     String?
   conceptType    ConceptType
 

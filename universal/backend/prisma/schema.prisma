@@ -135,6 +135,8 @@ model ConceptAtom {
   // Adaptive Content
   lenses      ComplexityLens[]
 
+  canonicalConcept Concept?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -273,6 +275,7 @@ model Child {
   createdAt   DateTime  @default(now())
   sessions    LearningSession[]
   progress    ChildProgress?
+  learner     Learner?
 }
 
 model ChildProgress {
@@ -297,6 +300,7 @@ model LearningSession {
   startedAt   DateTime @default(now())
   endedAt     DateTime?
   events      SessionEvent[]
+  evidence    LearningEvidence[]
 }
 
 model SessionEvent {
@@ -306,4 +310,402 @@ model SessionEvent {
   type        String          // response, hint, mastery, struggle
   content     String
   timestamp   DateTime        @default(now())
+}
+
+// ============================================================
+// EKAGURU V2 - Universal Learning Intelligence
+// Learning Library Domain - Phase 2.1A Persistence Foundation
+// DO NOT REMOVE: Legacy bridges preserve backward compatibility.
+// ============================================================
+
+// ------------------------------------------------------------
+// V2 Enums
+// ------------------------------------------------------------
+
+enum LearnerType {
+  CHILD
+  STUDENT
+  ADULT
+  PROFESSIONAL
+}
+
+enum MaterialType {
+  TEXTBOOK
+  PDF
+  IMAGE
+  NOTE
+  WORKSHEET
+  ASSIGNMENT
+  WEB_RESOURCE
+  VIDEO
+}
+
+enum MaterialStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum ProcessingStatus {
+  UPLOADED
+  VALIDATING
+  STORED
+  EXTRACTING
+  STRUCTURING
+  CONCEPT_MAPPING
+  INDEXING
+  READY
+  FAILED
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ConceptType {
+  CONCEPT
+  ENTITY
+  PROCESS
+  PRINCIPLE
+  SKILL
+}
+
+enum ConceptRelationshipType {
+  PREREQUISITE
+  RELATED
+  COMPONENT_OF
+  APPLICATION_OF
+  CAUSES
+  CONTRASTS
+  ANALOGY
+}
+
+enum EvidenceType {
+  ANSWER
+  EXPLANATION
+  PRACTICE
+  ASSESSMENT
+  TRANSFER
+  TEACH_BACK
+  OBSERVATION
+  SELF_REPORT
+}
+
+enum EvidenceOutcome {
+  CORRECT
+  PARTIAL
+  INCORRECT
+  DEVELOPING
+  UNKNOWN
+}
+
+// ------------------------------------------------------------
+// Learner  (Bridge: legacyChildId -> Child)
+// ------------------------------------------------------------
+
+model Learner {
+  id                String           @id @default(uuid())
+
+  legacyChildId     String?          @unique
+  legacyChild       Child?           @relation(fields: [legacyChildId], references: [id])
+
+  name              String
+  learnerType       LearnerType
+  preferredLanguage String?          @default("en")
+  dateOfBirth       DateTime?
+
+  materials         LearningMaterial[]
+  evidence          LearningEvidence[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ------------------------------------------------------------
+// Learning Material
+// ------------------------------------------------------------
+
+model LearningMaterial {
+  id                  String           @id @default(uuid())
+
+  learnerId           String
+  learner             Learner          @relation(fields: [learnerId], references: [id])
+
+  title               String
+  description         String?
+
+  materialType        MaterialType
+  status              MaterialStatus   @default(DRAFT)
+  processingStatus    ProcessingStatus @default(UPLOADED)
+
+  subjectName         String?
+  gradeLevel          String?
+  language            String?          @default("en")
+
+  originalFileName    String?
+  mimeType            String?
+  fileSizeBytes       BigInt?
+  storageKey          String?
+
+  failureReason       String?
+  processingVersion   String?
+
+  documents           Document[]
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([learnerId])
+  @@index([processingStatus])
+  @@index([materialType])
+}
+
+// ------------------------------------------------------------
+// Document
+// ------------------------------------------------------------
+
+model Document {
+  id             String           @id @default(uuid())
+
+  materialId     String
+  material       LearningMaterial @relation(fields: [materialId], references: [id])
+
+  title          String?
+  status         DocumentStatus   @default(PENDING)
+
+  pageCount      Int?
+  extractedText  String?
+
+  pages          DocumentPage[]
+  chapters       ContentChapter[]
+  chunks         ContentChunk[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([materialId])
+  @@index([status])
+}
+
+// ------------------------------------------------------------
+// Document Page
+// ------------------------------------------------------------
+
+model DocumentPage {
+  id               String   @id @default(uuid())
+
+  documentId       String
+  document         Document @relation(fields: [documentId], references: [id])
+
+  pageNumber       Int
+  text             String?
+  imageStorageKey  String?
+  ocrApplied       Boolean  @default(false)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([documentId, pageNumber])
+  @@index([documentId])
+}
+
+// ------------------------------------------------------------
+// Content Chapter
+// ------------------------------------------------------------
+
+model ContentChapter {
+  id            String   @id @default(uuid())
+
+  documentId    String
+  document      Document @relation(fields: [documentId], references: [id])
+
+  title         String
+  chapterNumber Int?
+  orderIndex    Int
+
+  topics        ContentTopic[]
+  chunks        ContentChunk[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([documentId, orderIndex])
+  @@index([documentId])
+}
+
+// ------------------------------------------------------------
+// Content Topic
+// ------------------------------------------------------------
+
+model ContentTopic {
+  id          String         @id @default(uuid())
+
+  chapterId   String
+  chapter     ContentChapter @relation(fields: [chapterId], references: [id])
+
+  title       String
+  orderIndex  Int
+
+  chunks      ContentChunk[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([chapterId, orderIndex])
+  @@index([chapterId])
+}
+
+// ------------------------------------------------------------
+// Content Chunk
+// ------------------------------------------------------------
+
+model ContentChunk {
+  id             String          @id @default(uuid())
+
+  documentId     String
+  document       Document        @relation(fields: [documentId], references: [id])
+
+  chapterId      String?
+  chapter        ContentChapter? @relation(fields: [chapterId], references: [id])
+
+  topicId        String?
+  topic          ContentTopic?   @relation(fields: [topicId], references: [id])
+
+  sequenceNumber Int
+  content        String
+
+  pageStart      Int?
+  pageEnd        Int?
+
+  metadata       Json?
+
+  conceptLinks   ConceptChunk[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([documentId, sequenceNumber])
+  @@index([chapterId])
+  @@index([topicId])
+}
+
+// ------------------------------------------------------------
+// Canonical Concept  (Bridge: legacyAtomId -> ConceptAtom)
+// ------------------------------------------------------------
+
+model Concept {
+  id             String       @id @default(uuid())
+
+  legacyAtomId   String?      @unique
+  legacyAtom     ConceptAtom? @relation(fields: [legacyAtomId], references: [id])
+
+  canonicalName  String
+  normalizedName String
+  definition     String?
+  conceptType    ConceptType
+
+  domain         String?
+  metadata       Json?
+
+  sourceChunks   ConceptChunk[]
+
+  outgoing       ConceptRelationship[] @relation("ConceptSource")
+  incoming       ConceptRelationship[] @relation("ConceptTarget")
+
+  learnerEvidence LearningEvidence[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([conceptType])
+  @@index([domain])
+}
+
+// ------------------------------------------------------------
+// Concept <-> Content Chunk  (many-to-many join)
+// ------------------------------------------------------------
+
+model ConceptChunk {
+  id          String       @id @default(uuid())
+
+  conceptId   String
+  concept     Concept      @relation(fields: [conceptId], references: [id])
+
+  chunkId     String
+  chunk       ContentChunk @relation(fields: [chunkId], references: [id])
+
+  relevance   Float?
+  confidence  Float?
+
+  createdAt   DateTime @default(now())
+
+  @@unique([conceptId, chunkId])
+  @@index([chunkId])
+}
+
+// ------------------------------------------------------------
+// Canonical Knowledge Graph  (Concept -> Concept)
+// ------------------------------------------------------------
+
+model ConceptRelationship {
+  id               String                  @id @default(uuid())
+
+  sourceId         String
+  source           Concept                 @relation("ConceptSource", fields: [sourceId], references: [id])
+
+  targetId         String
+  target           Concept                 @relation("ConceptTarget", fields: [targetId], references: [id])
+
+  relationshipType ConceptRelationshipType
+
+  strength         Float                   @default(1.0)
+  explanation      String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([sourceId, targetId, relationshipType])
+  @@index([sourceId])
+  @@index([targetId])
+}
+
+// ------------------------------------------------------------
+// Learning Evidence  (Bridge: sessionId -> LearningSession optional)
+// ------------------------------------------------------------
+
+model LearningEvidence {
+  id              String           @id @default(uuid())
+
+  learnerId       String
+  learner         Learner          @relation(fields: [learnerId], references: [id])
+
+  conceptId       String
+  concept         Concept          @relation(fields: [conceptId], references: [id])
+
+  sessionId       String?
+  session         LearningSession? @relation(fields: [sessionId], references: [id])
+
+  evidenceType    EvidenceType
+  outcome         EvidenceOutcome
+
+  score           Float?
+  confidence      Float?
+
+  response        String?
+  reasoning       String?
+  misconception   String?
+
+  sourceReference Json?
+
+  observedAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([learnerId, conceptId])
+  @@index([conceptId])
+  @@index([evidenceType])
+  @@index([observedAt])
 }
