@@ -2,7 +2,6 @@ import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request } 
 import { LearnerService } from './learner.service';
 import { CreateLearnerDto } from './dto/create-learner.dto';
 import { UpdateLearnerDto } from './dto/update-learner.dto';
-import { LearnerType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { LearningLibraryAuthGuard } from './learning-library-auth.guard';
 
@@ -17,13 +16,8 @@ export class LearnerController {
   }
 
   @Get()
-  async findAll(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('search') search?: string,
-    @Query('learnerType') learnerType?: LearnerType,
-  ) {
-    return this.learnerService.findAll({ page, pageSize, search, learnerType });
+  async findAll(@Request() req: any, @Query() query: any) {
+    return this.learnerService.findAll(query, req.user);
   }
 
   @Get(':id')

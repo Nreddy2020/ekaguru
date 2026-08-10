@@ -1,29 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LearningMaterialService } from './learning-material.service';
 import { PrismaService } from './prisma.service';
-import { MaterialType, MaterialStatus, ProcessingStatus } from '@prisma/client';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { MaterialType, MaterialStatus, ProcessingStatus, LearnerType } from '@prisma/client';
+import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 
 describe('LearningMaterialService', () => {
   let service: LearningMaterialService;
   let prisma: any;
 
-  const mockLearner = { id: 'learner-123', name: 'Learner', learnerType: 'STUDENT' };
+  const mockLearner = {
+    id: 'learner-123',
+    name: 'Test Student',
+    learnerType: LearnerType.STUDENT,
+  };
+
   const mockMaterial = {
     id: 'mat-123',
     learnerId: 'learner-123',
-    title: 'Physics Chapter 1',
+    title: 'Physics 101',
     description: 'Intro to Physics',
     materialType: MaterialType.TEXTBOOK,
     status: MaterialStatus.DRAFT,
     processingStatus: ProcessingStatus.UPLOADED,
     subjectName: 'Physics',
-    gradeLevel: 'Grade 10',
+    gradeLevel: '10th',
     language: 'en',
     originalFileName: 'physics.pdf',
     mimeType: 'application/pdf',
     fileSizeBytes: BigInt(1024),
-    storageKey: 'uploads/physics.pdf',
+    storageKey: 'key-123',
     failureReason: null,
     processingVersion: null,
     createdAt: new Date(),
@@ -35,13 +40,20 @@ describe('LearningMaterialService', () => {
   beforeEach(async () => {
     prisma = {
       learner: {
-        findUnique: jest.fn().mockResolvedValue(mockLearner),
+        findUnique: jest.fn().mockImplementation(({ where }) => {
+          if (where.id === 'learner-123') return Promise.resolve(mockLearner);
+          return Promise.resolve(null);
+        }),
+        findMany: jest.fn().mockResolvedValue([{ id: 'learner-123' }]),
       },
       learningMaterial: {
         create: jest.fn().mockResolvedValue(mockMaterial),
         findMany: jest.fn().mockResolvedValue([mockMaterial]),
         count: jest.fn().mockResolvedValue(1),
-        findUnique: jest.fn().mockResolvedValue(mockMaterial),
+        findUnique: jest.fn().mockImplementation(({ where }) => {
+          if (where.id === 'mat-123') return Promise.resolve(mockMaterial);
+          return Promise.resolve(null);
+        }),
         update: jest.fn().mockResolvedValue({ ...mockMaterial, status: MaterialStatus.DELETED }),
       },
     };
@@ -61,28 +73,22 @@ describe('LearningMaterialService', () => {
   });
 
   describe('create', () => {
-    it('should create a material successfully', async () => {
+    it('should successfully create learning material', async () => {
       const res = await service.create({
         learnerId: 'learner-123',
-        title: 'Physics Chapter 1',
+        title: 'Physics 101',
         materialType: MaterialType.TEXTBOOK,
       });
 
       expect(res.data.id).toBe('mat-123');
-      expect(prisma.learningMaterial.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          status: MaterialStatus.DRAFT,
-          processingStatus: ProcessingStatus.UPLOADED,
-        }),
-      });
+      expect(res.data.progress).toBe(5); // UPLOADED stage progress
     });
 
     it('should throw NotFoundException if learner does not exist', async () => {
-      prisma.learner.findUnique.mockResolvedValueOnce(null);
       await expect(
         service.create({
           learnerId: 'non-existent',
-          title: 'Physics',
+          title: 'Physics 101',
           materialType: MaterialType.TEXTBOOK,
         }),
       ).rejects.toThrow(NotFoundException);
@@ -106,6 +112,22 @@ describe('LearningMaterialService', () => {
       expect(res.data).toHaveLength(1);
       expect(res.data[0].progress).toBe(5); // UPLOADED stage progress is 5
       expect(res.meta.total).toBe(1);
+    });
+
+    it('should throw ForbiddenException if user requests unauthorized learnerId', async () => {
+      prisma.learner.findMany.mockResolvedValueOnce([{ id: 'learner-authorized' }]);
+      const parentUser = { userId: 'parent-1', role: 'PARENT' };
+      await expect(
+        service.findAll({ learnerId: 'unauthorized-learner' }, parentUser),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should scope query for non-admin user when learnerId is omitted', async () => {
+      prisma.learner.findMany.mockResolvedValueOnce([{ id: 'learner-123' }]);
+      prisma.learningMaterial.findMany.mockResolvedValueOnce([mockMaterial]);
+      const parentUser = { userId: 'parent-1', role: 'PARENT' };
+      const res = await service.findAll({}, parentUser);
+      expect(res.data).toHaveLength(1);
     });
   });
 

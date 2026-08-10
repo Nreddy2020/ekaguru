@@ -17,8 +17,8 @@ export class LearningMaterialController {
   }
 
   @Get()
-  async findAll(@Query() query: QueryLearningMaterialDto) {
-    return this.materialService.findAll(query);
+  async findAll(@Request() req: any, @Query() query: QueryLearningMaterialDto) {
+    return this.materialService.findAll(query, req.user);
   }
 
   @Get(':id')

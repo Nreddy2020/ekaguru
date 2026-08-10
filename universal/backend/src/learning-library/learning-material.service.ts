@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { CreateLearningMaterialDto } from './dto/create-learning-material.dto';
 import { UpdateLearningMaterialDto } from './dto/update-learning-material.dto';
@@ -94,7 +94,40 @@ export class LearningMaterialService {
     };
   }
 
-  async findAll(query: QueryLearningMaterialDto): Promise<{
+  async getAuthorizedLearnerIds(user?: any): Promise<string[] | 'ALL'> {
+    if (!user || user.role === 'ADMIN') {
+      return 'ALL';
+    }
+
+    if (user.role === 'PARENT') {
+      const learners = await this.prisma.learner.findMany({
+        where: {
+          legacyChild: {
+            parentId: user.userId,
+          },
+        },
+        select: { id: true },
+      });
+      return learners.map((l) => l.id);
+    }
+
+    if (user.role === 'STUDENT') {
+      const targetChildId = user.childId || user.userId;
+      if (!targetChildId) return [];
+
+      const learners = await this.prisma.learner.findMany({
+        where: {
+          legacyChildId: targetChildId,
+        },
+        select: { id: true },
+      });
+      return learners.map((l) => l.id);
+    }
+
+    return [];
+  }
+
+  async findAll(query: QueryLearningMaterialDto, user?: any): Promise<{
     data: any[];
     meta: { page: number; pageSize: number; total: number; totalPages: number };
   }> {
@@ -104,7 +137,20 @@ export class LearningMaterialService {
 
     const where: any = {};
 
-    if (query.learnerId && query.learnerId.trim().length > 0) {
+    if (user && user.role !== 'ADMIN') {
+      const authorizedIds = await this.getAuthorizedLearnerIds(user);
+      if (Array.isArray(authorizedIds)) {
+        if (query.learnerId && query.learnerId.trim().length > 0) {
+          const requestedId = query.learnerId.trim();
+          if (!authorizedIds.includes(requestedId)) {
+            throw new ForbiddenException('Access denied: You do not have permission to access materials for this learner.');
+          }
+          where.learnerId = requestedId;
+        } else {
+          where.learnerId = { in: authorizedIds };
+        }
+      }
+    } else if (query.learnerId && query.learnerId.trim().length > 0) {
       where.learnerId = query.learnerId.trim();
     }
 

@@ -84,6 +84,14 @@ describe('LearnerService', () => {
         totalPages: 1,
       });
     });
+
+    it('should scope findAll for PARENT user', async () => {
+      prisma.learner.findMany.mockResolvedValueOnce([{ id: 'learner-123' }]);
+      prisma.learner.findMany.mockResolvedValueOnce([mockLearner]);
+      const parentUser = { userId: 'parent-1', role: 'PARENT' };
+      const res = await service.findAll({ page: 1, pageSize: 10 }, parentUser);
+      expect(res.data).toHaveLength(1);
+    });
   });
 
   describe('findOne', () => {

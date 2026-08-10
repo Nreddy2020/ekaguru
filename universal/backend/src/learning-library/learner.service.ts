@@ -43,12 +43,48 @@ export class LearnerService {
     return { data: learner };
   }
 
-  async findAll(query?: {
-    page?: number | string;
-    pageSize?: number | string;
-    search?: string;
-    learnerType?: LearnerType;
-  }): Promise<{
+  async getAuthorizedLearnerIds(user?: any): Promise<string[] | 'ALL'> {
+    if (!user || user.role === 'ADMIN') {
+      return 'ALL';
+    }
+
+    if (user.role === 'PARENT') {
+      const learners = await this.prisma.learner.findMany({
+        where: {
+          legacyChild: {
+            parentId: user.userId,
+          },
+        },
+        select: { id: true },
+      });
+      return learners.map((l) => l.id);
+    }
+
+    if (user.role === 'STUDENT') {
+      const targetChildId = user.childId || user.userId;
+      if (!targetChildId) return [];
+
+      const learners = await this.prisma.learner.findMany({
+        where: {
+          legacyChildId: targetChildId,
+        },
+        select: { id: true },
+      });
+      return learners.map((l) => l.id);
+    }
+
+    return [];
+  }
+
+  async findAll(
+    query?: {
+      page?: number | string;
+      pageSize?: number | string;
+      search?: string;
+      learnerType?: LearnerType;
+    },
+    user?: any,
+  ): Promise<{
     data: Learner[];
     meta: { page: number; pageSize: number; total: number; totalPages: number };
   }> {
@@ -57,6 +93,13 @@ export class LearnerService {
     const skip = (page - 1) * pageSize;
 
     const where: any = {};
+
+    if (user && user.role !== 'ADMIN') {
+      const authorizedIds = await this.getAuthorizedLearnerIds(user);
+      if (Array.isArray(authorizedIds)) {
+        where.id = { in: authorizedIds };
+      }
+    }
 
     if (query?.learnerType) {
       if (!Object.values(LearnerType).includes(query.learnerType)) {

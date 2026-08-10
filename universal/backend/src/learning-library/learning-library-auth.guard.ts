@@ -111,12 +111,10 @@ export class LearningLibraryAuthGuard implements CanActivate {
     }
 
     if (user.role === 'STUDENT') {
-      // Student is authorized if user.childId or user.userId matches legacyChildId or learnerId
+      const targetChildId = user.childId || user.userId;
       return (
-        learner.id === user.childId ||
-        learner.id === user.userId ||
-        learner.legacyChildId === user.childId ||
-        learner.legacyChildId === user.userId
+        learner.legacyChildId === targetChildId ||
+        (user.childId !== undefined && learner.id === user.childId)
       );
     }
 
