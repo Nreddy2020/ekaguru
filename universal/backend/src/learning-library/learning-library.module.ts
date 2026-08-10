@@ -40,6 +40,11 @@ import { CurriculumBackboneService } from './knowledge/curriculum/curriculum-bac
 import { BoardMappingService } from './knowledge/curriculum/board-mapping.service';
 import { CurriculumController } from './knowledge/curriculum/curriculum.controller';
 
+import { MasteryCalculatorService } from './mastery/mastery-calculator.service';
+import { FrontierCalculatorService } from './mastery/frontier-calculator.service';
+import { RemediationService } from './mastery/remediation.service';
+import { MasteryController } from './mastery/mastery.controller';
+
 @Module({
   controllers: [
     LearnerController,
@@ -50,6 +55,7 @@ import { CurriculumController } from './knowledge/curriculum/curriculum.controll
     KnowledgeController,
     AlignmentController,
     CurriculumController,
+    MasteryController,
   ],
   providers: [
     PrismaService,
@@ -80,6 +86,9 @@ import { CurriculumController } from './knowledge/curriculum/curriculum.controll
     TopologicalSortService,
     CurriculumBackboneService,
     BoardMappingService,
+    MasteryCalculatorService,
+    FrontierCalculatorService,
+    RemediationService,
   ],
   exports: [
     PrismaService,
@@ -108,6 +117,9 @@ import { CurriculumController } from './knowledge/curriculum/curriculum.controll
     TopologicalSortService,
     CurriculumBackboneService,
     BoardMappingService,
+    MasteryCalculatorService,
+    FrontierCalculatorService,
+    RemediationService,
   ],
 })
 export class LearningLibraryModule {}

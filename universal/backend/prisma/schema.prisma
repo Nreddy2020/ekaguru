@@ -412,6 +412,13 @@ enum CurriculumStatus {
   ARCHIVED
 }
 
+enum MasteryStatus {
+  NOT_STARTED
+  NEEDS_REMEDIATION
+  IN_PROGRESS
+  MASTERED
+}
+
 enum GradeBand {
   EARLY_CHILDHOOD
   PRIMARY
@@ -474,6 +481,11 @@ model Learner {
 
   materials         LearningMaterial[]
   evidence          LearningEvidence[]
+  conceptMasteries  LearnerConceptMastery[]
+  objectiveMasteries LearnerObjectiveMastery[]
+  curriculumEnrollments LearnerCurriculumEnrollment[]
+  masteryHistories  MasteryHistory[]
+  curriculumFrontiers LearnerCurriculumFrontier[]
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -679,6 +691,7 @@ model Concept {
   proposals       ConceptAlignmentProposal[]
   curatorRules    CuratorRule[]
   curriculumNodes CurriculumNode[]
+  conceptMasteries LearnerConceptMastery[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -830,6 +843,8 @@ model LearningObjective {
   bloomTaxonomy   String?  // REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
 
   nodeObjectives  CurriculumNodeObjective[]
+  learningEvidences LearningEvidence[]
+  objectiveMasteries LearnerObjectiveMastery[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -922,12 +937,16 @@ model ConceptRelationship {
 
 model LearningEvidence {
   id              String           @id @default(uuid())
+  evidenceKey     String?          @unique // SHA256 / UUID unique evidence key
 
   learnerId       String
   learner         Learner          @relation(fields: [learnerId], references: [id])
 
-  conceptId       String
-  concept         Concept          @relation(fields: [conceptId], references: [id])
+  conceptId       String?
+  concept         Concept?         @relation(fields: [conceptId], references: [id])
+
+  learningObjectiveId String?
+  learningObjective   LearningObjective? @relation(fields: [learningObjectiveId], references: [id])
 
   sessionId       String?
   session         LearningSession? @relation(fields: [sessionId], references: [id])
@@ -975,6 +994,8 @@ model CurriculumStructure {
   nodes              CurriculumNode[]
   prerequisites      CurriculumPrerequisite[]
   boardMappings      BoardCurriculumMapping[]
+  enrollments        LearnerCurriculumEnrollment[]
+  frontiers          LearnerCurriculumFrontier[]
 
   @@unique([domain, inputFingerprint])
   @@index([domain])
@@ -997,6 +1018,7 @@ model CurriculumNode {
 
   nodeObjectives        CurriculumNodeObjective[]
   boardMappings         BoardNodeMapping[]
+  frontiers             LearnerCurriculumFrontier[]
 
   outgoingPrereqs       CurriculumPrerequisite[] @relation("PrereqSource")
   incomingPrereqs       CurriculumPrerequisite[] @relation("PrereqTarget")
@@ -1083,4 +1105,137 @@ model BoardNodeMapping {
   @@unique([boardMappingId, curriculumNodeId])
   @@index([curriculumNodeId])
   @@index([hasSequenceConflict])
+}
+
+// ------------------------------------------------------------
+// Phase 2.7 Additions: Learner Mastery & Adaptive Sequencing
+// ------------------------------------------------------------
+
+// 1. Immutable Mastery Policy Snapshot
+model MasteryPolicy {
+  id                    String           @id @default(uuid())
+  version               Int              @unique
+  name                  String           @default("EKAGURU Default Mastery Policy")
+  recentWeight          Float            @default(0.60) // Weight for recent assessment
+  decayLambda           Float            @default(0.001) // Hourly decay rate
+  masteryThreshold      Float            @default(0.75) // Threshold for MASTERED
+  remediationThreshold  Float            @default(0.50) // Threshold for NEEDS_REMEDIATION
+  confidenceThreshold   Float            @default(0.70) // Confidence threshold
+
+  createdBy             String           @default("SYSTEM")
+  createdAt             DateTime         @default(now())
+
+  histories             MasteryHistory[]
+}
+
+// 2. Learner Curriculum Version Enrollment (PUBLISHED Only)
+model LearnerCurriculumEnrollment {
+  id                    String              @id @default(uuid())
+  learnerId             String
+  learner               Learner             @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  structureId           String
+  structure             CurriculumStructure @relation(fields: [structureId], references: [id])
+
+  enrolledAt            DateTime            @default(now())
+  active                Boolean             @default(true)
+
+  @@unique([learnerId, structureId])
+  @@index([learnerId])
+}
+
+// 3. Learner Concept-Level Mastery State (Current State)
+model LearnerConceptMastery {
+  id                    String        @id @default(uuid())
+  learnerId             String
+  learner               Learner       @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  conceptId             String
+  concept               Concept       @relation(fields: [conceptId], references: [id])
+
+  masteryScore          Float         @default(0.0) // 0.0 to 1.0
+  confidence            Float         @default(0.0) // 0.0 to 1.0
+  status                MasteryStatus @default(NOT_STARTED)
+
+  policyVersion         Int           @default(1)
+  attemptsCount         Int           @default(0)
+  successfulCount       Int           @default(0)
+  lastAssessedAt        DateTime?
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@unique([learnerId, conceptId])
+  @@index([learnerId])
+  @@index([conceptId])
+  @@index([status])
+}
+
+// 4. Learner Objective-Level Mastery State (Current State)
+model LearnerObjectiveMastery {
+  id                    String            @id @default(uuid())
+  learnerId             String
+  learner               Learner           @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  learningObjectiveId   String
+  learningObjective     LearningObjective @relation(fields: [learningObjectiveId], references: [id])
+
+  masteryScore          Float             @default(0.0)
+  status                MasteryStatus     @default(NOT_STARTED)
+
+  policyVersion         Int               @default(1)
+  lastAssessedAt        DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@unique([learnerId, learningObjectiveId])
+  @@index([learnerId])
+  @@index([learningObjectiveId])
+}
+
+// 5. Immutable Mastery History Audit Log (Non-Cascading Retention)
+model MasteryHistory {
+  id                    String            @id @default(uuid())
+  learnerId             String
+  learner               Learner           @relation(fields: [learnerId], references: [id], onDelete: Restrict)
+
+  conceptId             String?
+  learningObjectiveId   String?
+  evidenceKey           String            // Unique evidence key reference
+
+  previousScore         Float
+  newScore              Float
+  previousStatus        MasteryStatus
+  newStatus             MasteryStatus
+
+  policyVersion         Int
+  policy                MasteryPolicy     @relation(fields: [policyVersion], references: [version])
+
+  calculatedAt          DateTime          @default(now())
+
+  @@index([learnerId])
+  @@index([evidenceKey])
+  @@index([calculatedAt])
+}
+
+// 6. Learner Active Curriculum Frontier Snapshot (Derived Projection Cache)
+model LearnerCurriculumFrontier {
+  id                    String              @id @default(uuid())
+  learnerId             String
+  learner               Learner             @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  structureId           String
+  structure             CurriculumStructure @relation(fields: [structureId], references: [id])
+
+  currentNodeId         String
+  currentNode           CurriculumNode      @relation(fields: [currentNodeId], references: [id])
+
+  isRemediation         Boolean             @default(false)
+  remediationReason     String?
+
+  computedAt            DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@unique([learnerId, structureId, currentNodeId])
+  @@index([learnerId, structureId])
 }
