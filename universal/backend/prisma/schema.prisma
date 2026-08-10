@@ -374,6 +374,28 @@ enum ConceptType {
   SKILL
 }
 
+enum ConceptStatus {
+  ACTIVE
+  RETIRED
+}
+
+enum EntityType {
+  CANDIDATE
+  CONCEPT
+}
+
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AlignmentDecisionType {
+  AUTO_LINK
+  REVIEW_REQUIRED
+  NEW_CONCEPT
+}
+
 enum GradeBand {
   EARLY_CHILDHOOD
   PRIMARY
@@ -384,6 +406,7 @@ enum GradeBand {
 
 enum CandidateStatus {
   PENDING
+  SCORING
   RESOLVED
   REJECTED
 }
@@ -623,6 +646,7 @@ model Concept {
   normalizedName String
   definition     String?
   conceptType    ConceptType  @default(CONCEPT)
+  status         ConceptStatus @default(ACTIVE)
 
   domain         String?      @default("General")
   gradeBand      GradeBand    @default(PRIMARY)
@@ -636,6 +660,8 @@ model Concept {
   learnerEvidence LearningEvidence[]
   objectives      LearningObjective[]
   candidates      ConceptCandidate[]
+  proposals       ConceptAlignmentProposal[]
+  curatorRules    CuratorRule[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -644,6 +670,132 @@ model Concept {
   @@index([conceptType])
   @@index([domain])
   @@index([gradeBand])
+  @@index([status])
+}
+
+// ------------------------------------------------------------
+// Phase 2.5 Additions: Alignment, Vectors, Governance
+// ------------------------------------------------------------
+
+// 1. Immutable Policy Configuration Snapshot
+model AlignmentPolicy {
+  id                 String   @id @default(uuid())
+  version            Int      @unique
+  cosineWeight       Float    @default(0.40)
+  gradeWeight        Float    @default(0.25)
+  domainWeight       Float    @default(0.15)
+  taxonomyWeight     Float    @default(0.10)
+  curatorWeight      Float    @default(0.10)
+  autoLinkThreshold  Float    @default(0.88)
+  reviewThreshold    Float    @default(0.70)
+  createdBy          String   @default("SYSTEM")
+  createdAt          DateTime @default(now())
+
+  decisions          AlignmentDecisionLog[]
+}
+
+// 2. Dedicated Vector Persistence Model
+model SemanticEmbedding {
+  id                 String     @id @default(uuid())
+  entityType         EntityType
+  entityId           String
+
+  embeddingModel     String     @default("text-embedding-3-small")
+  embeddingVersion   Int        @default(1)
+  dimensions         Int        @default(1536)
+  embedding          Float[]
+  inputFingerprint   String     // SHA256 of sanitized input string
+
+  createdAt          DateTime   @default(now())
+
+  @@unique([entityType, entityId, embeddingModel, embeddingVersion])
+  @@index([entityId])
+}
+
+// 3. Curator Queue for Medium-Confidence Proposals
+model ConceptAlignmentProposal {
+  id                 String           @id @default(uuid())
+  candidateId        String
+  candidate          ConceptCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  targetConceptId    String
+  targetConcept      Concept          @relation(fields: [targetConceptId], references: [id])
+
+  compositeScore     Float
+  cosineScore        Float
+  gradeBandScore     Float
+  domainScore        Float
+  taxonomyScore      Float
+  curatorScore       Float
+
+  policyVersion      Int              @default(1)
+  embeddingModel     String           @default("text-embedding-3-small")
+  embeddingVersion   Int              @default(1)
+
+  status             ProposalStatus   @default(PENDING)
+  curatorNotes       String?
+  reviewedBy         String?
+  reviewedAt         DateTime?
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([candidateId])
+  @@index([targetConceptId])
+  @@index([status])
+}
+
+// 4. Auditable 5-Score Decision History Log
+model AlignmentDecisionLog {
+  id                 String                @id @default(uuid())
+  candidateId        String
+  candidateKey       String
+  targetConceptId    String?
+
+  decisionType       AlignmentDecisionType
+  compositeScore     Float
+  cosineScore        Float
+  gradeBandScore     Float
+  domainScore        Float
+  taxonomyScore      Float
+  curatorScore       Float
+
+  policyVersion      Int
+  policy             AlignmentPolicy       @relation(fields: [policyVersion], references: [version])
+
+  embeddingModel     String                @default("text-embedding-3-small")
+  embeddingVersion   Int                   @default(1)
+
+  executedBy         String                // "SYSTEM_AUTO" or Curator User ID
+  createdAt          DateTime              @default(now())
+
+  @@index([candidateKey])
+  @@index([targetConceptId])
+  @@index([decisionType])
+}
+
+// 5. Versioned & Disableable Curator Rules
+model CuratorRule {
+  id                 String    @id @default(uuid())
+  ruleVersion        Int       @default(1)
+  active             Boolean   @default(true)
+
+  rawPhrase          String
+  normalizedPhrase   String
+  domain             String
+  gradeBand          GradeBand
+
+  action             String    // "MAP_TO_CONCEPT" | "FORCE_NEW_CONCEPT"
+  targetConceptId    String?
+  targetConcept      Concept?  @relation(fields: [targetConceptId], references: [id])
+
+  createdBy          String    // Curator User ID
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([normalizedPhrase, domain, gradeBand, ruleVersion])
+  @@index([normalizedPhrase])
+  @@index([active])
 }
 
 // ------------------------------------------------------------
@@ -686,6 +838,8 @@ model ConceptCandidate {
 
   resolvedConceptId String?
   resolvedConcept   Concept?       @relation(fields: [resolvedConceptId], references: [id])
+
+  proposals       ConceptAlignmentProposal[]
 
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt

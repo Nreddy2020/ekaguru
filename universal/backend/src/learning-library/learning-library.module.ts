@@ -28,6 +28,13 @@ import { IdentityResolutionService } from './knowledge/identity-resolution.servi
 import { ConceptGraphService } from './knowledge/concept-graph.service';
 import { KnowledgeController } from './knowledge/knowledge.controller';
 
+import { OpenAIEmbeddingProvider } from './knowledge/alignment/openai-embedding.provider';
+import { LocalONNXEmbeddingProvider } from './knowledge/alignment/local-onnx-embedding.provider';
+import { EmbeddingService } from './knowledge/alignment/embedding.service';
+import { MultiFactorPolicyService } from './knowledge/alignment/multi-factor-policy.service';
+import { CuratorWorkflowService } from './knowledge/alignment/curator-workflow.service';
+import { AlignmentController } from './knowledge/alignment/alignment.controller';
+
 @Module({
   controllers: [
     LearnerController,
@@ -36,6 +43,7 @@ import { KnowledgeController } from './knowledge/knowledge.controller';
     UploadController,
     ExtractionController,
     KnowledgeController,
+    AlignmentController,
   ],
   providers: [
     PrismaService,
@@ -58,6 +66,11 @@ import { KnowledgeController } from './knowledge/knowledge.controller';
     CandidateExtractorService,
     IdentityResolutionService,
     ConceptGraphService,
+    OpenAIEmbeddingProvider,
+    LocalONNXEmbeddingProvider,
+    EmbeddingService,
+    MultiFactorPolicyService,
+    CuratorWorkflowService,
   ],
   exports: [
     PrismaService,
@@ -80,6 +93,9 @@ import { KnowledgeController } from './knowledge/knowledge.controller';
     CandidateExtractorService,
     IdentityResolutionService,
     ConceptGraphService,
+    EmbeddingService,
+    MultiFactorPolicyService,
+    CuratorWorkflowService,
   ],
 })
 export class LearningLibraryModule {}
