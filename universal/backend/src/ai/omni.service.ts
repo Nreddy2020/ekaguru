@@ -77,7 +77,7 @@ export class OmniEngineService {
         this.logger.log(`  Top keywords: ${topWords.join(', ')}`);
 
         // 4. Generate Atoms with quality scoring
-        let atoms = topWords.map(word => ({
+        let atoms: ExtractedAtom[] = topWords.map(word => ({
             name: word,
             type: "CONCEPT" as const,
             definition: `Core concept derived from analysis: ${word}`

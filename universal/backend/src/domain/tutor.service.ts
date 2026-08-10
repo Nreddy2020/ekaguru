@@ -389,7 +389,7 @@ Examples: ${topic.examples.join('; ')}
     async getPrerequisites(topicId: string): Promise<{ topicId: string; prerequisites: { id: string; name: string; description: string }[] }> {
         this.logger.log(`Getting prerequisites for: ${topicId}`);
 
-        const prerequisitesMap: Record<string, { name: string; description: string }[]> = {
+        const prerequisitesMap: Record<string, { id: string; name: string; description: string }[]> = {
             'kubernetes-architecture': [
                 { id: 'containers', name: 'Containers', description: 'Understanding containerization is prerequisite to understanding Kubernetes orchestration.' },
                 { id: 'docker', name: 'Docker Basics', description: 'Docker provides the container runtime that Kubernetes manages.' }

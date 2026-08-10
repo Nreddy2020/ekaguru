@@ -15,10 +15,10 @@ export interface SessionState {
 @Injectable()
 export class CognitiveLoopService {
     private readonly logger = new Logger(CognitiveLoopService.name);
-    private httpService: HttpService;
-    private orchestratorUrl = process.env.ORCHESTRATOR_URL || 'http://localhost:8001';
+    private readonly activeSessions = new Map<string, SessionState>();
+    private readonly orchestratorUrl = process.env.ORCHESTRATOR_URL || 'http://localhost:8001';
 
-    constructor(private httpService: HttpService) { }
+    constructor(private readonly httpService: HttpService) { }
 
     async startSession(studentId: string, concept: string): Promise<SessionState> {
         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
