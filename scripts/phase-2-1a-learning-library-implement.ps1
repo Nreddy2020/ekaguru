@@ -770,62 +770,39 @@ Write-INFO "Review the SQL, then run 'npx prisma migrate deploy' manually when r
 
 Push-Location $BackendDir
 try {
-    $migrationOutput = npx --no-install prisma migrate dev `
-        --name "phase_2_1a_learning_library" `
-        --create-only `
-        --schema "$SchemaFile" 2>&1
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    
+    $migTimestamp = Get-Date -Format "yyyyMMddHHmmss"
+    $migFolderName = "${migTimestamp}_phase_2_1a_learning_library"
+    $targetMigDir = Join-Path $PrismaDir "migrations\$migFolderName"
+    New-Item -ItemType Directory -Path $targetMigDir -Force | Out-Null
+    $sqlPath = Join-Path $targetMigDir "migration.sql"
 
-    if ($LASTEXITCODE -ne 0) {
-        $outputStr = $migrationOutput -join "`n"
-        if ($outputStr -match "non-interactive") {
-            Write-INFO "Prisma migrate dev detected non-interactive environment. Generating migration using 'prisma migrate diff'..."
-            $migTimestamp = Get-Date -Format "yyyyMMddHHmmss"
-            $migFolderName = "${migTimestamp}_phase_2_1a_learning_library"
-            $targetMigDir = Join-Path $PrismaDir "migrations\$migFolderName"
-            New-Item -ItemType Directory -Path $targetMigDir -Force | Out-Null
-            $sqlPath = Join-Path $targetMigDir "migration.sql"
+    Write-INFO "Generating migration SQL using 'prisma migrate diff'..."
+    $diffOutput = npx --no-install prisma migrate diff `
+        --from-schema-datamodel "$BackupFile" `
+        --to-schema-datamodel "$SchemaFile" `
+        --script 2>&1
 
-            $diffOutput = npx --no-install prisma migrate diff `
-                --from-schema-datamodel "$BackupFile" `
-                --to-schema-datamodel "$SchemaFile" `
-                --script 2>&1
+    $diffExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
 
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "Migration diff FAILED - restoring backup..." -ForegroundColor Red
-                $backupContent = [System.IO.File]::ReadAllText($BackupFile, [System.Text.Encoding]::UTF8)
-                [System.IO.File]::WriteAllText($SchemaFile, $backupContent, $utf8NoBOM)
-                Write-FAIL "Migration diff failed. Schema restored.`nErrors:`n$($diffOutput -join "`n")"
-            }
-
-            [System.IO.File]::WriteAllText($sqlPath, ($diffOutput -join "`n"), $utf8NoBOM)
-            Write-OK "Migration SQL generated via diff: $sqlPath"
-        } else {
-            Write-Host "Migration creation FAILED - restoring backup..." -ForegroundColor Red
-            $backupContent = [System.IO.File]::ReadAllText($BackupFile, [System.Text.Encoding]::UTF8)
-            [System.IO.File]::WriteAllText($SchemaFile, $backupContent, $utf8NoBOM)
-            Write-Host "Schema restored from: $BackupFile" -ForegroundColor Yellow
-            Write-FAIL "Migration creation failed. Schema restored.`nErrors:`n$($migrationOutput -join "`n")"
-        }
-    } else {
-        Write-OK "Migration created (--create-only)"
-        $migrationOutput | ForEach-Object { Write-INFO "  $_" }
+    if ($diffExit -ne 0) {
+        Write-Host "Migration diff FAILED - restoring backup..." -ForegroundColor Red
+        $backupContent = [System.IO.File]::ReadAllText($BackupFile, [System.Text.Encoding]::UTF8)
+        [System.IO.File]::WriteAllText($SchemaFile, $backupContent, $utf8NoBOM)
+        Write-FAIL "Migration diff failed. Schema restored.`nErrors:`n$($diffOutput -join "`n")"
     }
+
+    $sqlContent = ($diffOutput | Where-Object { $_ -notmatch "^Environment variables loaded" }) -join "`n"
+    [System.IO.File]::WriteAllText($sqlPath, $sqlContent, $utf8NoBOM)
+    Write-OK "Migration created: $sqlPath"
 
     # Show migration SQL preview
-    $migrationsDir = Join-Path $PrismaDir "migrations"
-    if (Test-Path $migrationsDir) {
-        $latestMig = Get-ChildItem -Path $migrationsDir -Directory | Sort-Object Name -Descending | Select-Object -First 1
-        if ($latestMig) {
-            Write-OK "Migration folder: $($latestMig.FullName)"
-            $sqlFile = Join-Path $latestMig.FullName "migration.sql"
-            if (Test-Path $sqlFile) {
-                Write-OK "Migration SQL: $sqlFile"
-                Write-INFO "--- SQL PREVIEW (first 40 lines) ---"
-                Get-Content $sqlFile | Select-Object -First 40 | ForEach-Object { Write-INFO "  $_" }
-                Write-INFO "--- END PREVIEW ---"
-            }
-        }
-    }
+    Write-INFO "--- MIGRATION SQL PREVIEW (first 40 lines) ---"
+    Get-Content $sqlPath | Select-Object -First 40 | ForEach-Object { Write-INFO "  $_" }
+    Write-INFO "--- END PREVIEW ---"
 } finally {
     Pop-Location
 }
