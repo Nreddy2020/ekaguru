@@ -37,6 +37,10 @@ $Timestamp      = Get-Date -Format "yyyyMMdd-HHmmss"
 $BackupDir      = "C:\Users\$env:USERNAME\AppData\Local\Temp\ekaguru-schema-backups"
 $BackupFile     = Join-Path $BackupDir "schema-before-phase-2-1a-$Timestamp.prisma"
 
+if ([string]::IsNullOrWhiteSpace($env:DATABASE_URL)) {
+    $env:DATABASE_URL = "postgresql://nreddy:CHANGE_ME_IN_PRODUCTION@localhost:5432/cognitive_memory"
+}
+
 # ---------------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------------
