@@ -1,9 +1,12 @@
-import { Controller, Get, Post, Patch, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards, Request } from '@nestjs/common';
 import { DocumentService } from './document.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { LearningLibraryAuthGuard } from './learning-library-auth.guard';
 
 @Controller()
+@UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
 export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 

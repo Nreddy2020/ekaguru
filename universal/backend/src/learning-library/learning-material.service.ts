@@ -39,7 +39,7 @@ export class LearningMaterialService {
     }
   }
 
-  async create(dto: CreateLearningMaterialDto): Promise<{ data: LearningMaterial }> {
+  async create(dto: CreateLearningMaterialDto): Promise<{ data: any }> {
     if (!dto.learnerId || typeof dto.learnerId !== 'string' || dto.learnerId.trim().length === 0) {
       throw new BadRequestException('learnerId is required.');
     }
@@ -85,7 +85,13 @@ export class LearningMaterialService {
     });
 
     this.logger.log(`Created LearningMaterial ${material.id} '${material.title}' for Learner ${material.learnerId}`);
-    return { data: material };
+    return {
+      data: {
+        ...material,
+        fileSizeBytes: material.fileSizeBytes ? Number(material.fileSizeBytes) : null,
+        progress: this.calculateProgress(material.processingStatus),
+      },
+    };
   }
 
   async findAll(query: QueryLearningMaterialDto): Promise<{

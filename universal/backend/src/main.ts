@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { AppModule } from './app.module';
@@ -10,6 +10,14 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     
+    // Global validation pipe for NestJS DTO validation
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            transform: true,
+        }),
+    );
+
     // Load environment variables
     await app.init();
     

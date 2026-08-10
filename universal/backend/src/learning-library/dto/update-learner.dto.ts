@@ -1,9 +1,24 @@
+import { IsString, IsOptional, IsEnum, IsDateString } from 'class-validator';
 import { LearnerType } from '@prisma/client';
 
-export interface UpdateLearnerDto {
+export class UpdateLearnerDto {
+  @IsOptional()
+  @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsEnum(LearnerType)
   learnerType?: LearnerType;
+
+  @IsOptional()
+  @IsString()
   preferredLanguage?: string;
-  dateOfBirth?: string | Date;
+
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @IsOptional()
+  @IsString()
   legacyChildId?: string;
 }

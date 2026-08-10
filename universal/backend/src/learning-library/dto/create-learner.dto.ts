@@ -1,9 +1,23 @@
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsDateString } from 'class-validator';
 import { LearnerType } from '@prisma/client';
 
-export interface CreateLearnerDto {
+export class CreateLearnerDto {
+  @IsString()
+  @IsNotEmpty()
   name: string;
+
+  @IsEnum(LearnerType)
   learnerType: LearnerType;
+
+  @IsOptional()
+  @IsString()
   preferredLanguage?: string;
-  dateOfBirth?: string | Date;
+
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @IsOptional()
+  @IsString()
   legacyChildId?: string;
 }

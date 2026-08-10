@@ -6,6 +6,7 @@ import { LearningMaterialService } from './learning-material.service';
 import { LearningMaterialController } from './learning-material.controller';
 import { DocumentService } from './document.service';
 import { DocumentController } from './document.controller';
+import { LearningLibraryAuthGuard } from './learning-library-auth.guard';
 
 @Module({
   controllers: [
@@ -18,12 +19,14 @@ import { DocumentController } from './document.controller';
     LearnerService,
     LearningMaterialService,
     DocumentService,
+    LearningLibraryAuthGuard,
   ],
   exports: [
     PrismaService,
     LearnerService,
     LearningMaterialService,
     DocumentService,
+    LearningLibraryAuthGuard,
   ],
 })
 export class LearningLibraryModule {}

@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Patch, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { LearnerService } from './learner.service';
 import { CreateLearnerDto } from './dto/create-learner.dto';
 import { UpdateLearnerDto } from './dto/update-learner.dto';
 import { LearnerType } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { LearningLibraryAuthGuard } from './learning-library-auth.guard';
 
 @Controller('api/v2/learners')
+@UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
 export class LearnerController {
   constructor(private readonly learnerService: LearnerService) {}
 

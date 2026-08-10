@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { LearningMaterialService } from './learning-material.service';
 import { CreateLearningMaterialDto } from './dto/create-learning-material.dto';
 import { UpdateLearningMaterialDto } from './dto/update-learning-material.dto';
 import { QueryLearningMaterialDto } from './dto/query-learning-material.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { LearningLibraryAuthGuard } from './learning-library-auth.guard';
 
 @Controller('api/v2/learning-materials')
+@UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
 export class LearningMaterialController {
   constructor(private readonly materialService: LearningMaterialService) {}
 
