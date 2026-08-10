@@ -13,12 +13,23 @@ import { FileValidatorService } from './upload/file-validator.service';
 import { UploadService } from './upload/upload.service';
 import { UploadController } from './upload/upload.controller';
 
+import { PdfExtractorService } from './extraction/extractors/pdf-extractor.service';
+import { DocxExtractorService } from './extraction/extractors/docx-extractor.service';
+import { EpubExtractorService } from './extraction/extractors/epub-extractor.service';
+import { TextExtractorService } from './extraction/extractors/text-extractor.service';
+import { ImageExtractorService } from './extraction/extractors/image-extractor.service';
+import { ExtractorFactoryService } from './extraction/extractor-factory.service';
+import { StructureDetectorService } from './extraction/structure-detector.service';
+import { ExtractionOrchestratorService } from './extraction/extraction-orchestrator.service';
+import { ExtractionController } from './extraction/extraction.controller';
+
 @Module({
   controllers: [
     LearnerController,
     LearningMaterialController,
     DocumentController,
     UploadController,
+    ExtractionController,
   ],
   providers: [
     PrismaService,
@@ -30,6 +41,14 @@ import { UploadController } from './upload/upload.controller';
     StorageService,
     FileValidatorService,
     UploadService,
+    PdfExtractorService,
+    DocxExtractorService,
+    EpubExtractorService,
+    TextExtractorService,
+    ImageExtractorService,
+    ExtractorFactoryService,
+    StructureDetectorService,
+    ExtractionOrchestratorService,
   ],
   exports: [
     PrismaService,
@@ -41,6 +60,14 @@ import { UploadController } from './upload/upload.controller';
     StorageService,
     FileValidatorService,
     UploadService,
+    PdfExtractorService,
+    DocxExtractorService,
+    EpubExtractorService,
+    TextExtractorService,
+    ImageExtractorService,
+    ExtractorFactoryService,
+    StructureDetectorService,
+    ExtractionOrchestratorService,
   ],
 })
 export class LearningLibraryModule {}
