@@ -8,6 +8,7 @@ venv/
 # Node
 node_modules/
 dist/
+.next/
 .DS_Store
 
 # IDE
@@ -17,3 +18,4 @@ dist/
 # Ekaguru Artifacts
 *.log
 tmp/
+uploads/
