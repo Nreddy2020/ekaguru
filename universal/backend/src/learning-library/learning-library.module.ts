@@ -23,6 +23,11 @@ import { StructureDetectorService } from './extraction/structure-detector.servic
 import { ExtractionOrchestratorService } from './extraction/extraction-orchestrator.service';
 import { ExtractionController } from './extraction/extraction.controller';
 
+import { CandidateExtractorService } from './knowledge/candidate-extractor.service';
+import { IdentityResolutionService } from './knowledge/identity-resolution.service';
+import { ConceptGraphService } from './knowledge/concept-graph.service';
+import { KnowledgeController } from './knowledge/knowledge.controller';
+
 @Module({
   controllers: [
     LearnerController,
@@ -30,6 +35,7 @@ import { ExtractionController } from './extraction/extraction.controller';
     DocumentController,
     UploadController,
     ExtractionController,
+    KnowledgeController,
   ],
   providers: [
     PrismaService,
@@ -49,6 +55,9 @@ import { ExtractionController } from './extraction/extraction.controller';
     ExtractorFactoryService,
     StructureDetectorService,
     ExtractionOrchestratorService,
+    CandidateExtractorService,
+    IdentityResolutionService,
+    ConceptGraphService,
   ],
   exports: [
     PrismaService,
@@ -68,6 +77,9 @@ import { ExtractionController } from './extraction/extraction.controller';
     ExtractorFactoryService,
     StructureDetectorService,
     ExtractionOrchestratorService,
+    CandidateExtractorService,
+    IdentityResolutionService,
+    ConceptGraphService,
   ],
 })
 export class LearningLibraryModule {}

@@ -374,6 +374,20 @@ enum ConceptType {
   SKILL
 }
 
+enum GradeBand {
+  EARLY_CHILDHOOD
+  PRIMARY
+  MIDDLE_SCHOOL
+  HIGH_SCHOOL
+  ADVANCED
+}
+
+enum CandidateStatus {
+  PENDING
+  RESOLVED
+  REJECTED
+}
+
 enum ConceptRelationshipType {
   PREREQUISITE
   RELATED
@@ -382,6 +396,7 @@ enum ConceptRelationshipType {
   CAUSES
   CONTRASTS
   ANALOGY
+  EVOLUTION_OF
 }
 
 enum EvidenceType {
@@ -583,7 +598,8 @@ model ContentChunk {
 
   metadata       Json?
 
-  conceptLinks   ConceptChunk[]
+  conceptLinks      ConceptChunk[]
+  conceptCandidates ConceptCandidate[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -606,9 +622,10 @@ model Concept {
   canonicalName  String
   normalizedName String
   definition     String?
-  conceptType    ConceptType
+  conceptType    ConceptType  @default(CONCEPT)
 
-  domain         String?
+  domain         String?      @default("General")
+  gradeBand      GradeBand    @default(PRIMARY)
   metadata       Json?
 
   sourceChunks   ConceptChunk[]
@@ -617,12 +634,65 @@ model Concept {
   incoming       ConceptRelationship[] @relation("ConceptTarget")
 
   learnerEvidence LearningEvidence[]
+  objectives      LearningObjective[]
+  candidates      ConceptCandidate[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@unique([normalizedName, domain, gradeBand])
   @@index([conceptType])
   @@index([domain])
+  @@index([gradeBand])
+}
+
+// ------------------------------------------------------------
+// Learning Objective  (Associated with Canonical Concept)
+// ------------------------------------------------------------
+
+model LearningObjective {
+  id              String   @id @default(uuid())
+  conceptId       String
+  concept         Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  code            String?  // e.g. "MATH.1.ADD.1"
+  description     String   // e.g. "Add two single-digit integers <= 5."
+  complexityLevel Int      @default(1) // Mastery depth (1-10)
+  bloomTaxonomy   String?  // REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([conceptId])
+  @@index([complexityLevel])
+}
+
+// ------------------------------------------------------------
+// Concept Candidate Staging Model
+// ------------------------------------------------------------
+
+model ConceptCandidate {
+  id              String           @id @default(uuid())
+  chunkId         String
+  chunk           ContentChunk     @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+
+  candidateKey    String           @unique // SHA256(chunkId|normalizedLabel|domain|gradeBand)
+  rawLabel        String
+  normalizedLabel String
+  domain          String?          @default("General")
+  gradeBand       GradeBand        @default(PRIMARY)
+  confidence      Float            @default(1.0)
+  status          CandidateStatus  @default(PENDING)
+
+  resolvedConceptId String?
+  resolvedConcept   Concept?       @relation(fields: [resolvedConceptId], references: [id])
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([chunkId])
+  @@index([status])
+  @@index([normalizedLabel])
 }
 
 // ------------------------------------------------------------
