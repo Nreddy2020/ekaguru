@@ -1,0 +1,40 @@
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from '@nestjs/common';
+import { LearningMaterialService } from './learning-material.service';
+import { CreateLearningMaterialDto } from './dto/create-learning-material.dto';
+import { UpdateLearningMaterialDto } from './dto/update-learning-material.dto';
+import { QueryLearningMaterialDto } from './dto/query-learning-material.dto';
+
+@Controller('api/v2/learning-materials')
+export class LearningMaterialController {
+  constructor(private readonly materialService: LearningMaterialService) {}
+
+  @Post()
+  async create(@Body() body: CreateLearningMaterialDto) {
+    return this.materialService.create(body);
+  }
+
+  @Get()
+  async findAll(@Query() query: QueryLearningMaterialDto) {
+    return this.materialService.findAll(query);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.materialService.findOne(id);
+  }
+
+  @Get(':id/status')
+  async getProcessingStatus(@Param('id') id: string) {
+    return this.materialService.getProcessingStatus(id);
+  }
+
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() body: UpdateLearningMaterialDto) {
+    return this.materialService.update(id, body);
+  }
+
+  @Delete(':id')
+  async softDelete(@Param('id') id: string, @Query('action') action?: 'delete' | 'archive') {
+    return this.materialService.softDelete(id, action);
+  }
+}

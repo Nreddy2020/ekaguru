@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
+import { LearningLibraryModule } from './learning-library/learning-library.module';
 import { TemplateService } from './ai/template.service';
 import { OmniEngineService } from './ai/omni.service';
 import { LlmService } from './ai/llm.service';
@@ -44,7 +45,8 @@ import { MetricsController } from './metrics.controller';
             ttl: 60000,
             limit: 100
         }]),
-        AuthModule
+        AuthModule,
+        LearningLibraryModule
     ],
     controllers: [SubjectController, TutorController, UploadController, CognitiveLoopController, ParentController, HealthController, MetricsController, SessionRecordingController],
     providers: [
