@@ -846,54 +846,13 @@ try {
 }
 
 # ---------------------------------------------------------------------------
-# STEP 13: Commit and push
+# STEP 13: Stop before commit for SQL review (per user instructions)
 # ---------------------------------------------------------------------------
-Write-Step "STEP 13: Committing Phase 2.1A changes to architecture-v2"
+Write-Step "STEP 13: Migration ready for review (STOPPED BEFORE COMMIT)"
 
-Push-Location $RepoRoot
-try {
-    Write-INFO "Git status:"
-    git status 2>&1 | ForEach-Object { Write-INFO "  $_" }
+Write-OK "Schema modified, validated, migration created (--create-only), and Prisma client generated."
+Write-INFO "Stopping before commit as instructed. Review migration.sql before committing/applying."
 
-    git add "universal/backend/prisma/schema.prisma" 2>&1 | Out-Null
-    git add "universal/backend/prisma/migrations/" 2>&1 | Out-Null
-
-    $staged = git diff --cached --name-only 2>&1
-    $stagedStr = ($staged | Where-Object { $_ -match "\S" }) -join "`n"
-
-    if ([string]::IsNullOrWhiteSpace($stagedStr)) {
-        Write-INFO "No staged changes - nothing to commit"
-    } else {
-        Write-INFO "Staged files:`n$stagedStr"
-
-        $commitMsg = @"
-feat: add learning library v2 domain model (Phase 2.1A)
-
-Adds V2 Learning Library persistence foundation:
-- Learner (with legacy bridge to Child)
-- LearningMaterial
-- Document, DocumentPage
-- ContentChapter, ContentTopic, ContentChunk
-- Concept (with legacy bridge to ConceptAtom)
-- ConceptChunk (many-to-many join)
-- ConceptRelationship
-- LearningEvidence (bridged to LearningSession)
-
-Legacy models preserved: Child, ConceptAtom, LearningSession, etc.
-Migration created with --create-only (not yet applied to DB).
-Prisma 5.10.x used. No db push. No migrate reset.
-"@
-        git commit -m $commitMsg 2>&1 | ForEach-Object { Write-INFO "  $_" }
-        if ($LASTEXITCODE -ne 0) { Write-FAIL "Git commit failed" }
-        Write-OK "Committed"
-
-        git push origin architecture-v2 2>&1 | ForEach-Object { Write-INFO "  $_" }
-        if ($LASTEXITCODE -ne 0) { Write-FAIL "Git push failed" }
-        Write-OK "Pushed to origin/architecture-v2"
-    }
-} finally {
-    Pop-Location
-}
 
 # ---------------------------------------------------------------------------
 # DONE
