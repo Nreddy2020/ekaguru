@@ -273,7 +273,7 @@ model Child {
   name        String
   age         Int
   createdAt   DateTime  @default(now())
-  sessions    LearningSession[]
+  sessions    LegacyLearningSession[]
   progress    ChildProgress?
   learner     Learner?
 }
@@ -290,7 +290,7 @@ model ChildProgress {
   updatedAt       DateTime @updatedAt
 }
 
-model LearningSession {
+model LegacyLearningSession {
   id          String   @id @default(uuid())
   childId     String
   child       Child    @relation(fields: [childId], references: [id])
@@ -299,14 +299,14 @@ model LearningSession {
   status      String   @default("active") // active, completed, abandoned
   startedAt   DateTime @default(now())
   endedAt     DateTime?
-  events      SessionEvent[]
+  events      LegacySessionEvent[]
   evidence    LearningEvidence[]
 }
 
-model SessionEvent {
+model LegacySessionEvent {
   id          String          @id @default(uuid())
   sessionId   String
-  session     LearningSession @relation(fields: [sessionId], references: [id])
+  session     LegacyLearningSession @relation(fields: [sessionId], references: [id])
   type        String          // response, hint, mastery, struggle
   content     String
   timestamp   DateTime        @default(now())
@@ -480,12 +480,14 @@ model Learner {
   dateOfBirth       DateTime?
 
   materials         LearningMaterial[]
-  evidence          LearningEvidence[]
+  evidence    LearningEvidence[]
   conceptMasteries  LearnerConceptMastery[]
   objectiveMasteries LearnerObjectiveMastery[]
   curriculumEnrollments LearnerCurriculumEnrollment[]
   masteryHistories  MasteryHistory[]
   curriculumFrontiers LearnerCurriculumFrontier[]
+  learningSessions    LearningSession[]
+  assessmentInstances AssessmentInstance[]
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -845,6 +847,8 @@ model LearningObjective {
   nodeObjectives  CurriculumNodeObjective[]
   learningEvidences LearningEvidence[]
   objectiveMasteries LearnerObjectiveMastery[]
+  sessionSteps        SessionStep[]
+  assessmentSpecs     AssessmentSpecification[] @relation("AssessmentSpecs")
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -949,7 +953,7 @@ model LearningEvidence {
   learningObjective   LearningObjective? @relation(fields: [learningObjectiveId], references: [id])
 
   sessionId       String?
-  session         LearningSession? @relation(fields: [sessionId], references: [id])
+  session         LegacyLearningSession? @relation(fields: [sessionId], references: [id])
 
   evidenceType    EvidenceType
   outcome         EvidenceOutcome
@@ -996,6 +1000,7 @@ model CurriculumStructure {
   boardMappings      BoardCurriculumMapping[]
   enrollments        LearnerCurriculumEnrollment[]
   frontiers          LearnerCurriculumFrontier[]
+  learningSessions   LearningSession[]
 
   @@unique([domain, inputFingerprint])
   @@index([domain])
@@ -1019,6 +1024,7 @@ model CurriculumNode {
   nodeObjectives        CurriculumNodeObjective[]
   boardMappings         BoardNodeMapping[]
   frontiers             LearnerCurriculumFrontier[]
+  sessionTargets        SessionTarget[]
 
   outgoingPrereqs       CurriculumPrerequisite[] @relation("PrereqSource")
   incomingPrereqs       CurriculumPrerequisite[] @relation("PrereqTarget")
@@ -1238,4 +1244,220 @@ model LearnerCurriculumFrontier {
 
   @@unique([learnerId, structureId, currentNodeId])
   @@index([learnerId, structureId])
+}
+// ============================================================
+// Phase 2.8 - Adaptive Session Engine
+// ============================================================
+
+enum SessionStatus {
+  READY
+  ACTIVE
+  PAUSED
+  COMPLETING
+  FINALIZED
+  ABANDONED
+}
+
+enum SessionStepType {
+  READ
+  PRACTICE
+  ASSESS
+  REVIEW
+  REMEDIATION
+}
+
+enum SessionStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum AssessmentInstanceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum AssessmentType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  MATCHING
+}
+
+enum ScoringMethod {
+  EXACT_MATCH
+  PARTIAL_CREDIT
+  THRESHOLD
+}
+
+// 1. Phase 2.8 Learning Session
+model LearningSession {
+  id                         String          @id @default(uuid())
+  learnerId                  String
+  learner                    Learner         @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  structureId                String
+  structure                  CurriculumStructure @relation(fields: [structureId], references: [id], onDelete: Restrict)
+
+  sessionRequestFingerprint  String?         @unique
+
+  status                     SessionStatus   @default(READY)
+  timeBudgetSeconds          Int
+
+  plannedAt                  DateTime        @default(now())
+  startedAt                  DateTime?
+  pausedAt                   DateTime?
+  completedAt                DateTime?
+  finalizedAt                DateTime?
+
+  actualDurationSeconds      Int?
+
+  targets                    SessionTarget[]
+  steps                      SessionStep[]
+  sessionEvidences           SessionEvidence[]
+
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+
+  @@index([learnerId])
+  @@index([structureId])
+  @@index([status])
+  @@index([learnerId, structureId])
+}
+
+// 2. Session Target - ordered curriculum nodes for this session
+model SessionTarget {
+  id                String          @id @default(uuid())
+  sessionId         String
+  session           LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  curriculumNodeId  String
+  curriculumNode    CurriculumNode  @relation(fields: [curriculumNodeId], references: [id], onDelete: Restrict)
+
+  sequenceIndex     Int
+  isRemediation     Boolean         @default(false)
+
+  steps             SessionStep[]
+
+  createdAt         DateTime        @default(now())
+
+  @@index([sessionId])
+  @@unique([sessionId, sequenceIndex])
+}
+
+// 3. Session Step - individual learning activity within a target
+model SessionStep {
+  id                       String             @id @default(uuid())
+  sessionId                String
+  session                  LearningSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  targetId                 String
+  target                   SessionTarget      @relation(fields: [targetId], references: [id], onDelete: Cascade)
+
+  stepType                 SessionStepType
+  sequenceIndex            Int
+  status                   SessionStepStatus  @default(PENDING)
+
+  learningObjectiveId      String?
+  learningObjective        LearningObjective? @relation(fields: [learningObjectiveId], references: [id], onDelete: SetNull)
+
+  estimatedDurationSeconds Int                @default(300)
+
+  startedAt                DateTime?
+  completedAt              DateTime?
+
+  assessmentInstances      AssessmentInstance[]
+
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  @@index([sessionId])
+  @@index([targetId])
+}
+
+// 4. Assessment Specification - ADMIN-managed, immutable once used
+model AssessmentSpecification {
+  id                   String            @id @default(uuid())
+
+  learningObjectiveId  String
+  learningObjective    LearningObjective @relation("AssessmentSpecs", fields: [learningObjectiveId], references: [id], onDelete: Restrict)
+
+  assessmentType       AssessmentType
+  difficulty           Int               @default(1)
+  scoringMethod        ScoringMethod     @default(EXACT_MATCH)
+  passThreshold        Float             @default(0.75)
+  configuration        Json
+
+  version              Int               @default(1)
+  active               Boolean           @default(true)
+
+  instances            AssessmentInstance[]
+
+  createdAt            DateTime          @default(now())
+
+  @@index([learningObjectiveId])
+  @@index([active])
+  @@unique([learningObjectiveId, version])
+}
+
+// 5. Assessment Instance - one instantiation of a spec for a learner step
+model AssessmentInstance {
+  id                        String                   @id @default(uuid())
+
+  sessionStepId             String
+  sessionStep               SessionStep              @relation(fields: [sessionStepId], references: [id], onDelete: Cascade)
+
+  assessmentSpecificationId String
+  assessmentSpecification   AssessmentSpecification  @relation(fields: [assessmentSpecificationId], references: [id], onDelete: Restrict)
+
+  learnerId                 String
+  learner                   Learner                  @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  attemptNumber             Int                      @default(1)
+  status                    AssessmentInstanceStatus @default(PENDING)
+
+  responses                 AssessmentResponse[]
+
+  createdAt                 DateTime                 @default(now())
+  completedAt               DateTime?
+
+  @@index([sessionStepId])
+  @@index([learnerId])
+  @@unique([sessionStepId, attemptNumber])
+}
+
+// 6. Assessment Response - rawScore is SERVER-COMPUTED ONLY
+model AssessmentResponse {
+  id                   String              @id @default(uuid())
+  assessmentInstanceId String
+  assessmentInstance   AssessmentInstance  @relation(fields: [assessmentInstanceId], references: [id], onDelete: Cascade)
+
+  responsePayload      Json
+  rawScore             Float               // SERVER-COMPUTED ONLY - never from client
+  passed               Boolean
+
+  evidenceKey          String              @unique // SHA256(sessionId|instanceId|attemptNumber)
+
+  scoredAt             DateTime            @default(now())
+
+  @@index([assessmentInstanceId])
+  @@index([evidenceKey])
+}
+
+// 7. Session Evidence - audit link; evidenceKey is a soft reference to LearningEvidence (preserves Phase 2.7 boundary)
+model SessionEvidence {
+  id          String          @id @default(uuid())
+  sessionId   String
+  session     LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  evidenceKey String          // Soft reference to LearningEvidence.evidenceKey - NOT a FK
+
+  createdAt   DateTime        @default(now())
+
+  @@index([sessionId])
+  @@index([evidenceKey])
+  @@unique([sessionId, evidenceKey])
 }

@@ -45,6 +45,11 @@ import { FrontierCalculatorService } from './mastery/frontier-calculator.service
 import { RemediationService } from './mastery/remediation.service';
 import { MasteryController } from './mastery/mastery.controller';
 
+import { SessionPlannerService } from './session/session-planner.service';
+import { SessionLifecycleService } from './session/session-lifecycle.service';
+import { AssessmentEngineService } from './session/assessment-engine.service';
+import { SessionController } from './session/session.controller';
+
 @Module({
   controllers: [
     LearnerController,
@@ -56,6 +61,7 @@ import { MasteryController } from './mastery/mastery.controller';
     AlignmentController,
     CurriculumController,
     MasteryController,
+    SessionController,
   ],
   providers: [
     PrismaService,
@@ -89,6 +95,9 @@ import { MasteryController } from './mastery/mastery.controller';
     MasteryCalculatorService,
     FrontierCalculatorService,
     RemediationService,
+    SessionPlannerService,
+    SessionLifecycleService,
+    AssessmentEngineService,
   ],
   exports: [
     PrismaService,
@@ -120,6 +129,9 @@ import { MasteryController } from './mastery/mastery.controller';
     MasteryCalculatorService,
     FrontierCalculatorService,
     RemediationService,
+    SessionPlannerService,
+    SessionLifecycleService,
+    AssessmentEngineService,
   ],
 })
 export class LearningLibraryModule {}
