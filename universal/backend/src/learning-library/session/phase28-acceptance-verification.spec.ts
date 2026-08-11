@@ -10,6 +10,7 @@ import { SessionLifecycleService } from './session-lifecycle.service';
 import { AssessmentEngineService } from './assessment-engine.service';
 import { PrismaService } from '../prisma.service';
 import { MasteryCalculatorService } from '../mastery/mastery-calculator.service';
+import { FrontierCalculatorService } from '../mastery/frontier-calculator.service';
 import {
   SessionStatus, SessionStepStatus, AssessmentInstanceStatus,
   CurriculumStatus,
@@ -81,6 +82,7 @@ function buildPrismaMock(overrides: any = {}) {
       create: jest.fn().mockResolvedValue(mockStep()),
       findFirst: jest.fn().mockResolvedValue(mockStep()),
       update: jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...mockStep(), ...data })),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     assessmentInstance: {
       findFirst: jest.fn().mockResolvedValue(mockInstance()),
@@ -107,10 +109,12 @@ describe('Phase 2.8 Acceptance Gates', () => {
   let assessmentService: AssessmentEngineService;
   let prismaMock: any;
   let masteryMock: any;
+  let frontierMock: any;
 
   beforeEach(async () => {
     prismaMock = buildPrismaMock();
     masteryMock = { recordEvidence: jest.fn().mockResolvedValue({ idempotent: false }) };
+    frontierMock = { calculateFrontier: jest.fn().mockResolvedValue({ frontierNodes: [] }) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -119,6 +123,7 @@ describe('Phase 2.8 Acceptance Gates', () => {
         AssessmentEngineService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: MasteryCalculatorService, useValue: masteryMock },
+        { provide: FrontierCalculatorService, useValue: frontierMock },
       ],
     }).compile();
 

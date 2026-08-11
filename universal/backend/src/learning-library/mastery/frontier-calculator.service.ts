@@ -109,6 +109,16 @@ export class FrontierCalculatorService {
       }
     }
 
+    // Clean stale frontier records not in the newly computed active list
+    const activeFrontierNodeIds = frontierNodes.map((fn) => fn.id);
+    await this.prisma.learnerCurriculumFrontier.deleteMany({
+      where: {
+        learnerId,
+        structureId: structure.id,
+        currentNodeId: { notIn: activeFrontierNodeIds },
+      },
+    });
+
     // Cache / Upsert derived frontier records in LearnerCurriculumFrontier
     for (const fNode of frontierNodes) {
       await this.prisma.learnerCurriculumFrontier.upsert({

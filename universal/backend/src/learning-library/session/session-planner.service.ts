@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenEx
 import { PrismaService } from '../prisma.service';
 import { SessionStatus, SessionStepType, SessionStepStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+import { FrontierCalculatorService } from '../mastery/frontier-calculator.service';
 
 export interface CreateSessionDto {
   learnerId: string;
@@ -13,7 +14,10 @@ export interface CreateSessionDto {
 export class SessionPlannerService {
   private readonly logger = new Logger(SessionPlannerService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly frontierService: FrontierCalculatorService,
+  ) {}
 
   /**
    * Deterministic fingerprint: SHA256(learnerId | structureId | YYYY-MM-DD | timeBudgetMinutes)
@@ -97,10 +101,8 @@ export class SessionPlannerService {
     objMasteries.forEach((m) => objMasteryMap.set(m.learningObjectiveId, m.masteryScore));
 
     // 4. Obtain frontier
-    const frontierRecords = await this.prisma.learnerCurriculumFrontier.findMany({
-      where: { learnerId, structureId: structure.id },
-    });
-    const frontierNodeIds = new Set(frontierRecords.map((f) => f.currentNodeId));
+    const frontierResult = await this.frontierService.calculateFrontier(learnerId, structure.version);
+    const frontierNodeIds = new Set(frontierResult.frontierNodes.map((f: any) => f.id));
 
     const masteryThreshold = 0.75;
     const nodeById = new Map<string, any>();
@@ -137,11 +139,8 @@ export class SessionPlannerService {
     // 6. Deterministic target ordering per approved spec:
     //    1. Remediation targets first (unmastered prereqs)
     //    2. Frontier nodes
-    //    3. Within each group: sequenceIndex → gradeBand → conceptId
-    const sortFn = (a: any, b: any) =>
-      a.sequenceIndex - b.sequenceIndex ||
-      (a.gradeBand || '').localeCompare(b.gradeBand || '') ||
-      a.conceptId.localeCompare(b.conceptId);
+    //    3. Within each group: sort by sequenceIndex to preserve Phase 2.6 canonical sort order
+    const sortFn = (a: any, b: any) => a.sequenceIndex - b.sequenceIndex;
 
     remediationNodes.sort(sortFn);
     frontierNodes.sort(sortFn);
@@ -210,7 +209,7 @@ export class SessionPlannerService {
 
         for (const stepType of steps) {
           const firstObjectiveId = node.nodeObjectives?.[0]?.learningObjectiveId || null;
-          await tx.sessionStep.create({
+          const step = await tx.sessionStep.create({
             data: {
               sessionId: newSession.id,
               targetId: target.id,
@@ -221,6 +220,24 @@ export class SessionPlannerService {
               estimatedDurationSeconds: STEP_DURATIONS[stepType] || 300,
             },
           });
+
+          if (stepType === 'ASSESS' && firstObjectiveId) {
+            // Find active assessment specification for this objective
+            const spec = await tx.assessmentSpecification.findFirst({
+              where: { learningObjectiveId: firstObjectiveId, active: true },
+            });
+            if (spec) {
+              await tx.assessmentInstance.create({
+                data: {
+                  sessionStepId: step.id,
+                  assessmentSpecificationId: spec.id,
+                  learnerId,
+                  attemptNumber: 1,
+                  status: 'PENDING',
+                },
+              });
+            }
+          }
         }
       }
 

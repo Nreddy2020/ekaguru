@@ -46,8 +46,10 @@ export class MasteryCalculatorService {
         };
       }
 
-      // 2. Fetch or create default MasteryPolicy v1
-      let policy = await tx.masteryPolicy.findUnique({ where: { version: 1 } });
+      // 2. Fetch or create default MasteryPolicy (resolve the highest version)
+      let policy = await tx.masteryPolicy.findFirst({
+        orderBy: { version: 'desc' },
+      });
       if (!policy) {
         policy = await tx.masteryPolicy.create({
           data: {
@@ -62,6 +64,8 @@ export class MasteryCalculatorService {
         });
       }
 
+      const referenceTime = dto.observedAt ? new Date(dto.observedAt) : new Date();
+
       // 3. Create immutable LearningEvidence record
       const evidence = await tx.learningEvidence.create({
         data: {
@@ -73,7 +77,7 @@ export class MasteryCalculatorService {
           outcome: dto.outcome || (dto.rawScore >= 0.75 ? EvidenceOutcome.CORRECT : EvidenceOutcome.INCORRECT),
           score: dto.rawScore,
           confidence: policy.confidenceThreshold,
-          observedAt: dto.observedAt ? new Date(dto.observedAt) : new Date(),
+          observedAt: referenceTime,
         },
       });
 
@@ -94,10 +98,9 @@ export class MasteryCalculatorService {
           previousScore = priorConceptMastery.masteryScore;
           previousStatus = priorConceptMastery.status;
 
-          // Temporal decay delta (hours)
-          const now = new Date();
-          const lastAssessed = priorConceptMastery.lastAssessedAt ? new Date(priorConceptMastery.lastAssessedAt) : now;
-          const deltaHours = Math.max(0, (now.getTime() - lastAssessed.getTime()) / (1000 * 60 * 60));
+          // Temporal decay delta (hours) based on deterministic referenceTime
+          const lastAssessed = priorConceptMastery.lastAssessedAt ? new Date(priorConceptMastery.lastAssessedAt) : referenceTime;
+          const deltaHours = Math.max(0, (referenceTime.getTime() - lastAssessed.getTime()) / (1000 * 60 * 60));
 
           // Formula: M_comp = w_recent * S_recent + (1 - w_recent) * M_prior * e^(-lambda * deltaHours)
           const decayedPrior = priorConceptMastery.masteryScore * Math.exp(-policy.decayLambda * deltaHours);
@@ -120,7 +123,7 @@ export class MasteryCalculatorService {
             policyVersion: policy.version,
             attemptsCount: 1,
             successfulCount: dto.rawScore >= policy.masteryThreshold ? 1 : 0,
-            lastAssessedAt: new Date(),
+            lastAssessedAt: referenceTime,
           },
           update: {
             masteryScore: newScore,
@@ -128,7 +131,7 @@ export class MasteryCalculatorService {
             status: newStatus,
             attemptsCount: { increment: 1 },
             successfulCount: dto.rawScore >= policy.masteryThreshold ? { increment: 1 } : undefined,
-            lastAssessedAt: new Date(),
+            lastAssessedAt: referenceTime,
           },
         });
       }
@@ -140,9 +143,15 @@ export class MasteryCalculatorService {
         });
 
         const objPrevScore = priorObjMastery ? priorObjMastery.masteryScore : 0.0;
-        const objNewScore = priorObjMastery
-          ? Math.min(1.0, Math.max(0.0, policy.recentWeight * dto.rawScore + (1 - policy.recentWeight) * priorObjMastery.masteryScore))
-          : dto.rawScore;
+        
+        let objNewScore = dto.rawScore;
+        if (priorObjMastery) {
+          const lastAssessedObj = priorObjMastery.lastAssessedAt ? new Date(priorObjMastery.lastAssessedAt) : referenceTime;
+          const deltaHoursObj = Math.max(0, (referenceTime.getTime() - lastAssessedObj.getTime()) / (1000 * 60 * 60));
+          const decayedPriorObj = priorObjMastery.masteryScore * Math.exp(-policy.decayLambda * deltaHoursObj);
+          objNewScore = policy.recentWeight * dto.rawScore + (1 - policy.recentWeight) * decayedPriorObj;
+          objNewScore = Math.min(1.0, Math.max(0.0, objNewScore));
+        }
 
         let objStatus: MasteryStatus = MasteryStatus.NOT_STARTED;
         if (objNewScore >= policy.masteryThreshold) objStatus = MasteryStatus.MASTERED;
@@ -157,12 +166,12 @@ export class MasteryCalculatorService {
             masteryScore: objNewScore,
             status: objStatus,
             policyVersion: policy.version,
-            lastAssessedAt: new Date(),
+            lastAssessedAt: referenceTime,
           },
           update: {
             masteryScore: objNewScore,
             status: objStatus,
-            lastAssessedAt: new Date(),
+            lastAssessedAt: referenceTime,
           },
         });
       }

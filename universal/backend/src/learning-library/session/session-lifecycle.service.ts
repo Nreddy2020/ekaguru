@@ -89,6 +89,17 @@ export class SessionLifecycleService {
         }
       }
 
+      // Update any non-completed steps in the session to SKIPPED
+      await tx.sessionStep.updateMany({
+        where: {
+          sessionId,
+          status: { in: ['PENDING', 'IN_PROGRESS'] },
+        },
+        data: {
+          status: 'SKIPPED',
+        },
+      });
+
       // Finalize (COMPLETING → COMPLETED → FINALIZED all in one transaction)
       const finalized = await tx.learningSession.update({
         where: { id: sessionId },
@@ -147,9 +158,24 @@ export class SessionLifecycleService {
       select: { learnerId: true },
     });
 
-    // Find associated learning materials via learnerId chain
+    // Find associated learning materials aligned to this concept via conceptLinks
     const materials = await this.prisma.learningMaterial.findMany({
-      where: { learnerId: parentSession?.learnerId ?? '' },
+      where: {
+        learnerId: parentSession?.learnerId ?? '',
+        documents: {
+          some: {
+            chunks: {
+              some: {
+                conceptLinks: {
+                  some: {
+                    conceptId: concept.id,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       select: { id: true, title: true, materialType: true },
       take: 5,
     });

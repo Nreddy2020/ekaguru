@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function IngestPage() {
+function IngestPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const topic = searchParams.get("topic") || "Introduction to AI";
@@ -14,8 +13,8 @@ export default function IngestPage() {
     useEffect(() => {
         const fetchCurriculum = async () => {
             try {
-                // Call the Real Backend
-                const res = await fetch("http://localhost:3001/subjects", {
+                // Call the Real Backend on port 20000
+                const res = await fetch("http://localhost:20000/subjects", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ name: topic, category: "Tech" })
@@ -36,7 +35,6 @@ export default function IngestPage() {
     }, [topic]);
 
     const handleStart = () => {
-        // In a real app, we'd navigate to the first topic
         router.push("/student/welcome");
     };
 
@@ -52,16 +50,12 @@ export default function IngestPage() {
 
     return (
         <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
-            {/* Richer/Darker Gradient for 'Deep Content' */}
             <div className="absolute inset-0 bg-gradient-to-br from-[#667EEA] to-[#764BA2] opacity-90 z-0"></div>
 
-            {/* Decor Elements */}
             <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
             <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
             <div className="relative z-10 w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-
-                {/* Left Col: Course Summary Card */}
                 <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/50">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="p-4 bg-blue-100 rounded-2xl text-4xl">🤖</div>
@@ -92,7 +86,6 @@ export default function IngestPage() {
                     </div>
                 </div>
 
-                {/* Right Col: Curriculum Tree */}
                 <div className="space-y-4">
                     <h2 className="text-white font-bold text-xl mb-4 ml-2 opacity-90">Proposed Curriculum Path</h2>
 
@@ -113,7 +106,6 @@ export default function IngestPage() {
                         </div>
                     ))}
                 </div>
-
             </div>
 
             <style jsx global>{`
@@ -131,5 +123,18 @@ export default function IngestPage() {
                 }
             `}</style>
         </div>
+    );
+}
+
+export default function IngestPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
+                <div className="animate-spin text-4xl mb-4">⚙️</div>
+                <h2 className="text-xl font-bold">Loading Ingest Plan...</h2>
+            </div>
+        }>
+            <IngestPageContent />
+        </Suspense>
     );
 }

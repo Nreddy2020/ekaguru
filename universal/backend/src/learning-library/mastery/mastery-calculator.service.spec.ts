@@ -25,6 +25,7 @@ const createMockPrisma = () => {
       },
       masteryPolicy: {
         findUnique: jest.fn().mockResolvedValue(policyObj),
+        findFirst: jest.fn().mockResolvedValue(policyObj),
         create: jest.fn(),
       },
       learnerConceptMastery: {
@@ -166,7 +167,7 @@ describe('MasteryCalculatorService', () => {
         masteryHistory: {
           findFirst: jest.fn().mockResolvedValue({ id: 'hist-dup', evidenceKey: 'key-dup' }),
         },
-        masteryPolicy: { findUnique: jest.fn(), create: jest.fn() },
+        masteryPolicy: { findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn() },
         learnerConceptMastery: { findUnique: jest.fn(), upsert: jest.fn() },
         learnerObjectiveMastery: { findUnique: jest.fn(), upsert: jest.fn() },
       });
@@ -211,7 +212,7 @@ describe('MasteryCalculatorService', () => {
           findUnique: jest.fn().mockResolvedValue(null),
           create: jest.fn().mockImplementation((a) => Promise.resolve({ id: 'ev-1', ...a.data })),
         },
-        masteryPolicy: { findUnique: jest.fn().mockResolvedValue(policyObj), create: jest.fn() },
+        masteryPolicy: { findUnique: jest.fn().mockResolvedValue(policyObj), findFirst: jest.fn().mockResolvedValue(policyObj), create: jest.fn() },
         learnerConceptMastery: {
           findUnique: jest.fn().mockResolvedValue({
             id: 'lcm-old', learnerId: 'l1', conceptId: 'c1',

@@ -104,6 +104,7 @@ export class RemediationService {
         canonicalName: originalNode.concept.canonicalName,
         gradeBand: originalNode.gradeBand,
         currentMasteryScore: masteryMap.get(originalNode.conceptId) || 0.0,
+        type: originalNode.id === targetNodeId ? 'TARGET_REVIEW' : 'PREREQUISITE_REMEDIATION',
       };
     });
 

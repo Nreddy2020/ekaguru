@@ -1,14 +1,18 @@
 import {
   Controller, Get, Post, Body, Param, Request,
   HttpCode, HttpStatus, NotFoundException, ForbiddenException, BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SessionPlannerService, CreateSessionDto } from './session-planner.service';
 import { SessionLifecycleService } from './session-lifecycle.service';
 import { AssessmentEngineService, SubmitResponseDto } from './assessment-engine.service';
 import { AssessmentType, ScoringMethod } from '@prisma/client';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { LearningLibraryAuthGuard } from '../learning-library-auth.guard';
 
 @Controller('api/v2')
+@UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
 export class SessionController {
   constructor(
     private readonly prisma: PrismaService,
