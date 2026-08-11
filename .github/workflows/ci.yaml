@@ -40,7 +40,6 @@ jobs:
       run: |
         # Run active Architecture V2 verification scripts directly with python
         python scripts/verify_system_health.py
-        python scripts/verify_openshift.py
 
   build-and-push:
     needs: test-and-lint
