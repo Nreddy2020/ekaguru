@@ -5,7 +5,7 @@ import os
 from unittest.mock import MagicMock, AsyncMock
 
 # Add project root to path
-sys.path.append("e:/Ekaguru")
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from services.ingestion.app.extractors.pdf import extract_pdf
 from services.ingestion.app.chunker import chunk_text

@@ -38,8 +38,8 @@ jobs:
         
     - name: Test with pytest
       run: |
-        # Run all verification scripts as tests
-        pytest **/verify_*.py
+        # Run active Architecture V2 verification scripts only
+        pytest scripts/verify_system_health.py scripts/verify_openshift.py
 
   build-and-push:
     needs: test-and-lint

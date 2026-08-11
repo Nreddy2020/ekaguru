@@ -1,28 +1,35 @@
 import os
 import sys
 import importlib
+import io
+
+# Force stdout to use utf-8 to prevent charmap encoding crash on Windows terminals
+if sys.stdout and sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    except Exception:
+        pass
 
 # Add project root to path
-PROJECT_ROOT = "e:/Ekaguru"
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(PROJECT_ROOT)
 
 SERVICES = [
-    {"name": "Memory Service", "path": "memory_service/app", "main": "main.py"},
-    {"name": "Orchestrator", "path": "orchestrator_service/app", "main": "main.py"},
-    {"name": "Diagnosis Agent", "path": "diagnosis_agent/app", "main": "main.py"},
-    {"name": "Teaching Agent", "path": "teaching_agent/app", "main": "main.py"},
-    {"name": "Struggle Agent", "path": "struggle_agent/app", "main": "main.py"},
-    {"name": "Reflection Agent", "path": "reflection_agent/app", "main": "main.py"},
-    {"name": "Transfer Agent", "path": "transfer_agent/app", "main": "main.py"},
-    {"name": "School Service", "path": "school_service", "main": "main.py"},
-    {"name": "Gamification Service", "path": "gamification_service", "main": "main.py"},
-    {"name": "Ingestion Service", "path": "services/ingestion/app", "main": "main.py"},
+    {"name": "NestJS Backend", "path": "universal/backend/src", "main": "main.ts"},
+    {"name": "Memory Service", "path": "cognitive_services/memory_service/app", "main": "main.py"},
+    {"name": "Orchestrator", "path": "cognitive_services/orchestrator/app", "main": "main.py"},
+    {"name": "Diagnosis Agent", "path": "cognitive_services/diagnosis/app", "main": "main.py"},
+    {"name": "Teaching Agent", "path": "cognitive_services/teaching/app", "main": "main.py"},
+    {"name": "Struggle Agent", "path": "cognitive_services/struggle/app", "main": "main.py"},
+    {"name": "Reflection Agent", "path": "cognitive_services/reflection/app", "main": "main.py"},
+    {"name": "Transfer Agent", "path": "cognitive_services/transfer/app", "main": "main.py"},
+    {"name": "Parent Service", "path": "cognitive_services/parent/app", "main": "main.py"},
 ]
 
 FRONTEND_PATHS = [
-    "parent_dashboard/frontend/src/App.tsx",
-    "parent_dashboard/frontend/src/pages/TeacherDashboard.tsx",
-    "parent_dashboard/frontend/src/components/teacher/CurriculumUpload.tsx",
+    "universal/frontend/app/page.tsx",
+    "universal/frontend/app/layout.tsx",
+    "universal/frontend/app/globals.css",
 ]
 
 def check_file_exists(path):
@@ -32,6 +39,8 @@ def check_file_exists(path):
     return False, "❌ Missing"
 
 def check_python_syntax(path):
+    if not path.endswith('.py'):
+        return True, "✅ Skipped (Non-Python)"
     full_path = os.path.join(PROJECT_ROOT, path)
     try:
         with open(full_path, 'r', encoding='utf-8') as f:

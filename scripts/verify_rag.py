@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 import os
 
 # Add project root to path
-sys.path.append("e:/Ekaguru")
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Mock asyncpg and sentence-transformers BEFORE importing engine
 sys.modules["asyncpg"] = MagicMock()
