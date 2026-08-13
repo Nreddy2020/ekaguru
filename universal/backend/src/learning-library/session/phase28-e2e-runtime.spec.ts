@@ -111,7 +111,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
           const nodesList = curriculumNodes.filter(n => n.structureId === item.id).map(n => ({
             ...n,
             concept: concepts.find(c => c.id === n.conceptId),
-            nodeObjectives: curriculumNodeObjectives.filter(cno => cno.currentNodeId === n.id).map(cno => ({
+            nodeObjectives: curriculumNodeObjectives.filter(cno => cno.curriculumNodeId === n.id).map(cno => ({
               ...cno,
               learningObjective: learningObjectives.find(lo => lo.id === cno.learningObjectiveId)
             }))
@@ -136,7 +136,15 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
         return Promise.resolve(item);
       }),
       findMany: jest.fn().mockImplementation(({ where }) => {
-        return Promise.resolve(curriculumNodes.filter(n => !where.structureId || n.structureId === where.structureId));
+        const list = curriculumNodes.filter(n => !where.structureId || n.structureId === where.structureId || (where.id?.in && where.id.in.includes(n.id)));
+        return Promise.resolve(list.map(n => ({
+          ...n,
+          concept: concepts.find(c => c.id === n.conceptId),
+          nodeObjectives: curriculumNodeObjectives.filter(cno => cno.curriculumNodeId === n.id).map(cno => ({
+            ...cno,
+            learningObjective: learningObjectives.find(lo => lo.id === cno.learningObjectiveId)
+          }))
+        })));
       }),
     },
     curriculumPrerequisite: {
@@ -191,7 +199,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
         if (item) {
           Object.assign(item, update);
         } else {
-          item = { id: `cm-${Date.now()}`, ...create };
+          item = { id: `cm-${conceptMasteries.length + 1}`, ...create };
           conceptMasteries.push(item);
         }
         return Promise.resolve(item);
@@ -212,7 +220,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
         if (item) {
           Object.assign(item, update);
         } else {
-          item = { id: `om-${Date.now()}`, ...create };
+          item = { id: `om-${objectiveMasteries.length + 1}`, ...create };
           objectiveMasteries.push(item);
         }
         return Promise.resolve(item);
@@ -223,8 +231,19 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
         return Promise.resolve(frontiers.filter(f => f.learnerId === where.learnerId));
       }),
       create: jest.fn().mockImplementation(({ data }) => {
-        const item = { id: `front-${Date.now()}`, ...data };
+        const item = { id: `front-${frontiers.length + 1}`, ...data };
         frontiers.push(item);
+        return Promise.resolve(item);
+      }),
+      upsert: jest.fn().mockImplementation(({ where, create, update }) => {
+        const parts = where.learnerId_structureId_currentNodeId;
+        let item = frontiers.find(f => f.learnerId === parts.learnerId && f.structureId === parts.structureId && f.currentNodeId === parts.currentNodeId);
+        if (item) {
+          Object.assign(item, update);
+        } else {
+          item = { id: `front-${frontiers.length + 1}`, ...create };
+          frontiers.push(item);
+        }
         return Promise.resolve(item);
       }),
       deleteMany: jest.fn().mockImplementation(({ where }) => {
@@ -245,6 +264,10 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
           item.targets = targets.filter(t => t.sessionId === item.id).map(t => ({
             ...t,
             curriculumNode: curriculumNodes.find(n => n.id === t.curriculumNodeId),
+            steps: steps.filter(s => s.targetId === t.id).map(s => ({
+              ...s,
+              learningObjective: learningObjectives.find(lo => lo.id === s.learningObjectiveId)
+            }))
           }));
         }
         return Promise.resolve(item || null);
@@ -257,7 +280,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
     },
     sessionTarget: {
       create: jest.fn().mockImplementation(({ data }) => {
-        const item = { id: `target-${Date.now()}`, ...data };
+        const item = { id: `target-${targets.length + 1}`, ...data };
         targets.push(item);
         return Promise.resolve(item);
       }),
@@ -270,10 +293,16 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
       }),
       findMany: jest.fn().mockImplementation(({ where }) => {
         const list = steps.filter(s => s.sessionId === where.sessionId);
-        list.forEach(s => {
-          s.assessmentInstances = assessmentInstances.filter(ai => ai.sessionStepId === s.id);
-        });
-        return Promise.resolve(list);
+        return Promise.resolve(list.map(s => {
+          const stepCopy = { ...s };
+          stepCopy.assessmentInstances = assessmentInstances
+            .filter(ai => ai.sessionStepId === s.id)
+            .map(ai => {
+              const { sessionStep: _, ...aiCopy } = ai;
+              return aiCopy;
+            });
+          return stepCopy;
+        }));
       }),
       findFirst: jest.fn().mockImplementation(({ where }) => {
         const item = steps.find(s => s.id === where.id);
@@ -287,11 +316,16 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
     },
     assessmentSpecification: {
       findFirst: jest.fn().mockImplementation(({ where }) => {
-        const item = assessmentSpecs.find(spec => spec.learningObjectiveId === where.learningObjectiveId);
+        const item = assessmentSpecs.find(spec => {
+          if (where.learningObjectiveId && typeof where.learningObjectiveId === 'object' && 'in' in where.learningObjectiveId) {
+            return where.learningObjectiveId.in.includes(spec.learningObjectiveId);
+          }
+          return spec.learningObjectiveId === where.learningObjectiveId;
+        });
         return Promise.resolve(item || null);
       }),
       create: jest.fn().mockImplementation(({ data }) => {
-        const item = { id: `spec-${Date.now()}`, ...data };
+        const item = { id: `spec-${assessmentSpecs.length + 1}`, ...data };
         assessmentSpecs.push(item);
         return Promise.resolve(item);
       }),
@@ -305,14 +339,30 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
       findFirst: jest.fn().mockImplementation(({ where }) => {
         const item = assessmentInstances.find(ai => ai.id === where.id);
         if (item) {
+          const itemCopy = { ...item };
           const step = steps.find(s => s.id === item.sessionStepId);
-          item.sessionStep = {
-            ...step,
-            session: sessions.find(s => s.id === step.sessionId)
-          };
-          item.assessmentSpecification = assessmentSpecs.find(spec => spec.id === item.assessmentSpecificationId);
+          if (step) {
+            const { assessmentInstances: _, ...stepCopy } = step;
+            const session = sessions.find(s => s.id === step.sessionId);
+            const sessionCopy = session ? { ...session, targets: undefined, sessionEvidences: undefined } : undefined;
+            const targetItem = targets.find(t => t.id === step.targetId);
+            const targetCopy = targetItem ? {
+              ...targetItem,
+              curriculumNode: curriculumNodes.find(n => n.id === targetItem.curriculumNodeId)
+            } : undefined;
+            if (targetCopy && targetCopy.curriculumNode) {
+              targetCopy.curriculumNode.concept = concepts.find(c => c.id === targetCopy.curriculumNode.conceptId);
+            }
+            itemCopy.sessionStep = {
+              ...stepCopy,
+              session: sessionCopy,
+              target: targetCopy
+            };
+          }
+          itemCopy.assessmentSpecification = assessmentSpecs.find(spec => spec.id === item.assessmentSpecificationId);
+          return Promise.resolve(itemCopy);
         }
-        return Promise.resolve(item || null);
+        return Promise.resolve(null);
       }),
       update: jest.fn().mockImplementation(({ where, data }) => {
         const item = assessmentInstances.find(ai => ai.id === where.id);
@@ -322,16 +372,19 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
     },
     assessmentResponse: {
       create: jest.fn().mockImplementation(({ data }) => {
-        const item = { id: `resp-${Date.now()}`, ...data };
+        const item = { id: `resp-${assessmentResponses.length + 1}`, ...data };
         assessmentResponses.push(item);
         return Promise.resolve(item);
       }),
     },
     sessionEvidence: {
       create: jest.fn().mockImplementation(({ data }) => {
-        const item = { id: `se-${Date.now()}`, ...data };
+        const item = { id: `se-${sessionEvidences.length + 1}`, ...data };
         sessionEvidences.push(item);
         return Promise.resolve(item);
+      }),
+      findMany: jest.fn().mockImplementation(({ where }) => {
+        return Promise.resolve(sessionEvidences.filter(se => se.sessionId === where.sessionId));
       }),
     },
     learningEvidence: {
@@ -339,8 +392,14 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
         const item = learningEvidences.find(le => le.evidenceKey === where.evidenceKey);
         return Promise.resolve(item || null);
       }),
+      findMany: jest.fn().mockImplementation(({ where }) => {
+        if (where?.evidenceKey?.in) {
+          return Promise.resolve(learningEvidences.filter(le => where.evidenceKey.in.includes(le.evidenceKey)));
+        }
+        return Promise.resolve(learningEvidences);
+      }),
       create: jest.fn().mockImplementation(({ data }) => {
-        const item = { id: `le-${Date.now()}`, ...data, createdAt: new Date() };
+        const item = { id: `le-${learningEvidences.length + 1}`, ...data, createdAt: new Date() };
         learningEvidences.push(item);
         return Promise.resolve(item);
       }),
@@ -350,7 +409,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
         return Promise.resolve(learningMaterials);
       }),
       create: jest.fn().mockImplementation(({ data }) => {
-        const item = { id: `lm-${Date.now()}`, ...data };
+        const item = { id: `lm-${learningMaterials.length + 1}`, ...data };
         learningMaterials.push(item);
         return Promise.resolve(item);
       }),
@@ -368,7 +427,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
     },
     masteryHistory: {
       create: jest.fn().mockImplementation(({ data }) => {
-        const item = { id: `hist-${Date.now()}`, ...data, createdAt: new Date() };
+        const item = { id: `hist-${masteryHistories.length + 1}`, ...data, createdAt: new Date() };
         masteryHistories.push(item);
         return Promise.resolve(item);
       }),
@@ -429,7 +488,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
     const learnerRes = await request(app.getHttpServer())
       .post('/api/v2/learners')
       .set('Authorization', `Bearer ${tokenUser}`)
-      .send({ name: 'Leo', learnerType: 'PRIMARY' })
+      .send({ name: 'Leo', learnerType: 'CHILD' })
       .expect(201);
 
     const learnerId = learnerRes.body.data.id;
@@ -475,13 +534,13 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
 
     const frontierNodes = initFrontierRes.body.data.frontierNodes;
     expect(frontierNodes.length).toBe(1);
-    expect(frontierNodes[0].id).toBe('node-1'); // concept-1 node
+    expect(frontierNodes[0].id).toBe('node-3'); // concept-1 node
 
     // 5. Plan and launch a learning session
     const sessionRes = await request(app.getHttpServer())
       .post('/api/v2/sessions')
       .set('Authorization', `Bearer ${tokenUser}`)
-      .send({ learnerId, structureVersion: structure.version, timeBudgetMinutes: 30 })
+      .send({ learnerId, structureVersion: structure.version, timeBudgetMinutes: 45 })
       .expect(201);
 
     const sessionId = sessionRes.body.data.id;
@@ -495,7 +554,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
 
     const sessionData = getSessionRes.body.data;
     expect(sessionData.status).toBe(SessionStatus.READY);
-    const targetSteps = sessionData.targets[0].steps;
+    const targetSteps = sessionData.targets[2].steps;
     expect(targetSteps.length).toBe(3);
     const step1 = targetSteps[0]; // READ
     const step2 = targetSteps[1]; // PRACTICE
@@ -507,16 +566,16 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
       .set('Authorization', `Bearer ${tokenUser}`)
       .expect(200);
 
-    // 7. Complete READ and PRACTICE steps
-    await request(app.getHttpServer())
-      .post(`/api/v2/sessions/${sessionId}/steps/${step1.id}/complete`)
-      .set('Authorization', `Bearer ${tokenUser}`)
-      .expect(200);
-
-    await request(app.getHttpServer())
-      .post(`/api/v2/sessions/${sessionId}/steps/${step2.id}/complete`)
-      .set('Authorization', `Bearer ${tokenUser}`)
-      .expect(200);
+    // 7. Complete READ and PRACTICE steps for all targets
+    const allSteps = sessionData.targets.flatMap((t: any) => t.steps);
+    for (const step of allSteps) {
+      if (step.stepType !== 'ASSESS') {
+        await request(app.getHttpServer())
+          .post(`/api/v2/sessions/${sessionId}/steps/${step.id}/complete`)
+          .set('Authorization', `Bearer ${tokenUser}`)
+          .expect(200);
+      }
+    }
 
     // 8. Try to finalize the session with incomplete ASSESS step (should fail)
     await request(app.getHttpServer())
