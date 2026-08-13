@@ -30,7 +30,7 @@ function IngestPageContent() {
                 const learnersRes = await api.getLearners();
                 let learner = learnersRes.data?.[0];
                 if (!learner) {
-                    const newLearnerRes = await api.createLearner("Leo", "PRIMARY");
+                    const newLearnerRes = await api.createLearner("Leo", "CHILD");
                     learner = newLearnerRes.data;
                 }
 
