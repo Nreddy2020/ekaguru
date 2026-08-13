@@ -2,9 +2,9 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, architecture-v2]
   pull_request:
-    branches: [main]
+    branches: [main, architecture-v2]
 
 jobs:
   build-backend:
@@ -69,4 +69,5 @@ jobs:
       - name: Run tests
         run: |
           cd universal/backend
-          npm test || echo "No tests configured"
+          npm ci
+          npx jest --runInBand

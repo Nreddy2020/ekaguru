@@ -89,16 +89,31 @@ export class SessionLifecycleService {
         }
       }
 
-      // Update any non-completed steps in the session to SKIPPED
-      await tx.sessionStep.updateMany({
-        where: {
-          sessionId,
-          status: { in: ['PENDING', 'IN_PROGRESS'] },
-        },
-        data: {
-          status: 'SKIPPED',
-        },
+      // Validate all required session steps have reached terminal status (COMPLETED or SKIPPED)
+      // and required assessment steps have completed assessment evidence.
+      const steps = await tx.sessionStep.findMany({
+        where: { sessionId },
+        include: { assessmentInstances: true },
       });
+
+      for (const step of steps) {
+        if (step.status !== 'COMPLETED' && step.status !== 'SKIPPED') {
+          throw new BadRequestException(
+            `Cannot finalize session: step '${step.id}' of type '${step.stepType}' is in state '${step.status}' and must be COMPLETED or SKIPPED.`,
+          );
+        }
+
+        if (step.stepType === 'ASSESS') {
+          const hasCompletedAssessment = step.assessmentInstances.some(
+            (inst) => inst.status === 'COMPLETED',
+          );
+          if (!hasCompletedAssessment) {
+            throw new BadRequestException(
+              `Cannot finalize session: assessment step '${step.id}' does not have a completed assessment instance.`,
+            );
+          }
+        }
+      }
 
       // Finalize (COMPLETING → COMPLETED → FINALIZED all in one transaction)
       const finalized = await tx.learningSession.update({

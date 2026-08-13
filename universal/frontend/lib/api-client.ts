@@ -37,12 +37,34 @@ async function apiCall<T>(
     endpoint: string,
     options?: RequestInit
 ): Promise<T> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    };
+
+    if (options?.headers) {
+        if (options.headers instanceof Headers) {
+            options.headers.forEach((value, key) => {
+                headers[key] = value;
+            });
+        } else if (Array.isArray(options.headers)) {
+            options.headers.forEach(([key, value]) => {
+                headers[key] = value;
+            });
+        } else {
+            Object.assign(headers, options.headers);
+        }
+    }
+
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options?.headers,
-        },
+        headers,
     });
 
     if (!response.ok) {
@@ -53,6 +75,40 @@ async function apiCall<T>(
 }
 
 export const api = {
+    // Auth & V2 APIs
+    login: (email: string, password: string) =>
+        apiCall<{ access_token: string; user: any }>('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+        }),
+
+    getLearners: () =>
+        apiCall<{ data: any[] }>('/api/v2/learners'),
+
+    createLearner: (name: string, learnerType: string) =>
+        apiCall<{ data: any }>('/api/v2/learners', {
+            method: 'POST',
+            body: JSON.stringify({ name, learnerType }),
+        }),
+
+    generateBackbone: (domain: string) =>
+        apiCall<{ data: any }>('/api/v2/curriculum/generate-backbone', {
+            method: 'POST',
+            body: JSON.stringify({ domain }),
+        }),
+
+    enrollLearner: (learnerId: string, structureVersion: number) =>
+        apiCall<{ data: any }>('/api/v2/curriculum/enroll', {
+            method: 'POST',
+            body: JSON.stringify({ learnerId, structureVersion }),
+        }),
+
+    createSession: (learnerId: string, structureVersion: number, timeBudgetMinutes: number) =>
+        apiCall<any>('/api/v2/sessions', {
+            method: 'POST',
+            body: JSON.stringify({ learnerId, structureVersion, timeBudgetMinutes }),
+        }),
+
     // Tutor APIs
     getTopic: (topicId: string) =>
         apiCall(`/tutor/topic/${topicId}`),

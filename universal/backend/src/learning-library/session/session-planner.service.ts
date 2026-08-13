@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { SessionStatus, SessionStepType, SessionStepStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 import { FrontierCalculatorService } from '../mastery/frontier-calculator.service';
+import { TopologicalSortService, SortConceptNode } from '../knowledge/curriculum/topological-sort.service';
 
 export interface CreateSessionDto {
   learnerId: string;
@@ -17,6 +18,7 @@ export class SessionPlannerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly frontierService: FrontierCalculatorService,
+    private readonly topoSortService: TopologicalSortService,
   ) {}
 
   /**
@@ -139,13 +141,25 @@ export class SessionPlannerService {
     // 6. Deterministic target ordering per approved spec:
     //    1. Remediation targets first (unmastered prereqs)
     //    2. Frontier nodes
-    //    3. Within each group: sort by sequenceIndex to preserve Phase 2.6 canonical sort order
-    const sortFn = (a: any, b: any) => a.sequenceIndex - b.sequenceIndex;
+    //    3. Within each group: sort canonically using TopologicalSortService to preserve Phase 2.6 sort order
+    const toSortNode = (n: any): SortConceptNode => ({
+      id: n.id,
+      canonicalName: n.concept.canonicalName,
+      gradeBand: n.gradeBand,
+      prerequisiteIds: (incomingMap.get(n.id) || []).filter((pId) => nodeById.has(pId)),
+    });
 
-    remediationNodes.sort(sortFn);
-    frontierNodes.sort(sortFn);
+    const remediationSorted = remediationNodes.length > 0
+      ? this.topoSortService.sortConcepts(remediationNodes.map(toSortNode)).sortedNodes
+      : [];
+    const orderedRemediation = remediationSorted.map((sn) => remediationNodes.find((n) => n.id === sn.id)!);
 
-    const orderedTargets = [...remediationNodes, ...frontierNodes];
+    const frontierSorted = frontierNodes.length > 0
+      ? this.topoSortService.sortConcepts(frontierNodes.map(toSortNode)).sortedNodes
+      : [];
+    const orderedFrontier = frontierSorted.map((sn) => frontierNodes.find((n) => n.id === sn.id)!);
+
+    const orderedTargets = [...orderedRemediation, ...orderedFrontier];
 
     // 7. Select targets fitting within time budget
     const STEP_DURATIONS: Record<string, number> = {

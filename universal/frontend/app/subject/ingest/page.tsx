@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { api } from "../../../lib/api-client";
 
 function IngestPageContent() {
     const router = useRouter();
@@ -9,23 +10,52 @@ function IngestPageContent() {
     const topic = searchParams.get("topic") || "Introduction to AI";
     const [loading, setLoading] = useState(true);
     const [course, setCourse] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchCurriculum = async () => {
             try {
-                // Call the Real Backend on port 20000
-                const res = await fetch("http://localhost:20000/subjects", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name: topic, category: "Tech" })
+                setError(null);
+                // 1. Silent auth if token is missing
+                let token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+                if (!token) {
+                    const loginRes = await api.login("parent@example.com", "password");
+                    token = loginRes.access_token;
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('token', token);
+                    }
+                }
+
+                // 2. Fetch/Retrieve Learner
+                const learnersRes = await api.getLearners();
+                let learner = learnersRes.data?.[0];
+                if (!learner) {
+                    const newLearnerRes = await api.createLearner("Leo", "PRIMARY");
+                    learner = newLearnerRes.data;
+                }
+
+                // 3. Generate Curriculum Backbone for topic
+                const backboneRes = await api.generateBackbone(topic);
+                const structure = backboneRes.data;
+
+                // 4. Map V2 structure to UI course format
+                setCourse({
+                    name: topic,
+                    description: "We've architected a comprehensive journey to master this subject. From basics to expert level.",
+                    version: structure.version,
+                    learnerId: learner.id,
+                    phases: [
+                        {
+                            name: "Backbone Mastery Path",
+                            modules: (structure.nodes || []).map((node: any) => ({
+                                title: node.concept?.canonicalName || `Node ${node.sequenceIndex}`
+                            }))
+                        }
+                    ]
                 });
-
-                if (!res.ok) throw new Error("Failed to generate");
-
-                const data = await res.json();
-                setCourse(data.data); // data.data contains the { name, phases }
-            } catch (e) {
+            } catch (e: any) {
                 console.error(e);
+                setError(e.message || "Failed to construct the learning plan.");
             } finally {
                 setLoading(false);
             }
@@ -34,16 +64,41 @@ function IngestPageContent() {
         if (topic) fetchCurriculum();
     }, [topic]);
 
-    const handleStart = () => {
-        router.push("/student/welcome");
+    const handleStart = async () => {
+        if (!course) return;
+        try {
+            setLoading(true);
+            // 1. Enroll learner in curriculum version
+            await api.enrollLearner(course.learnerId, course.version);
+
+            // 2. Create learning session
+            const session = await api.createSession(course.learnerId, course.version, 30);
+
+            // 3. Navigate into the V2 learning flow
+            router.push(`/student/welcome?sessionId=${session.id || session.data?.id || ''}`);
+        } catch (e: any) {
+            console.error(e);
+            alert("Failed to initialize learning session: " + e.message);
+            setLoading(false);
+        }
     };
 
     if (loading || !course) {
         return (
             <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
-                <div className="animate-spin text-4xl mb-4">⚙️</div>
-                <h2 className="text-xl font-bold">Architecting your "{topic}" Master Plan...</h2>
-                <p className="text-slate-400">Consulting Universal Knowledge Base...</p>
+                {error ? (
+                    <div className="text-center">
+                        <div className="text-4xl mb-4">❌</div>
+                        <h2 className="text-xl font-bold text-red-400">Curriculum Generation Failed</h2>
+                        <p className="text-slate-400 mt-2">{error}</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="animate-spin text-4xl mb-4">⚙️</div>
+                        <h2 className="text-xl font-bold">Architecting your "{topic}" Master Plan...</h2>
+                        <p className="text-slate-400">Consulting Universal Knowledge Base...</p>
+                    </>
+                )}
             </div>
         );
     }

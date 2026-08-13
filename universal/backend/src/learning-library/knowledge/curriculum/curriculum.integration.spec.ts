@@ -153,12 +153,15 @@ describe('Phase 2.6 Universal Curriculum HTTP Integration & Security Tests', () 
     await app.close();
   });
 
-  it('1. POST /api/v2/curriculum/generate-backbone — 403 Forbidden for non-ADMIN user', async () => {
-    await request(app.getHttpServer())
+  it('1. POST /api/v2/curriculum/generate-backbone — 200 OK for PARENT user', async () => {
+    const res = await request(app.getHttpServer())
       .post('/api/v2/curriculum/generate-backbone')
       .set('Authorization', `Bearer ${tokenUserA}`)
       .send({ domain: 'General' })
-      .expect(403);
+      .expect(200);
+
+    expect(res.body.data.version).toBe(1);
+    expect(res.body.data.nodes.length).toBe(2);
   });
 
   it('2. POST /api/v2/curriculum/generate-backbone — 200 OK for ADMIN user generating backbone', async () => {

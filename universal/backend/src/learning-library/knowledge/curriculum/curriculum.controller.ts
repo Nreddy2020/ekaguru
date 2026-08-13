@@ -32,7 +32,9 @@ export class CurriculumController {
   @Post('generate-backbone')
   @HttpCode(HttpStatus.OK)
   async generateBackbone(@Body('domain') domain: string, @Request() req: any) {
-    this.checkAdmin(req);
+    if (!req.user) {
+      throw new ForbiddenException('User context missing');
+    }
     const result = await this.backboneService.generateUniversalBackbone(domain || 'General', req.user.sub || 'ADMIN');
     return { data: result };
   }

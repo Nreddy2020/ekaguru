@@ -92,19 +92,27 @@ export class FrontierCalculatorService {
       if (!isTransitivePrereqSatisfied(node.id, new Set())) continue;
 
       // Rule 2: Objective-level readiness check.
-      // A node is frontier-eligible when ALL its objectives have been attempted
-      // (score >= 0) OR the node has no objectives. Nodes with objectives where
-      // the learner has not yet engaged (score == 0 / not started) are still
-      // included — they ARE the work to be done at the frontier.
-      // A node is EXCLUDED from the frontier only if every objective is already
-      // at or above masteryThreshold (concept mastery gate above handles this).
-      const allObjsMastered =
-        node.nodeObjectives.length > 0 &&
-        node.nodeObjectives.every(
-          (no: any) => (objMasteryMap.get(no.learningObjectiveId) || 0.0) >= masteryThreshold,
-        );
+      // Enforce sequenced learning objective readiness within the concept node:
+      // An objective is ready if it is the first objective (lowest sequenceIndex) OR if its predecessor is mastered.
+      // A node is eligible only if there is at least one objective that is ready and unmastered (or the node has no objectives).
+      const sortedNodeObjectives = [...node.nodeObjectives].sort((a, b) => a.sequenceIndex - b.sequenceIndex);
 
-      if (!allObjsMastered) {
+      const isObjectiveReady = (no: any, index: number): boolean => {
+        if (index === 0) return true; // First objective is always ready to be attempted
+        const prevNo = sortedNodeObjectives[index - 1];
+        const prevScore = objMasteryMap.get(prevNo.learningObjectiveId) || 0.0;
+        return prevScore >= masteryThreshold;
+      };
+
+      const hasReadyUnmasteredObj = sortedNodeObjectives.some((no, index) => {
+        const score = objMasteryMap.get(no.learningObjectiveId) || 0.0;
+        const isMastered = score >= masteryThreshold;
+        return !isMastered && isObjectiveReady(no, index);
+      });
+
+      const isEligible = sortedNodeObjectives.length === 0 || hasReadyUnmasteredObj;
+
+      if (isEligible) {
         frontierNodes.push(node);
       }
     }

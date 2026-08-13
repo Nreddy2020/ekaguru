@@ -11,6 +11,7 @@ import { AssessmentEngineService } from './assessment-engine.service';
 import { PrismaService } from '../prisma.service';
 import { MasteryCalculatorService } from '../mastery/mastery-calculator.service';
 import { FrontierCalculatorService } from '../mastery/frontier-calculator.service';
+import { TopologicalSortService } from '../knowledge/curriculum/topological-sort.service';
 import {
   SessionStatus, SessionStepStatus, AssessmentInstanceStatus,
   CurriculumStatus,
@@ -81,6 +82,7 @@ function buildPrismaMock(overrides: any = {}) {
     sessionStep: {
       create: jest.fn().mockResolvedValue(mockStep()),
       findFirst: jest.fn().mockResolvedValue(mockStep()),
+      findMany: jest.fn().mockResolvedValue([mockStep('READ', SessionStepStatus.COMPLETED)]),
       update: jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...mockStep(), ...data })),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
@@ -121,6 +123,7 @@ describe('Phase 2.8 Acceptance Gates', () => {
         SessionPlannerService,
         SessionLifecycleService,
         AssessmentEngineService,
+        TopologicalSortService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: MasteryCalculatorService, useValue: masteryMock },
         { provide: FrontierCalculatorService, useValue: frontierMock },
@@ -401,11 +404,43 @@ describe('Phase 2.8 Acceptance Gates', () => {
     prismaMock.learningSession.findUnique.mockResolvedValue(activeSession);
     prismaMock.$transaction.mockImplementation(async (fn: any) => {
       const tx = buildPrismaMock();
+      tx.sessionStep.findMany.mockResolvedValue([mockStep('READ', SessionStepStatus.COMPLETED)]);
       tx.learningSession.update.mockResolvedValue({ ...activeSession, status: SessionStatus.FINALIZED, finalizedAt: new Date() });
       return fn(tx);
     });
     const result = await lifecycleService.completeSession('session-1');
     expect(result.status).toBe(SessionStatus.FINALIZED);
+  });
+
+  it('completeSession() rejects finalization if there are uncompleted PENDING/IN_PROGRESS steps', async () => {
+    const activeSession = { ...mockSession(SessionStatus.ACTIVE), startedAt: new Date(Date.now() - 60000), sessionEvidences: [] };
+    prismaMock.learningSession.findUnique.mockResolvedValue(activeSession);
+    prismaMock.$transaction.mockImplementation(async (fn: any) => {
+      const tx = buildPrismaMock();
+      tx.sessionStep.findMany.mockResolvedValue([
+        mockStep('READ', SessionStepStatus.COMPLETED),
+        mockStep('PRACTICE', SessionStepStatus.IN_PROGRESS),
+      ]);
+      return fn(tx);
+    });
+    await expect(lifecycleService.completeSession('session-1')).rejects.toThrow(BadRequestException);
+  });
+
+  it('completeSession() rejects finalization if an ASSESS step lacks a completed assessment instance', async () => {
+    const activeSession = { ...mockSession(SessionStatus.ACTIVE), startedAt: new Date(Date.now() - 60000), sessionEvidences: [] };
+    prismaMock.learningSession.findUnique.mockResolvedValue(activeSession);
+    prismaMock.$transaction.mockImplementation(async (fn: any) => {
+      const tx = buildPrismaMock();
+      tx.sessionStep.findMany.mockResolvedValue([
+        mockStep('READ', SessionStepStatus.COMPLETED),
+        {
+          ...mockStep('ASSESS', SessionStepStatus.COMPLETED),
+          assessmentInstances: [{ id: 'inst-1', status: AssessmentInstanceStatus.PENDING }],
+        },
+      ]);
+      return fn(tx);
+    });
+    await expect(lifecycleService.completeSession('session-1')).rejects.toThrow(BadRequestException);
   });
 
   // ── GATE 25: Finalized session immutability ───────────────────────────────
