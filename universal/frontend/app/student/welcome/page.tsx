@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api } from "../../../lib/api-client";
 import { motion } from "framer-motion";
 
 const EMOJI_MAP: Record<string, string> = {
-    "quantum": "⚛️", "art": "🎨", "rocket": "🚀", "python": "🐍", "robot": "🤖",
-    "kubernetes": "☸️", "openshift": "🔴", "docker": "🐳", "ai": "🤖", "ml": "🧠",
-    "default": "📚"
+    "fractions": "🍕", "addition": "➕", "multiplication": "✖️", "division": "➗",
+    "algebra": "📐", "geometry": "📏", "ai": "🤖", "neural": "🧠", "default": "📚"
 };
 
 const COLOR_PALETTE = [
@@ -16,11 +17,9 @@ const COLOR_PALETTE = [
     "from-orange-600 to-red-500",
     "from-green-600 to-emerald-500",
     "from-indigo-600 to-purple-500",
-    "from-red-600 to-pink-500",
-    "from-yellow-600 to-orange-500",
 ];
 
-function getEmojiForSubject(name: string): string {
+function getEmojiForConcept(name: string): string {
     const lowerName = name.toLowerCase();
     for (const [key, emoji] of Object.entries(EMOJI_MAP)) {
         if (lowerName.includes(key)) return emoji;
@@ -28,170 +27,244 @@ function getEmojiForSubject(name: string): string {
     return EMOJI_MAP.default;
 }
 
-export default function StudentHomePage() {
-    const [subjects, setSubjects] = useState<any[]>([]);
+function StudentWelcomeContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const querySessionId = searchParams.get("sessionId");
+
+    const [learner, setLearner] = useState<any>(null);
+    const [activeSession, setActiveSession] = useState<any>(null);
+    const [frontierNodes, setFrontierNodes] = useState<any[]>([]);
+    const [masteredCount, setMasteredCount] = useState<number>(0);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchSubjects = async () => {
+        const fetchDashboardData = async () => {
             try {
-                const res = await fetch("http://localhost:3001/subjects");
-                if (res.ok) {
-                    const data = await res.json();
-                    // Transform backend data to match UI expectations
-                    const transformed = data.map((subject: any, idx: number) => ({
-                        id: subject.id,
-                        title: subject.name,
-                        emoji: getEmojiForSubject(subject.name),
-                        level: 1,
-                        progress: 0,
-                        color: COLOR_PALETTE[idx % COLOR_PALETTE.length],
-                        locked: false
-                    }));
-                    setSubjects(transformed);
+                setLoading(true);
+                setError(null);
+
+                // 1. Authenticate / Resolve Learner Profile via JWT principal
+                const learnersRes = await api.getLearners();
+                let currentLearner = learnersRes.data?.[0];
+                if (!currentLearner) {
+                    const newLearnerRes = await api.createLearner("Leo", "CHILD");
+                    currentLearner = newLearnerRes.data;
                 }
-            } catch (error) {
-                console.error("Failed to fetch subjects:", error);
+                setLearner(currentLearner);
+
+                // 2. Fetch Authoritative Mastery
+                const masteryRes = await api.getLearnerMastery(currentLearner.id);
+                const masteredList = (masteryRes.data || []).filter((cm: any) => cm.status === "MASTERED");
+                setMasteredCount(masteredList.length);
+
+                // 3. Resolve Active or Paused Session
+                let sessionToUse: any = null;
+
+                if (querySessionId) {
+                    // Try to load query sessionId if passed during redirection
+                    try {
+                        const sessionRes = await api.getSession(querySessionId);
+                        if (sessionRes.data && sessionRes.data.status !== "FINALIZED") {
+                            sessionToUse = sessionRes.data;
+                        }
+                    } catch (e) {
+                        console.error("Failed to load query session:", e);
+                    }
+                }
+
+                if (!sessionToUse) {
+                    // Query active sessions from backend
+                    const sessionsRes = await api.getLearnerSessions(currentLearner.id);
+                    const active = (sessionsRes.data || []).find(
+                        (s: any) => s.status === "READY" || s.status === "ACTIVE" || s.status === "PAUSED"
+                    );
+                    if (active) {
+                        sessionToUse = active;
+                    }
+                }
+                setActiveSession(sessionToUse);
+
+                // 4. Fetch Authoritative Frontier Nodes (curriculum structure version 1)
+                const frontierRes = await api.getFrontier(currentLearner.id, 1);
+                setFrontierNodes(frontierRes.data?.frontierNodes || []);
+            } catch (err: any) {
+                console.error("Failed to load dashboard data:", err);
+                setError(err.message || "Failed to load learner dashboard data.");
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchSubjects();
-    }, []);
+        fetchDashboardData();
+    }, [querySessionId]);
+
+    const handleStartSession = async () => {
+        if (!learner) return;
+        try {
+            setLoading(true);
+            // Create a session for curriculum version 1 with a 30-minute budget
+            const sessionRes = await api.createSession(learner.id, 1, 30);
+            const newSession = sessionRes.data || sessionRes;
+            router.push(`/student/session?sessionId=${newSession.id}`);
+        } catch (err: any) {
+            console.error(err);
+            alert("Failed to initialize session: " + err.message);
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+                <div className="animate-spin text-4xl mb-4">⚙️</div>
+                <h2 className="text-xl font-bold">Synchronizing Learner Profile...</h2>
+                <p className="text-slate-400">Loading dynamic frontier path...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+                <div className="text-5xl mb-4">⚠️</div>
+                <h2 className="text-xl font-bold text-red-400">Unable to load Dashboard</h2>
+                <p className="text-slate-400 mt-2">{error}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold transition-colors"
+                >
+                    Retry Connection
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-black text-white overflow-x-hidden font-sans">
-
-            {/* Header: The Player HUD */}
-            <div className="fixed top-0 left-0 w-full z-50 p-6 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
-                <div className="pointer-events-auto flex items-center gap-4">
+            {/* Header: Dynamic Player HUD */}
+            <div className="fixed top-0 left-0 w-full z-50 p-6 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
+                <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 border-2 border-white/20 shadow-[0_0_20px_rgba(234,179,8,0.5)]"></div>
                     <div>
-                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Player Level 12</div>
-                        <div className="font-black text-xl">The Cyber Hero</div>
+                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Learner</div>
+                        <div className="font-black text-xl">{learner?.name || "Leo"}</div>
                     </div>
                 </div>
 
-                <div className="pointer-events-auto flex items-center gap-6">
+                <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
-                        <span className="text-2xl animate-pulse">🔥</span>
-                        <span className="font-black text-orange-500">7 Day Streak</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
-                        <span className="text-xl">🪙</span>
-                        <span className="font-black text-yellow-400">2,450 XP</span>
+                        <span className="text-xl">🏆</span>
+                        <span className="font-black text-yellow-400">{masteredCount} Concepts Mastered</span>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content: The Quest Map (Horizontal Scroll) */}
-            <div className="relative min-h-screen flex items-center pl-20 overflow-x-auto hide-scrollbar">
+            {/* Main Content: Dynamic Quest Map */}
+            <div className="relative min-h-screen flex flex-col justify-center items-center px-6 pt-24 pb-20">
+                <div className="max-w-4xl w-full text-center mb-12">
+                    <h1 className="text-4xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                        Universal Curriculum Journey
+                    </h1>
+                    <p className="text-slate-400 max-w-xl mx-auto">
+                        Your learning path adjusts automatically as you master concepts. View your active targets below.
+                    </p>
+                </div>
 
-                {/* Connection Line */}
-                <div className="absolute top-1/2 left-0 w-[200vw] h-1 bg-white/10 -z-10 transform -translate-y-1/2"></div>
-
-                <div className="flex gap-12 px-12 pt-20 pb-20">
-
-                    {/* Add New Quest Button */}
-                    <Link href="/subject/create" className="group relative w-64 h-96 flex-shrink-0 flex items-center justify-center rounded-3xl border-4 border-dashed border-white/20 hover:border-white/50 hover:bg-white/5 transition-all cursor-pointer">
-                        <div className="text-center">
-                            <div className="text-6xl mb-4 opacity-50 group-hover:scale-125 transition-transform">➕</div>
-                            <div className="font-bold text-slate-400 group-hover:text-white">New Quest</div>
-                        </div>
-                    </Link>
-
-                    {/* Loading State */}
-                    {loading && (
-                        <div className="flex items-center justify-center w-64 h-96">
-                            <div className="text-center">
-                                <div className="text-4xl animate-spin mb-4">⚙️</div>
-                                <div className="text-slate-400 font-bold">Loading Quests...</div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Empty State */}
-                    {!loading && subjects.length === 0 && (
-                        <div className="flex items-center justify-center w-96 h-96">
-                            <div className="text-center">
-                                <div className="text-6xl mb-4">🎯</div>
-                                <h3 className="text-xl font-bold text-white mb-2">No Quests Yet!</h3>
-                                <p className="text-slate-400">Click the + button to create your first learning journey.</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Quest Cards */}
-                    {!loading && subjects.map((sub: any, idx: number) => (
-                        <motion.div
-                            key={sub.id}
-                            initial={{ opacity: 0, y: 50 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            className="relative w-72 h-[28rem] flex-shrink-0"
-                        >
-                            <Link href={sub.locked ? "#" : "/student/topics"} className={`block h-full w-full relative group perspective-1000 cursor-pointer ${sub.locked ? "grayscale opacity-50 cursor-not-allowed" : ""}`}>
-
-                                {/* Card Body */}
-                                <div className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${sub.color} p-1 shadow-2xl transition-transform duration-500 group-hover:-translate-y-4 group-hover:rotate-1`}>
-                                    <div className="h-full w-full bg-black/40 backdrop-blur-sm rounded-[1.3rem] p-6 flex flex-col justify-between border border-white/10">
-
-                                        {/* Top */}
-                                        <div className="flex justify-between items-start">
-                                            <div className="text-5xl drop-shadow-lg">{sub.emoji}</div>
-                                            <div className="px-3 py-1 bg-black/50 rounded-full text-xs font-bold border border-white/10">
-                                                LVL {sub.level}
-                                            </div>
-                                        </div>
-
-                                        {/* Core */}
-                                        <div>
-                                            <h3 className="text-2xl font-black leading-tight mb-2 drop-shadow-md">{sub.title}</h3>
-                                            <div className="w-full bg-black/50 h-2 rounded-full overflow-hidden">
-                                                <div
-                                                    className={`h-full bg-white transition-all duration-1000 ease-out`}
-                                                    style={{ width: `${sub.progress}%` }}
-                                                ></div>
-                                            </div>
-                                            <div className="text-right text-xs font-bold mt-2 text-white/70">{sub.progress}% Mastery</div>
-                                        </div>
-
-                                        {/* Action */}
-                                        <div className="mt-4">
-                                            <button className="w-full py-3 bg-white text-black font-black rounded-xl hover:bg-slate-200 transition-colors">
-                                                {sub.locked ? "LOCKED 🔒" : "CONTINUE ▶"}
-                                            </button>
-                                        </div>
-
-                                    </div>
-                                </div>
-
-                                {/* Glow Effect */}
-                                <div className={`absolute -inset-4 bg-gradient-to-br ${sub.color} opacity-0 group-hover:opacity-30 blur-2xl transition-opacity duration-500 -z-10`}></div>
-
+                <div className="w-full max-w-4xl bg-slate-900/40 border border-white/10 rounded-3xl p-8 backdrop-blur-md">
+                    {activeSession ? (
+                        /* Active Session Prompt */
+                        <div className="text-center py-6">
+                            <div className="text-5xl mb-4">⚡</div>
+                            <h2 className="text-2xl font-bold mb-2">Active Session In Progress</h2>
+                            <p className="text-slate-400 mb-6 max-w-md mx-auto">
+                                You have an open learning session. Continue now to complete your current steps and update your frontier.
+                            </p>
+                            <Link href={`/student/session?sessionId=${activeSession.id}`}>
+                                <button className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black rounded-2xl shadow-lg transform hover:-translate-y-1 transition-all">
+                                    RESUME ACTIVE SESSION ▶
+                                </button>
                             </Link>
-                        </motion.div>
-                    ))}
+                        </div>
+                    ) : (
+                        /* Dynamic Frontier Roadmap */
+                        <div>
+                            <h2 className="text-xl font-bold mb-6 text-left flex items-center gap-2">
+                                <span className="text-teal-400">🎯</span> Current Frontier Targets
+                            </h2>
+                            {frontierNodes.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <div className="text-5xl mb-4">🎉</div>
+                                    <h3 className="text-lg font-bold">Curriculum Fully Mastered!</h3>
+                                    <p className="text-slate-400 mt-1">You have completed all sequenced topics in this curriculum version.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                    {frontierNodes.map((node: any, idx: number) => {
+                                        const conceptName = node.concept?.canonicalName || `Concept Node ${node.sequenceIndex}`;
+                                        const color = COLOR_PALETTE[idx % COLOR_PALETTE.length];
+                                        return (
+                                            <div
+                                                key={node.id}
+                                                className={`relative rounded-2xl bg-gradient-to-br ${color} p-0.5 shadow-xl`}
+                                            >
+                                                <div className="bg-slate-950 rounded-[0.9rem] p-6 h-full flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <span className="text-4xl">{getEmojiForConcept(conceptName)}</span>
+                                                            <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-bold text-slate-400 border border-white/5">
+                                                                Target Node
+                                                            </span>
+                                                        </div>
+                                                        <h3 className="text-xl font-extrabold text-white mb-2 leading-tight">
+                                                            {conceptName}
+                                                        </h3>
+                                                        <p className="text-sm text-slate-400">
+                                                            Grade Band: {node.gradeBand || "PRIMARY"}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
+                            {frontierNodes.length > 0 && (
+                                <div className="text-center mt-8">
+                                    <button
+                                        onClick={handleStartSession}
+                                        className="px-10 py-4 bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-500 hover:to-emerald-600 text-slate-950 font-black rounded-2xl shadow-xl transform hover:-translate-y-1 transition-all"
+                                    >
+                                        START TODAY'S SESSION ▶
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Floating Navigation Bar (Bottom) */}
+            {/* Floating Navigation Bar */}
             <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex gap-8 z-50 shadow-2xl">
-                <Link href="#" className="text-2xl hover:scale-125 transition-transform text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400">🏠</Link>
+                <Link href="/student/welcome" className="text-2xl hover:scale-125 transition-transform text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400">🏠</Link>
                 <Link href="#" className="text-2xl hover:scale-125 transition-transform opacity-50 hover:opacity-100">🗺️</Link>
                 <Link href="#" className="text-2xl hover:scale-125 transition-transform opacity-50 hover:opacity-100">🏆</Link>
-                <Link href="#" className="text-2xl hover:scale-125 transition-transform opacity-50 hover:opacity-100">👤</Link>
             </div>
-
-            <style jsx>{`
-                .hide-scrollbar::-webkit-scrollbar {
-                    display: none;
-                }
-                .perspective-1000 {
-                    perspective: 1000px;
-                }
-            `}</style>
         </div>
+    );
+}
+
+export default function StudentWelcomePage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+                <div className="animate-spin text-4xl mb-4">⚙️</div>
+                <h2 className="text-xl font-bold">Loading Quest Map...</h2>
+            </div>
+        }>
+            <StudentWelcomeContent />
+        </Suspense>
     );
 }

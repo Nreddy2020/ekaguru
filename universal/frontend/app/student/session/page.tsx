@@ -1,137 +1,327 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api } from "../../../lib/api-client";
 import StruggleModal from "../../../components/StruggleModal";
 
-export default function TutorSession() {
+function TutorSessionContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const sessionId = searchParams.get("sessionId");
 
-    const [step, setStep] = useState(0);
-    const [messages, setMessages] = useState<{ role: "u" | "ai", text: string }[]>([]);
-    const [showModal, setShowModal] = useState(false);
+    const [session, setSession] = useState<any>(null);
+    const [activeStep, setActiveStep] = useState<any>(null);
+    const [stepContent, setStepContent] = useState<any>(null);
+    const [assessmentInstance, setAssessmentInstance] = useState<any>(null);
+    const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+    const [feedback, setFeedback] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [showStruggleModal, setShowStruggleModal] = useState(false);
 
-    // Fake Script
-    const script = [
-        "Welcome to Neural Networks! 🧠 Ready to build a brain?",
-        "First, imagine a single neuron. It takes inputs, weighs them, and fires giving an output.",
-        "It's just like making a decision: 'Should I eat pizza?' 🍕 (Hunger + Taste > Cost)",
-        "Now, connect millions of these... and you get ChatGPT!",
-    ];
+    // Fetch complete session details
+    const refreshSessionData = async () => {
+        if (!sessionId) {
+            setError("Session ID is missing.");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const res = await api.getSession(sessionId);
+            const sessionData = res.data || res;
+            setSession(sessionData);
+
+            if (sessionData.status === "FINALIZED") {
+                router.push("/student/welcome");
+                return;
+            }
+
+            // Extract all steps in order of sequence
+            const allSteps: any[] = [];
+            (sessionData.targets || []).forEach((target: any) => {
+                (target.steps || []).forEach((step: any) => {
+                    allSteps.push({ ...step, target });
+                });
+            });
+
+            // Find first incomplete step
+            const active = allSteps.find(s => s.status !== "COMPLETED" && s.status !== "SKIPPED");
+            setActiveStep(active || null);
+
+            // Fetch active step contents
+            if (active) {
+                setStepContent(null);
+                setAssessmentInstance(null);
+                setSelectedAnswer("");
+                setFeedback(null);
+
+                if (active.stepType === "READ" || active.stepType === "PRACTICE") {
+                    const contentRes = await api.getStepContent(sessionId, active.id);
+                    setStepContent(contentRes.data || contentRes);
+                } else if (active.stepType === "ASSESS") {
+                    // Fetch assessment instance details
+                    const instance = active.assessmentInstances?.[0] || active.assessmentInstance;
+                    if (instance) {
+                        const instRes = await api.getAssessmentInstance(sessionId, instance.id);
+                        setAssessmentInstance(instRes.data || instRes);
+                    }
+                }
+            }
+        } catch (err: any) {
+            console.error("Failed to load session details:", err);
+            setError(err.message || "Failed to load active learning session.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        // Initial Message
-        if (step === 0 && messages.length === 0) {
-            setTimeout(() => {
-                setMessages([{ role: "ai", text: script[0] }]);
-            }, 500);
-        }
-    }, [step, messages.length]);
+        refreshSessionData();
+    }, [sessionId]);
 
-    const handleNext = () => {
-        const nextStep = step + 1;
-        if (nextStep < script.length) {
-            setStep(nextStep);
-            setMessages(prev => [...prev, { role: "ai", text: script[nextStep] }]);
-        } else {
-            // End of Session - For demo, loop or stop
+    // Handle Start / Resume Session
+    useEffect(() => {
+        if (session && session.status === "READY") {
+            api.startSession(sessionId!).then(() => {
+                setSession((prev: any) => ({ ...prev, status: "ACTIVE" }));
+            }).catch(console.error);
+        }
+    }, [session]);
+
+    const handleCompleteStep = async () => {
+        if (!activeStep || !sessionId) return;
+        try {
+            setLoading(true);
+            await api.completeStep(sessionId, activeStep.id);
+            await refreshSessionData();
+        } catch (err: any) {
+            console.error(err);
+            alert("Failed to complete step: " + err.message);
+            setLoading(false);
         }
     };
 
-    const handleHint = () => {
-        setShowModal(false);
-        setMessages(prev => [...prev, { role: "ai", text: "Hint: Think of the neuron as a little gatekeeper. It only opens the gate if enough people push!" }]);
+    const handleSubmitAssessment = async () => {
+        if (!activeStep || !assessmentInstance || !selectedAnswer || !sessionId) return;
+        try {
+            setLoading(true);
+            const res = await api.submitAssessmentResponse(sessionId, assessmentInstance.id, selectedAnswer);
+            const result = res.data || res;
+
+            if (result.passed) {
+                setFeedback("✅ Correct! Marking step complete...");
+                setTimeout(async () => {
+                    await api.completeStep(sessionId, activeStep.id);
+                    await refreshSessionData();
+                }, 1500);
+            } else {
+                setFeedback("❌ Incorrect. Please try again.");
+                setLoading(false);
+            }
+        } catch (err: any) {
+            console.error(err);
+            alert("Failed to submit response: " + err.message);
+            setLoading(false);
+        }
     };
+
+    const handleFinalizeSession = async () => {
+        if (!sessionId) return;
+        try {
+            setLoading(true);
+            await api.completeSession(sessionId);
+            router.push("/student/welcome");
+        } catch (err: any) {
+            console.error(err);
+            alert("Failed to finalize session: " + err.message);
+            setLoading(false);
+        }
+    };
+
+    if (loading && !session) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+                <div className="animate-spin text-4xl mb-4">⚙️</div>
+                <h2 className="text-xl font-bold">Synchronizing Session...</h2>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+                <div className="text-5xl mb-4">⚠️</div>
+                <h2 className="text-xl font-bold text-red-400">Failed to load session</h2>
+                <p className="text-slate-400 mt-2">{error}</p>
+                <Link href="/student/welcome">
+                    <button className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold transition-colors">
+                        Return to Dashboard
+                    </button>
+                </Link>
+            </div>
+        );
+    }
+
+    // Flat list of steps for progress bar
+    const stepsList: any[] = [];
+    (session?.targets || []).forEach((t: any) => {
+        (t.steps || []).forEach((s: any) => {
+            stepsList.push(s);
+        });
+    });
+    const completedStepsCount = stepsList.filter(s => s.status === "COMPLETED" || s.status === "SKIPPED").length;
+    const progressPercent = stepsList.length > 0 ? (completedStepsCount / stepsList.length) * 100 : 0;
 
     return (
-        <div className="min-h-screen bg-[#FDF2F8] relative overflow-hidden font-sans flex flex-col">
-
+        <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col">
             <StruggleModal
-                isOpen={showModal}
-                onClose={() => setShowModal(false)}
-                onHint={handleHint}
+                isOpen={showStruggleModal}
+                onClose={() => setShowStruggleModal(false)}
+                onHint={() => {
+                    setShowStruggleModal(false);
+                    setFeedback("💡 Hint: Read the safe reference instructions carefully.");
+                }}
             />
 
-            {/* Top Bar */}
-            <div className="bg-white/80 backdrop-blur-md p-4 flex items-center justify-between border-b border-pink-100 sticky top-0 z-50">
-                <Link href="/student/topics" className="text-2xl text-slate-400 hover:text-slate-800">×</Link>
+            {/* Top HUD */}
+            <div className="bg-slate-900/80 backdrop-blur-md p-4 flex items-center justify-between border-b border-white/10 sticky top-0 z-50">
+                <Link href="/student/welcome" className="text-2xl text-slate-400 hover:text-white">×</Link>
                 <div className="flex-1 max-w-xs mx-4">
-                    <div className="bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-slate-800 h-2 rounded-full overflow-hidden">
                         <div
                             className="bg-pink-500 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${((step + 1) / script.length) * 100}%` }}
+                            style={{ width: `${progressPercent}%` }}
                         ></div>
                     </div>
                 </div>
-                <div className="font-black text-pink-500 text-sm">XP 125</div>
+                <div className="font-black text-pink-500 text-sm">
+                    {completedStepsCount} / {stepsList.length} Steps
+                </div>
             </div>
 
-            {/* Chat / Content Area */}
-            <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-6">
-
-                {messages.map((msg, idx) => (
-                    <div key={idx} className={`flex gap-4 ${msg.role === "u" ? "flex-row-reverse" : ""} animate-fade-in-up`}>
-                        {msg.role === "ai" && (
-                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-3xl border-2 border-white shadow-sm shrink-0">
-                                👩‍🏫
+            {/* Main Interactive Workspace */}
+            <div className="flex-1 max-w-2xl w-full mx-auto p-6 flex flex-col justify-center pb-32">
+                {activeStep ? (
+                    <div className="space-y-8 animate-fade-in-up">
+                        {/* Step Category Card */}
+                        <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4">
+                                <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-bold text-slate-400 border border-white/5">
+                                    {activeStep.stepType}
+                                </span>
                             </div>
-                        )}
-                        <div className={`p-4 rounded-2xl max-w-[80%] shadow-sm text-lg leading-relaxed
-                            ${msg.role === "ai"
-                                ? "bg-white text-slate-800 rounded-tl-none border border-slate-100"
-                                : "bg-blue-600 text-white rounded-tr-none"}
-                        `}>
-                            {msg.text}
+
+                            <div className="mb-6">
+                                <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">
+                                    Active Target Concept
+                                </div>
+                                <h2 className="text-2xl font-black text-white">
+                                    {stepContent?.conceptName || "Evaluating Concept..."}
+                                </h2>
+                            </div>
+
+                            {/* READ / PRACTICE Panel */}
+                            {(activeStep.stepType === "READ" || activeStep.stepType === "PRACTICE") && (
+                                <div className="space-y-6">
+                                    <div className="p-4 bg-slate-950 rounded-2xl border border-white/5">
+                                        <h3 className="font-bold text-slate-300 mb-2">Instructions</h3>
+                                        <p className="text-slate-400 leading-relaxed">
+                                            Focus on mastering this concept. Utilize any provided documentation details aligned to this topic.
+                                        </p>
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <button
+                                            onClick={handleCompleteStep}
+                                            className="px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black rounded-2xl shadow-lg transition-all"
+                                        >
+                                            COMPLETE & CONTINUE ▶
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ASSESS Panel */}
+                            {activeStep.stepType === "ASSESS" && assessmentInstance && (
+                                <div className="space-y-6">
+                                    <div className="p-4 bg-slate-950 rounded-2xl border border-white/5">
+                                        <h3 className="font-bold text-slate-300 mb-4">
+                                            Question: {assessmentInstance.assessmentSpecification?.configuration?.question || "Read the question below."}
+                                        </h3>
+                                        <div className="space-y-3">
+                                            {(assessmentInstance.assessmentSpecification?.configuration?.options || []).map((opt: string) => (
+                                                <button
+                                                    key={opt}
+                                                    onClick={() => setSelectedAnswer(opt)}
+                                                    className={`w-full text-left p-4 rounded-xl border transition-all ${
+                                                        selectedAnswer === opt
+                                                            ? "bg-pink-500/20 border-pink-500 text-white font-bold"
+                                                            : "bg-slate-900 border-white/5 text-slate-300 hover:bg-white/5"
+                                                    }`}
+                                                >
+                                                    {opt}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {feedback && (
+                                        <div className={`p-4 rounded-xl text-center font-bold ${feedback.includes("Correct") ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                                            {feedback}
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-between items-center mt-6">
+                                        <button
+                                            onClick={() => setShowStruggleModal(true)}
+                                            className="text-xs font-bold text-slate-400 hover:text-pink-500 transition-colors"
+                                        >
+                                            💡 Productive Struggle Aid
+                                        </button>
+                                        <button
+                                            onClick={handleSubmitAssessment}
+                                            disabled={!selectedAnswer}
+                                            className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 text-white font-black rounded-2xl shadow-lg transition-all"
+                                        >
+                                            SUBMIT ANSWER
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
-                ))}
-
-                {/* Visual Aid (Mock) */}
-                {step >= 1 && (
-                    <div className="mx-16 bg-white rounded-2xl p-4 border-2 border-slate-100 shadow-sm animate-fade-in-up">
-                        <div className="bg-slate-50 h-32 rounded-xl flex items-center justify-center border border-dashed border-slate-300 text-slate-400 font-bold">
-                            [ DIAGRAM: NEURON INPUTS ]
-                        </div>
+                ) : (
+                    /* Finalization State */
+                    <div className="text-center space-y-6 animate-fade-in-up">
+                        <div className="text-7xl">🏁</div>
+                        <h2 className="text-3xl font-black">All Steps Complete!</h2>
+                        <p className="text-slate-400 max-w-md mx-auto">
+                            You've completed every step in this learning session. Finalize the session now to update your concept mastery and unlock the next frontier nodes.
+                        </p>
+                        <button
+                            onClick={handleFinalizeSession}
+                            className="px-10 py-4 bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-500 hover:to-emerald-600 text-slate-950 font-black rounded-2xl shadow-2xl transition-all transform hover:-translate-y-1"
+                        >
+                            FINALIZE SESSION & ADVANCE ▶
+                        </button>
                     </div>
                 )}
-
             </div>
-
-            {/* Bottom Controls */}
-            <div className="fixed bottom-0 left-0 w-full bg-white p-4 border-t border-slate-100 shadow-2xl safe-area-pb">
-                {/* Help Trigger */}
-                <div className="max-w-xl mx-auto flex justify-end mb-2">
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="text-xs font-bold text-slate-400 hover:text-pink-500 flex items-center gap-1 transition-colors"
-                    >
-                        💪 I'm Stuck (Productive Struggle)
-                    </button>
-                </div>
-
-                <div className="max-w-xl mx-auto flex items-center gap-4">
-                    <input
-                        type="text"
-                        placeholder="Ask a question..."
-                        className="flex-1 bg-slate-100 border-none rounded-2xl px-5 py-4 font-bold text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-pink-400 outline-none"
-                    />
-                    <button
-                        onClick={handleNext}
-                        className="bg-pink-500 hover:bg-pink-600 text-white rounded-2xl px-8 py-4 font-black shadow-lg hover:translate-y-[-2px] active:translate-y-0 transition-all"
-                    >
-                        CONTINUE
-                    </button>
-                </div>
-            </div>
-
-            <style jsx global>{`
-                @keyframes fadeInUp {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .animate-fade-in-up {
-                    animation: fadeInUp 0.5s ease-out forwards;
-                }
-            `}</style>
         </div>
+    );
+}
+
+export default function TutorSession() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+                <div className="animate-spin text-4xl mb-4">⚙️</div>
+                <h2 className="text-xl font-bold">Initializing Player Workspace...</h2>
+            </div>
+        }>
+            <TutorSessionContent />
+        </Suspense>
     );
 }

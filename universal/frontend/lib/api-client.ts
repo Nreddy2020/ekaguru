@@ -85,6 +85,9 @@ export const api = {
     getLearners: () =>
         apiCall<{ data: any[] }>('/api/v2/learners'),
 
+    getLearnerMastery: (learnerId: string) =>
+        apiCall<{ data: any[] }>(`/api/v2/mastery/learner/${learnerId}`),
+
     createLearner: (name: string, learnerType: string) =>
         apiCall<{ data: any }>('/api/v2/learners', {
             method: 'POST',
@@ -108,6 +111,42 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ learnerId, structureVersion, timeBudgetMinutes }),
         }),
+
+    getLearnerSessions: (learnerId: string) =>
+        apiCall<{ data: any[] }>(`/api/v2/sessions/learner/${learnerId}`),
+
+    getSession: (sessionId: string) =>
+        apiCall<{ data: any }>(`/api/v2/sessions/${sessionId}`),
+
+    startSession: (sessionId: string) =>
+        apiCall<any>(`/api/v2/sessions/${sessionId}/start`, { method: 'POST' }),
+
+    pauseSession: (sessionId: string) =>
+        apiCall<any>(`/api/v2/sessions/${sessionId}/pause`, { method: 'POST' }),
+
+    resumeSession: (sessionId: string) =>
+        apiCall<any>(`/api/v2/sessions/${sessionId}/resume`, { method: 'POST' }),
+
+    completeSession: (sessionId: string) =>
+        apiCall<any>(`/api/v2/sessions/${sessionId}/complete`, { method: 'POST' }),
+
+    getStepContent: (sessionId: string, stepId: string) =>
+        apiCall<{ data: any }>(`/api/v2/sessions/${sessionId}/steps/${stepId}/content`),
+
+    completeStep: (sessionId: string, stepId: string) =>
+        apiCall<any>(`/api/v2/sessions/${sessionId}/steps/${stepId}/complete`, { method: 'POST' }),
+
+    getAssessmentInstance: (sessionId: string, instanceId: string) =>
+        apiCall<{ data: any }>(`/api/v2/sessions/${sessionId}/assessments/${instanceId}`),
+
+    submitAssessmentResponse: (sessionId: string, instanceId: string, response: any) =>
+        apiCall<{ data: any }>(`/api/v2/sessions/${sessionId}/assessments/${instanceId}/respond`, {
+            method: 'POST',
+            body: JSON.stringify({ response }),
+        }),
+
+    getFrontier: (learnerId: string, structureVersion: number) =>
+        apiCall<{ data: { frontierNodes: any[] } }>(`/api/v2/curriculum/frontier/${learnerId}/${structureVersion}`),
 
     // Tutor APIs
     getTopic: (topicId: string) =>
