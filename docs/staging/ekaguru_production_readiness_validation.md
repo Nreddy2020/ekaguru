@@ -238,7 +238,7 @@ Every gate must be validated at the specified evidence tier before production re
 
 # EKAGURU V2 — Staging Gate Verification Certificate
 
-This certificate represents the operational evaluation of the **EKAGURU V2** system at commit **`7b60d44`**.
+This certificate represents the operational evaluation of the **EKAGURU V2** system at commit **`13fd31b`**.
 
 ```
               ┌──────────────────────────────────────────────┐
@@ -254,7 +254,7 @@ This certificate represents the operational evaluation of the **EKAGURU V2** sys
 ```
 
 ### Staging Promotion Verdict:
-### 🟢 GO FOR STAGING PROMOTION (7b60d44 Approved)
+### 🟢 GO FOR STAGING PROMOTION (13fd31b Approved)
 The codebase meets all architectural and automated verification criteria and is approved for promotion to the Staging Environment to collect empirical Go/No-Go evidence.
 
 ### 🔴 HOLD FOR PRODUCTION RELEASE
