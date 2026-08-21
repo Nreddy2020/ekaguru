@@ -141,8 +141,8 @@ RESILIENCY TESTS under simulated host/service failures:
 
 A comprehensive Postgres integrity verification is conducted on the schema relations to check for anomalies:
 
-* **Active Enrollments Invariant**: Enforced via composite keys and unique indices:
-  `@@unique([learnerId, active])` (Only 1 active enrollment per learner is possible).
+* **Active Enrollments Invariant**: Enforced via a PostgreSQL partial unique index to allow multiple inactive historical records while preventing more than one active enrollment:
+  `CREATE UNIQUE INDEX "LearnerCurriculumEnrollment_learnerId_active_true" ON "LearnerCurriculumEnrollment"("learnerId") WHERE active = true;`
 * **Orphan Rows**: Cascading deletes are enforced on relational boundaries (`onDelete: Cascade` on `LearningSession`, `AssessmentInstance`, etc.) to clean up database tables and prevent dead space.
 * **Unfinished Sessions**: The `LearningSession` table requires `timeBudgetSeconds` limits. The analytics service handles unfinished active/paused sessions by logging `SESSION_STUCK` attention signals after 48 hours of inactivity, preventing stale states from remaining unmonitored.
 
