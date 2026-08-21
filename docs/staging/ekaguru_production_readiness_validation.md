@@ -59,7 +59,7 @@ The centralized auth boundary `LearningLibraryAuthGuard` is audited against deli
 | **JWT Missing** | `GET /api/v2/parent/profile` | `401 Unauthorized` | `401 Unauthorized` | Handled by `JwtAuthGuard` before routing context. |
 | **JWT Expired** | `GET /api/v2/parent/profile` | `401 Unauthorized` | `401 Unauthorized` | Passport Strategy enforces `ignoreExpiration: false`. |
 | **JWT Signature Forged** | `GET /api/v2/parent/profile` | `401 Unauthorized` | `401 Unauthorized` | Cryptographic signature validation failure throws 401. |
-| **JWT Claims Manipulation** | `GET /api/v2/parent/profile` (Sub ID manipulated) | `404 Not Found` | `404 Not Found` | Safe DB query lookup checks matching sub claim ID. |
+| **JWT Claims Manipulation** | `GET /api/v2/parent/profile` (Sub ID manipulated) | Cross-tenant access MUST NOT succeed. | Indistinguishable response (403 or 404). | Safe DB query lookup checks matching sub claim ID. |
 
 ---
 
@@ -82,7 +82,8 @@ To verify the transaction safety of the outbox claiming logic under horizontal s
    * **Stuck Sweep Recovery**: After 15 minutes, Worker-2's recovery sweep detects the stuck `PROCESSING` event and resets it to `PENDING`.
    * **Redelivery Execution**: Worker-2 claims the event and executes the delivery.
    * **Database Constraint**: The database B-Tree unique constraint on `Notification(eventId, deliveryType, parentId)` triggers an `upsert` rewrite instead of a duplicate row insertion.
-   * **Result**: Exactly-once database notification record creation; external delivery is at-least-once unless the downstream provider supports idempotency keys.
+   * **Result**: Exactly-once database notification record creation; external delivery is at-least-once unless the downstream provider supports idempotency keys. 
+   * **Idempotency Key Downstream Recommendation**: Downstream delivery integrations must pass a composite idempotency key (`eventId + deliveryType + parentId`) to external provider APIs when supported by their API structures to prevent duplicate client notifications during retry cycles.
 
 ---
 
@@ -104,11 +105,13 @@ Transactions are audited under simulated infrastructure crashes:
 ```
 
 * **Expected Outcome**: In the event of a database disconnect during execution, the transaction is aborted. PostgreSQL performs a rollback. The DB state is clean: no responses are recorded, concept masteries remain unchanged, and no outbox events are written.
-* **Staging Verification**: Simulating database disconnections (e.g., stopping the Postgres service) during high-load mock runs confirms that zero partial states are committed.
+* **Verification Status**:
+  * **E1**: Automated transaction-failure tests demonstrate rollback semantics under the mocked persistence layer.
+  * **E2 pending**: Repeat the failure injection against live PostgreSQL during staging validation runs.
 
 ---
 
-## 5. Performance Capacity Modeling
+## 5. Capacity Model — E0/E1; empirical staging measurements pending
 
 An analytical performance model is established for staging under simulated traffic scaling:
 
@@ -118,18 +121,18 @@ An analytical performance model is established for staging under simulated traff
      Parents / Students         NestJS API Replicas       PostgreSQL Pools
          (Traffic)               (Web Capacity)           (Storage Capacity)
         
-         10 active    ──────────►   0.5% CPU    ──────────►   2 connections
-         50 active    ──────────►   2.4% CPU    ──────────►   5 connections
-        100 active    ──────────►   5.1% CPU    ──────────►  10 connections
-        500 active    ──────────►  28.2% CPU    ──────────►  42 connections
-       1000 active    ──────────►  59.4% CPU    ──────────►  80 connections
+          10 active    ──────────►   0.5% CPU    ──────────►   2 connections
+          50 active    ──────────►   2.4% CPU    ──────────►   5 connections
+         100 active    ──────────►   5.1% CPU    ──────────►  10 connections
+         500 active    ──────────►  28.2% CPU    ──────────►  42 connections
+        1000 active    ──────────►  Capacity estimate — validation required during E2 load test.
 ```
 
-### Tail Latency Bounds (Staging SLO Targets):
+### Target Tail Latency Bounds (Staging SLO Targets):
 * **p50 (Median)**: $< 150\text{ ms}$ for dashboard analytics page loads.
 * **p95**: $< 300\text{ ms}$ under peak loads (500 concurrent connections).
 * **p99**: $< 500\text{ ms}$ under peak loads.
-* **Target Connection Pool**: In staging, Postgres is configured with `max_connections = 100` and NestJS Prisma client sets `connection_limit = 45` per replica to prevent connection exhaustion.
+* **Target Connection Pool**: In staging, Postgres is configured with `max_connections = 100` and NestJS Prisma client sets `connection_limit = 45` per replica to prevent connection exhaustion. Validation will occur during the live load test.
 
 ---
 
@@ -207,9 +210,35 @@ Measurable SLA contracts for the EKAGURU platform:
 
 ---
 
+## 11. Final Go/No-Go Audit Matrix
+
+Every gate must be validated at the specified evidence tier before production release:
+
+| Gate | Validation Level | Status | Target / Acceptance Criteria | Evidence Reference |
+|---|---|---|---|---|
+| **PostgreSQL Migration** | E2 | ⬜ | Migrations apply cleanly; schema verification matches schema.prisma | *Pending staging run* |
+| **PostgreSQL E2E Journey** | E2 | ⬜ | Pass complete student runtime loop against live PostgreSQL | *Pending staging run* |
+| **Worker Concurrency** | E2 | ⬜ | Racing workers result in 1 claim, 0 duplicate database notifications | *Pending staging run* |
+| **Worker Crash Recovery** | E2 | ⬜ | Sweeper recovers stuck PROCESSING events; at-least-once external delivery | *Pending staging run* |
+| **Transaction Failure** | E2 | ⬜ | Failed session/assessment writes rollback completely; no partial DB states | *Pending staging run* |
+| **Security Attack Matrix** | E2 | ⬜ | Cross-tenant attempts block immediately (403/indistinguishable 404) | *Pending staging run* |
+| **Load / Latency SLAs** | E2 | ⬜ | p50 < 150ms, p95 < 300ms, p99 < 500ms under concurrent traffic | *Pending staging run* |
+| **API Failover Resilience** | E2 | ⬜ | Traffic routes to API-2 without session interruption on API-1 crash | *Pending staging run* |
+| **Worker Failover Resilience**| E2 | ⬜ | Remaining workers pick up outbox queue upon single worker crash | *Pending staging run* |
+| **Database Recovery** | E2 | ⬜ | Re-establish database connections smoothly after PostgreSQL restart | *Pending staging run* |
+| **PITR RPO** | E2 | ⬜ | RPO < 5 minutes demonstrated in a restoration drill | *Pending staging run* |
+| **PITR RTO** | E2 | ⬜ | RTO < 30 minutes demonstrated in a restoration drill | *Pending staging run* |
+| **Application Rollback** | E2 | ⬜ | Revert container deployment version in < 5 minutes without data loss | *Pending staging run* |
+| **Graceful Shutdown Hook** | E2 | ⬜ | SIGTERM triggers NestJS shutdown hooks; active requests drain cleanly | *Pending staging run* |
+| **Graceful Deployment** | E2 | ⬜ | Zero dropped requests or 5xx spikes during active rolling deployments | *Pending staging run* |
+| **Migration Compatibility** | E2 | ⬜ | Database schema changes are forward/backward compatible across boundaries | *Pending staging run* |
+| **Secrets Repository Audit** | E2 | ⬜ | Clean git history; zero credentials or JWT secrets hardcoded | *Pending staging run* |
+
+---
+
 # EKAGURU V2 — Staging Gate Verification Certificate
 
-This certificate represents the operational evaluation of the **EKAGURU V2** system at commit **`ea488ae`**.
+This certificate represents the operational evaluation of the **EKAGURU V2** system at commit **`7b60d44`**.
 
 ```
               ┌──────────────────────────────────────────────┐
@@ -225,7 +254,7 @@ This certificate represents the operational evaluation of the **EKAGURU V2** sys
 ```
 
 ### Staging Promotion Verdict:
-### 🟢 GO FOR STAGING PROMOTION (ea488ae Approved)
+### 🟢 GO FOR STAGING PROMOTION (7b60d44 Approved)
 The codebase meets all architectural and automated verification criteria and is approved for promotion to the Staging Environment to collect empirical Go/No-Go evidence.
 
 ### 🔴 HOLD FOR PRODUCTION RELEASE
