@@ -36,6 +36,11 @@ function StudentWelcomeContent() {
     const [activeSession, setActiveSession] = useState<any>(null);
     const [frontierNodes, setFrontierNodes] = useState<any[]>([]);
     const [masteredCount, setMasteredCount] = useState<number>(0);
+    const [structureVersion, setStructureVersion] = useState<number | null>(null);
+    const [timeBudget, setTimeBudget] = useState<number>(30);
+
+    const [noLearner, setNoLearner] = useState(false);
+    const [noEnrollment, setNoEnrollment] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -47,23 +52,33 @@ function StudentWelcomeContent() {
 
                 // 1. Authenticate / Resolve Learner Profile via JWT principal
                 const learnersRes = await api.getLearners();
-                let currentLearner = learnersRes.data?.[0];
+                const currentLearner = learnersRes.data?.[0];
                 if (!currentLearner) {
-                    const newLearnerRes = await api.createLearner("Leo", "CHILD");
-                    currentLearner = newLearnerRes.data;
+                    setNoLearner(true);
+                    setLoading(false);
+                    return;
                 }
                 setLearner(currentLearner);
 
-                // 2. Fetch Authoritative Mastery
+                // 2. Fetch Active Enrollment
+                const activeEnrollment = currentLearner.curriculumEnrollments?.[0];
+                if (!activeEnrollment) {
+                    setNoEnrollment(true);
+                    setLoading(false);
+                    return;
+                }
+                const version = activeEnrollment.structure.version;
+                setStructureVersion(version);
+
+                // 3. Fetch Authoritative Mastery
                 const masteryRes = await api.getLearnerMastery(currentLearner.id);
                 const masteredList = (masteryRes.data || []).filter((cm: any) => cm.status === "MASTERED");
                 setMasteredCount(masteredList.length);
 
-                // 3. Resolve Active or Paused Session
+                // 4. Resolve Active or Paused Session
                 let sessionToUse: any = null;
 
                 if (querySessionId) {
-                    // Try to load query sessionId if passed during redirection
                     try {
                         const sessionRes = await api.getSession(querySessionId);
                         if (sessionRes.data && sessionRes.data.status !== "FINALIZED") {
@@ -75,7 +90,6 @@ function StudentWelcomeContent() {
                 }
 
                 if (!sessionToUse) {
-                    // Query active sessions from backend
                     const sessionsRes = await api.getLearnerSessions(currentLearner.id);
                     const active = (sessionsRes.data || []).find(
                         (s: any) => s.status === "READY" || s.status === "ACTIVE" || s.status === "PAUSED"
@@ -86,8 +100,8 @@ function StudentWelcomeContent() {
                 }
                 setActiveSession(sessionToUse);
 
-                // 4. Fetch Authoritative Frontier Nodes (curriculum structure version 1)
-                const frontierRes = await api.getFrontier(currentLearner.id, 1);
+                // 5. Fetch Authoritative Frontier Nodes via dynamic version
+                const frontierRes = await api.getFrontier(currentLearner.id, version);
                 setFrontierNodes(frontierRes.data?.frontierNodes || []);
             } catch (err: any) {
                 console.error("Failed to load dashboard data:", err);
@@ -101,11 +115,10 @@ function StudentWelcomeContent() {
     }, [querySessionId]);
 
     const handleStartSession = async () => {
-        if (!learner) return;
+        if (!learner || structureVersion === null) return;
         try {
             setLoading(true);
-            // Create a session for curriculum version 1 with a 30-minute budget
-            const sessionRes = await api.createSession(learner.id, 1, 30);
+            const sessionRes = await api.createSession(learner.id, structureVersion, timeBudget);
             const newSession = sessionRes.data || sessionRes;
             router.push(`/student/session?sessionId=${newSession.id}`);
         } catch (err: any) {
@@ -141,6 +154,40 @@ function StudentWelcomeContent() {
         );
     }
 
+    if (noLearner) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center">
+                <div className="text-6xl mb-4">👤</div>
+                <h2 className="text-2xl font-black text-white">No Active Learner Found</h2>
+                <p className="text-slate-400 mt-2 max-w-md">
+                    We couldn't resolve a valid learner profile linked to your user account. Please contact your parent to set up your student profile.
+                </p>
+                <Link href="/login">
+                    <button className="mt-6 px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-slate-200 transition-all">
+                        Return to Login
+                    </button>
+                </Link>
+            </div>
+        );
+    }
+
+    if (noEnrollment) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center">
+                <div className="text-6xl mb-4">📚</div>
+                <h2 className="text-2xl font-black text-white">Not Enrolled Yet</h2>
+                <p className="text-slate-400 mt-2 max-w-md">
+                    Welcome, {learner?.name}! You are not currently enrolled in any curriculum subjects. Please ask your parent to assign or enroll you in a subject path.
+                </p>
+                <Link href="/subject/explore">
+                    <button className="mt-6 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all">
+                        Explore Subjects
+                    </button>
+                </Link>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-black text-white overflow-x-hidden font-sans">
             {/* Header: Dynamic Player HUD */}
@@ -149,7 +196,7 @@ function StudentWelcomeContent() {
                     <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 border-2 border-white/20 shadow-[0_0_20px_rgba(234,179,8,0.5)]"></div>
                     <div>
                         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Learner</div>
-                        <div className="font-black text-xl">{learner?.name || "Leo"}</div>
+                        <div className="font-black text-xl">{learner?.name}</div>
                     </div>
                 </div>
 
@@ -232,7 +279,23 @@ function StudentWelcomeContent() {
                             )}
 
                             {frontierNodes.length > 0 && (
-                                <div className="text-center mt-8">
+                                <div className="border-t border-white/10 pt-8 mt-8 max-w-md mx-auto flex flex-col items-center">
+                                    <div className="w-full mb-6">
+                                        <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">
+                                            ⏱️ Session Time Budget
+                                        </label>
+                                        <select
+                                            value={timeBudget}
+                                            onChange={(e) => setTimeBudget(parseInt(e.target.value, 10))}
+                                            className="w-full bg-slate-900 border border-white/20 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-teal-400 transition-colors"
+                                        >
+                                            <option value={15}>15 Minutes (Micro session)</option>
+                                            <option value={30}>30 Minutes (Standard session)</option>
+                                            <option value={45}>45 Minutes (Focus session)</option>
+                                            <option value={60}>60 Minutes (Deep study session)</option>
+                                        </select>
+                                    </div>
+
                                     <button
                                         onClick={handleStartSession}
                                         className="px-10 py-4 bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-500 hover:to-emerald-600 text-slate-950 font-black rounded-2xl shadow-xl transform hover:-translate-y-1 transition-all"

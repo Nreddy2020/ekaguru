@@ -118,6 +118,12 @@ export class LearnerService {
         skip,
         take: pageSize,
         orderBy: { createdAt: 'desc' },
+        include: {
+          curriculumEnrollments: {
+            where: { active: true },
+            include: { structure: true },
+          },
+        },
       }),
       this.prisma.learner.count({ where }),
     ]);
@@ -137,6 +143,12 @@ export class LearnerService {
 
     const learner = await this.prisma.learner.findUnique({
       where: { id: id.trim() },
+      include: {
+        curriculumEnrollments: {
+          where: { active: true },
+          include: { structure: true },
+        },
+      },
     });
 
     if (!learner) {

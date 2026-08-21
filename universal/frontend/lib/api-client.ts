@@ -85,6 +85,9 @@ export const api = {
     getLearners: () =>
         apiCall<{ data: any[] }>('/api/v2/learners'),
 
+    getLearner: (id: string) =>
+        apiCall<{ data: any }>(`/api/v2/learners/${id}`),
+
     getLearnerMastery: (learnerId: string) =>
         apiCall<{ data: any[] }>(`/api/v2/mastery/learner/${learnerId}`),
 

@@ -62,7 +62,6 @@ function TutorSessionContent() {
                     const contentRes = await api.getStepContent(sessionId, active.id);
                     setStepContent(contentRes.data || contentRes);
                 } else if (active.stepType === "ASSESS") {
-                    // Fetch assessment instance details
                     const instance = active.assessmentInstances?.[0] || active.assessmentInstance;
                     if (instance) {
                         const instRes = await api.getAssessmentInstance(sessionId, instance.id);
@@ -82,14 +81,44 @@ function TutorSessionContent() {
         refreshSessionData();
     }, [sessionId]);
 
-    // Handle Start / Resume Session
-    useEffect(() => {
-        if (session && session.status === "READY") {
-            api.startSession(sessionId!).then(() => {
-                setSession((prev: any) => ({ ...prev, status: "ACTIVE" }));
-            }).catch(console.error);
+    const handleStartSession = async () => {
+        if (!sessionId) return;
+        try {
+            setLoading(true);
+            await api.startSession(sessionId);
+            await refreshSessionData();
+        } catch (err: any) {
+            console.error(err);
+            alert("Failed to start session: " + err.message);
+            setLoading(false);
         }
-    }, [session]);
+    };
+
+    const handlePauseSession = async () => {
+        if (!sessionId) return;
+        try {
+            setLoading(true);
+            await api.pauseSession(sessionId);
+            await refreshSessionData();
+        } catch (err: any) {
+            console.error(err);
+            alert("Failed to pause session: " + err.message);
+            setLoading(false);
+        }
+    };
+
+    const handleResumeSession = async () => {
+        if (!sessionId) return;
+        try {
+            setLoading(true);
+            await api.resumeSession(sessionId);
+            await refreshSessionData();
+        } catch (err: any) {
+            console.error(err);
+            alert("Failed to resume session: " + err.message);
+            setLoading(false);
+        }
+    };
 
     const handleCompleteStep = async () => {
         if (!activeStep || !sessionId) return;
@@ -108,7 +137,7 @@ function TutorSessionContent() {
         if (!activeStep || !assessmentInstance || !selectedAnswer || !sessionId) return;
         try {
             setLoading(true);
-            const res = await api.submitAssessmentResponse(sessionId, assessmentInstance.id, selectedAnswer);
+            const res = await api.submitAssessmentResponse(sessionId, assessmentInstance.instanceId, selectedAnswer);
             const result = res.data || res;
 
             if (result.passed) {
@@ -118,7 +147,7 @@ function TutorSessionContent() {
                     await refreshSessionData();
                 }, 1500);
             } else {
-                setFeedback("❌ Incorrect. Please try again.");
+                setFeedback("❌ Incorrect. The assessment is completed.");
                 setLoading(false);
             }
         } catch (err: any) {
@@ -165,6 +194,44 @@ function TutorSessionContent() {
         );
     }
 
+    // Explicit READY State Screen
+    if (session?.status === "READY") {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center">
+                <div className="text-6xl mb-6">🚀</div>
+                <h2 className="text-3xl font-black mb-2">Your Learning Session is Ready</h2>
+                <p className="text-slate-400 max-w-md mb-8">
+                    Session Duration Budget: {session.timeBudgetSeconds / 60} Minutes. Prepare your study space, click below to start, and begin learning.
+                </p>
+                <button
+                    onClick={handleStartSession}
+                    className="px-10 py-4 bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-500 hover:to-emerald-600 text-slate-950 font-black rounded-2xl shadow-xl transform hover:-translate-y-1 transition-all"
+                >
+                    START LEARNING SESSION ▶
+                </button>
+            </div>
+        );
+    }
+
+    // Explicit PAUSED State Screen
+    if (session?.status === "PAUSED") {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center">
+                <div className="text-6xl mb-6">⏸️</div>
+                <h2 className="text-3xl font-black mb-2">Session Paused</h2>
+                <p className="text-slate-400 max-w-md mb-8">
+                    Your session progress has been saved. You can take a break and resume whenever you're ready to continue.
+                </p>
+                <button
+                    onClick={handleResumeSession}
+                    className="px-10 py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black rounded-2xl shadow-xl transform hover:-translate-y-1 transition-all"
+                >
+                    RESUME LEARNING SESSION ▶
+                </button>
+            </div>
+        );
+    }
+
     // Flat list of steps for progress bar
     const stepsList: any[] = [];
     (session?.targets || []).forEach((t: any) => {
@@ -197,8 +264,16 @@ function TutorSessionContent() {
                         ></div>
                     </div>
                 </div>
-                <div className="font-black text-pink-500 text-sm">
-                    {completedStepsCount} / {stepsList.length} Steps
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={handlePauseSession}
+                        className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold text-slate-300 border border-white/10 transition-colors"
+                    >
+                        ⏸️ PAUSE
+                    </button>
+                    <div className="font-black text-pink-500 text-sm">
+                        {completedStepsCount} / {stepsList.length} Steps
+                    </div>
                 </div>
             </div>
 
@@ -248,18 +323,21 @@ function TutorSessionContent() {
                                 <div className="space-y-6">
                                     <div className="p-4 bg-slate-950 rounded-2xl border border-white/5">
                                         <h3 className="font-bold text-slate-300 mb-4">
-                                            Question: {assessmentInstance.assessmentSpecification?.configuration?.question || "Read the question below."}
+                                            Question: {assessmentInstance.configuration?.question || "Read the question below."}
                                         </h3>
                                         <div className="space-y-3">
-                                            {(assessmentInstance.assessmentSpecification?.configuration?.options || []).map((opt: string) => (
+                                            {(assessmentInstance.configuration?.options || []).map((opt: string) => (
                                                 <button
                                                     key={opt}
-                                                    onClick={() => setSelectedAnswer(opt)}
+                                                    onClick={() => {
+                                                        if (!feedback) setSelectedAnswer(opt);
+                                                    }}
+                                                    disabled={!!feedback}
                                                     className={`w-full text-left p-4 rounded-xl border transition-all ${
                                                         selectedAnswer === opt
                                                             ? "bg-pink-500/20 border-pink-500 text-white font-bold"
                                                             : "bg-slate-900 border-white/5 text-slate-300 hover:bg-white/5"
-                                                    }`}
+                                                    } ${feedback ? "opacity-60 cursor-not-allowed" : ""}`}
                                                 >
                                                     {opt}
                                                 </button>
@@ -280,13 +358,23 @@ function TutorSessionContent() {
                                         >
                                             💡 Productive Struggle Aid
                                         </button>
-                                        <button
-                                            onClick={handleSubmitAssessment}
-                                            disabled={!selectedAnswer}
-                                            className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 text-white font-black rounded-2xl shadow-lg transition-all"
-                                        >
-                                            SUBMIT ANSWER
-                                        </button>
+
+                                        {feedback && feedback.includes("Incorrect") ? (
+                                            <button
+                                                onClick={handleCompleteStep}
+                                                className="px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black rounded-2xl shadow-lg transition-all"
+                                            >
+                                                CONTINUE ▶
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={handleSubmitAssessment}
+                                                disabled={!selectedAnswer || !!feedback}
+                                                className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 text-white font-black rounded-2xl shadow-lg transition-all"
+                                            >
+                                                SUBMIT ANSWER
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}
