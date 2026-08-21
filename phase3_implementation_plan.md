@@ -1,4 +1,4 @@
-# Phase 3 — Parent Experience & Observability Architectural Specification v1
+# Phase 3 — Parent Experience & Observability Architectural Specification v2
 
 This document defines the frozen architectural specification and implementation plan for **EKAGURU Phase 3**, establishing a secure parent/guardian control and observation layer.
 
@@ -49,7 +49,7 @@ All parent operations are isolated under `/api/v2/parent`:
 ### Child onboarding & profile updates
 * **`POST /api/v2/parent/learners`**
   * *Request*: `{ name: string, age: number, dateOfBirth?: string, preferredLanguage?: string }`
-  * *Action*: Creates a `Child` profile under the parent, links a new V2 `Learner` profile, and initializes `ChildProgress` stats.
+  * *Action*: Creates a V1 `Child` profile under the parent and links a new V2 `Learner` profile. Does **not** initialize or write to any V1 `ChildProgress` database table.
   * *Response*: `{ data: Learner }`
 * **`PATCH /api/v2/parent/learners/:learnerId`**
   * *Request*: `{ name?: string, preferredLanguage?: string }`
@@ -118,28 +118,51 @@ export interface ParentAnalytics {
 
 ---
 
-## 5. Notification & Outbox Idempotency
+## 5. Notification, Outbox & Event-Source Contracts
 
 To prevent duplicate deliveries and support retry/recovery, the notification loops enforce unique event logging keys:
 
 ```
-[State Engine Event]
-       │
-       ▼
-eventKey = SHA256(learnerId | eventType | aggregateType | aggregateId)
-       │
-       ▼  (Prisma Transaction)
-Upsert NotificationEvent (unique: eventKey)
-       │
-       ▼  (Cron Worker Poll)
+[State Engine Transaction]
+       ├── updates core state (session, mastery, etc.)
+       └── inserts NotificationEvent (unique: eventKey)
+                 │
+              COMMIT
+                 ▼  (Cron Worker Poll)
 Upsert Notification (unique: eventId | deliveryType | parentId)
-       │
-       ▼
+                 ▼
 Idempotent Delivery (Email / In-App Notification Feed)
 ```
 
-### Updated Prisma Models:
+### 1. Atomic Transaction Invariant
+* **Transaction Boundary**: The creation of a `NotificationEvent` record must be atomic with the authoritative state transition that produced the event (i.e. executed within the exact same database transaction). Phase 3 must not implement any independent polling-based derivation of learning events.
+
+### 2. Notification Payload Privacy Invariant
+* **Payload Privacy**: Notification payloads are derived, allowlisted data only. They must never contain raw `ContentChunk.content`, `storageKey`, assessment answer keys, raw assessment responses, evidence keys, or unrestricted `LearningEvidence` records.
+
+### 3. Event-Type Contracts
+The `eventType` on a `NotificationEvent` maps strictly to authoritative system state transitions:
+
+| Event Type | Authoritative Trigger Service / Method | Source Transition |
+| :--- | :--- | :--- |
+| **`SESSION_COMPLETED`** | `SessionLifecycleService.completeSession` | Transition of session status to `FINALIZED`. |
+| **`MASTERY_ACHIEVED`** | `MasteryCalculatorService.recordEvidence` | Mastery state changes to `MASTERED`. |
+| **`MASTERY_DECAYED`** | Scheduled Decay Cron Job | Decay score falls below `remediationThreshold` (0.50). |
+| **`ASSESSMENT_STRUGGLE`** | `AssessmentEngineService.submitResponse` | Assessment failure triggers `ASSESSMENT_STALL`. |
+| **`FRONTIER_ADVANCED`** | `FrontierCalculatorService.calculateFrontier` | Recalculated frontier exposes new target nodes. |
+| **`LEARNER_INACTIVE`** | Scheduled Inactivity Cron Job | Check detects learner inactivity for > 7 days. |
+
+### Prisma Models:
 ```prisma
+enum NotificationEventType {
+  SESSION_COMPLETED
+  MASTERY_ACHIEVED
+  MASTERY_DECAYED
+  ASSESSMENT_STRUGGLE
+  FRONTIER_ADVANCED
+  LEARNER_INACTIVE
+}
+
 enum NotificationEventStatus {
   PENDING
   PROCESSING
@@ -151,7 +174,7 @@ model NotificationEvent {
   id            String                  @id @default(uuid())
   learnerId     String
   eventType     NotificationEventType
-  aggregateType String                  // e.g. \"session\", \"mastery\"
+  aggregateType String                  // e.g. "session", "mastery"
   aggregateId   String                  // e.g. sessionId, masteryId
   eventKey      String                  @unique // SHA256(learnerId|eventType|aggregateType|aggregateId)
   payload       Json
@@ -169,8 +192,8 @@ model Notification {
   id           String             @id @default(uuid())
   parentId     String
   eventId      String
-  deliveryType String             // \"IN_APP\", \"EMAIL\"
-  status       String             // \"PENDING\", \"SENT\", \"FAILED\"
+  deliveryType String             // "IN_APP", "EMAIL"
+  status       String             // "PENDING", "SENT", "FAILED"
   sentAt       DateTime?
   createdAt    DateTime           @default(now())
 
@@ -203,7 +226,7 @@ When a parent changes the curriculum enrollment version (`POST /api/v2/parent/le
 * **`P3-02`**: Browser-supplied IDs are never trusted; authorization is verified against the authenticated user context (JWT payload).
 * **`P3-03`**: Curriculum structures are immutable to parents.
 * **`P3-04`**: Parent APIs cannot directly write mastery, evidence, assessment scores, streaks, or frontier state.
-* **`P3-05`**: Parent APIs cannot directly manipulate learner session state.
+* **`P3-05`**: Parent APIs cannot directly start, pause, resume, complete, or otherwise control learner session execution. Curriculum enrollment may invalidate a `READY` session as an explicit configuration side effect defined by the enrollment contract. `ACTIVE` sessions remain immutable and cannot be invalidated by the parent.
 * **`P3-06`**: Unauthenticated V1 parent/analytics routes cannot remain an alternate production path.
 * **`P3-07`**: Session -> learner -> child -> parent authorization must be enforced consistently for every nested V2 resource.
 * **`P3-08`**: Every dashboard metric must have a documented authoritative backend source.
@@ -243,7 +266,7 @@ When a parent changes the curriculum enrollment version (`POST /api/v2/parent/le
 * [ ] **`P3-24`**: Verify parent dashboard rejects manual additions of learner evidence.
 
 ### Struggle Detection & Event Alerts (Gates 25-32)
-* [ ] **`P3-25`**: Verify `ASSESSMENT_STALL` trigger flags objective struggle on 3 consecutive failures.
+* [ ] **`P3-25`**: Verify `ASSESSMENT_STALL` when `>= 3` failed assessment responses for the same `learningObjectiveId` occur within a rolling 7-day window, regardless of whether the failures are consecutive.
 * [ ] **`P3-26`**: Verify `SESSION_STUCK` trigger flags long-running inactive sessions.
 * [ ] **`P3-27`**: Verify `INACTIVITY` trigger flags profile after 7 days of silence.
 * [ ] **`P3-28`**: Verify `DECAY_WARNING` trigger flags decayed concepts.
