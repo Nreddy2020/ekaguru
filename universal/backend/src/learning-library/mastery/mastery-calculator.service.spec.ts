@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MasteryCalculatorService } from './mastery-calculator.service';
 import { PrismaService } from '../prisma.service';
 import { MasteryStatus, EvidenceType, EvidenceOutcome } from '@prisma/client';
+import { OutboxService } from '../session/outbox.service';
+import { FrontierCalculatorService } from './frontier-calculator.service';
 
 const createMockPrisma = () => {
   const policyObj = {
@@ -40,6 +42,18 @@ const createMockPrisma = () => {
         create: jest.fn().mockImplementation((args) => Promise.resolve({ id: 'hist-1', ...args.data })),
         findFirst: jest.fn().mockResolvedValue(null),
       },
+      concept: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'c-1', canonicalName: 'Test Concept' }),
+      },
+      learningObjective: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'lo-1', description: 'Test Objective' }),
+      },
+      learnerCurriculumEnrollment: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      notificationEvent: {
+        create: jest.fn().mockResolvedValue({ id: 'event-1' }),
+      },
     });
   });
 
@@ -65,6 +79,18 @@ describe('MasteryCalculatorService', () => {
       providers: [
         MasteryCalculatorService,
         { provide: PrismaService, useValue: mockPrisma },
+        {
+          provide: OutboxService,
+          useValue: {
+            createEvent: jest.fn().mockResolvedValue(null),
+          },
+        },
+        {
+          provide: FrontierCalculatorService,
+          useValue: {
+            calculateFrontier: jest.fn().mockResolvedValue({ frontierNodes: [] }),
+          },
+        },
       ],
     }).compile();
 
@@ -227,6 +253,18 @@ describe('MasteryCalculatorService', () => {
         masteryHistory: {
           create: jest.fn().mockImplementation((a) => Promise.resolve({ id: 'hist-1', ...a.data })),
           findFirst: jest.fn().mockResolvedValue(null),
+        },
+        concept: {
+          findUnique: jest.fn().mockResolvedValue({ id: 'c-1', canonicalName: 'Test Concept' }),
+        },
+        learningObjective: {
+          findUnique: jest.fn().mockResolvedValue({ id: 'lo-1', description: 'Test Objective' }),
+        },
+        learnerCurriculumEnrollment: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        notificationEvent: {
+          create: jest.fn().mockResolvedValue({ id: 'event-1' }),
         },
       });
     });

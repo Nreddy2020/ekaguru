@@ -82,6 +82,34 @@ export const api = {
             body: JSON.stringify({ email, password }),
         }),
 
+    // Parent Portal V2 APIs
+    getParentProfile: () =>
+        apiCall<{ data: any }>('/api/v2/parent/profile'),
+
+    getParentLearners: () =>
+        apiCall<{ data: any[] }>('/api/v2/parent/learners'),
+
+    onboardParentLearner: (name: string, age: number, dateOfBirth?: string, preferredLanguage?: string) =>
+        apiCall<{ data: any }>('/api/v2/parent/learners', {
+            method: 'POST',
+            body: JSON.stringify({ name, age, dateOfBirth, preferredLanguage }),
+        }),
+
+    updateParentLearner: (learnerId: string, name?: string, preferredLanguage?: string) =>
+        apiCall<{ data: any }>(`/api/v2/parent/learners/${learnerId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ name, preferredLanguage }),
+        }),
+
+    enrollParentLearner: (learnerId: string, structureVersion: number) =>
+        apiCall<{ data: any }>(`/api/v2/parent/learners/${learnerId}/enroll`, {
+            method: 'POST',
+            body: JSON.stringify({ structureVersion }),
+        }),
+
+    getParentLearnerAnalytics: (learnerId: string) =>
+        apiCall<{ data: any }>(`/api/v2/parent/learners/${learnerId}/analytics`),
+
     getLearners: () =>
         apiCall<{ data: any[] }>('/api/v2/learners'),
 

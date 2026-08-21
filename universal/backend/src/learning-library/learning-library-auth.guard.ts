@@ -28,12 +28,72 @@ export class LearningLibraryAuthGuard implements CanActivate {
     // Determine target learnerId from request params, query, or body
     let targetLearnerId: string | undefined = undefined;
 
-    if (request.params?.id && request.route?.path?.includes('/learners/')) {
+    if (request.params?.learnerId) {
+      targetLearnerId = request.params.learnerId;
+    } else if (request.params?.id && (request.route?.path?.includes('/learners/') || request.route?.path?.includes('/parent/learners/'))) {
       targetLearnerId = request.params.id;
     } else if (request.body?.learnerId) {
       targetLearnerId = request.body.learnerId;
     } else if (request.query?.learnerId) {
       targetLearnerId = request.query.learnerId;
+    }
+
+    // Resolve sessionId hierarchy if present in params, body, or query
+    const sessionId = request.params?.sessionId || request.body?.sessionId || request.query?.sessionId;
+    if (sessionId) {
+      const session = await this.prisma.learningSession.findUnique({
+        where: { id: sessionId },
+        select: { learnerId: true },
+      });
+      if (!session) {
+        throw new NotFoundException(`LearningSession '${sessionId}' not found.`);
+      }
+      if (targetLearnerId && targetLearnerId !== session.learnerId) {
+        throw new ForbiddenException('Resource mismatch: Target learner does not match the session owner.');
+      }
+      targetLearnerId = session.learnerId;
+    }
+
+    // Resolve stepId hierarchy if present in params, body, or query
+    const stepId = request.params?.stepId || request.body?.stepId || request.query?.stepId;
+    if (stepId) {
+      const step = await this.prisma.sessionStep.findUnique({
+        where: { id: stepId },
+        select: { session: { select: { id: true, learnerId: true } } },
+      });
+      if (!step) {
+        throw new NotFoundException(`SessionStep '${stepId}' not found.`);
+      }
+      if (sessionId && step.session.id !== sessionId) {
+        throw new ForbiddenException('Resource mismatch: Step does not belong to the active session.');
+      }
+      if (targetLearnerId && targetLearnerId !== step.session.learnerId) {
+        throw new ForbiddenException('Resource mismatch: Target learner does not match the step owner.');
+      }
+      targetLearnerId = step.session.learnerId;
+    }
+
+    // Resolve assessmentId hierarchy if present in params, body, or query
+    const assessmentId = request.params?.assessmentId || request.body?.assessmentId || request.query?.assessmentId ||
+                          request.params?.assessmentInstanceId || request.body?.assessmentInstanceId || request.query?.assessmentInstanceId;
+    if (assessmentId) {
+      const instance = await this.prisma.assessmentInstance.findUnique({
+        where: { id: assessmentId },
+        select: { sessionStep: { select: { id: true, session: { select: { id: true, learnerId: true } } } } },
+      });
+      if (!instance) {
+        throw new NotFoundException(`AssessmentInstance '${assessmentId}' not found.`);
+      }
+      if (stepId && instance.sessionStep.id !== stepId) {
+        throw new ForbiddenException('Resource mismatch: Assessment does not belong to the active step.');
+      }
+      if (sessionId && instance.sessionStep.session.id !== sessionId) {
+        throw new ForbiddenException('Resource mismatch: Assessment does not belong to the active session.');
+      }
+      if (targetLearnerId && targetLearnerId !== instance.sessionStep.session.learnerId) {
+        throw new ForbiddenException('Resource mismatch: Target learner does not match the assessment owner.');
+      }
+      targetLearnerId = instance.sessionStep.session.learnerId;
     }
 
     // If target is a materialId, resolve material's learnerId

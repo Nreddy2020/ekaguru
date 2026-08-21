@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, Logger, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Logger, Res, GoneException } from '@nestjs/common';
 import { Response } from 'express';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -54,8 +54,7 @@ export class TutorController {
     @Get('analytics/:studentId')
     async getAnalytics(@Param('studentId') studentId: string) {
         this.logger.log(`GET /tutor/analytics/${studentId}`);
-        const progress = await this.tutorService.getStudentProgress(studentId);
-        return progress;
+        throw new GoneException('This legacy analytics endpoint is deprecated and no longer available. Please use the secure parent portal analytics API.');
     }
 
     // ========================================

@@ -126,6 +126,10 @@ describe('Phase 2.9 E2E Runtime Journey Integration Tests', () => {
           ] : []
         })));
       }),
+      findUnique: jest.fn().mockImplementation(({ where }) => {
+        const item = concepts.find(c => c.id === where.id);
+        return Promise.resolve(item || null);
+      }),
     },
     curriculumStructure: {
       create: jest.fn().mockImplementation(({ data }) => {
@@ -198,6 +202,10 @@ describe('Phase 2.9 E2E Runtime Journey Integration Tests', () => {
         learningObjectives.push(item);
         return Promise.resolve(item);
       }),
+      findUnique: jest.fn().mockImplementation(({ where }) => {
+        const item = learningObjectives.find(lo => lo.id === where.id);
+        return Promise.resolve(item || null);
+      }),
     },
     learnerCurriculumEnrollment: {
       findUnique: jest.fn().mockImplementation(({ where }) => {
@@ -205,8 +213,12 @@ describe('Phase 2.9 E2E Runtime Journey Integration Tests', () => {
         return Promise.resolve(item || null);
       }),
       findFirst: jest.fn().mockImplementation(({ where }) => {
-        const item = enrollments.find(e => e.learnerId === where.learnerId && e.structureId === where.structureId);
-        return Promise.resolve(item || null);
+        const item = enrollments.find(e => e.learnerId === where.learnerId && e.active === true);
+        if (item) {
+          const struct = curriculumStructures.find(s => s.id === item.structureId);
+          return Promise.resolve({ ...item, structure: struct });
+        }
+        return Promise.resolve(null);
       }),
       upsert: jest.fn().mockImplementation(({ where, update, create }) => {
         const parts = where.learnerId_structureId;
@@ -343,11 +355,23 @@ describe('Phase 2.9 E2E Runtime Journey Integration Tests', () => {
       }),
       findUnique: jest.fn().mockImplementation(({ where }) => {
         const item = steps.find(s => s.id === where.id);
-        return Promise.resolve(item || null);
+        if (item) {
+          const itemCopy = { ...item };
+          const session = sessions.find(s => s.id === item.sessionId);
+          itemCopy.session = session ? { id: session.id, learnerId: session.learnerId } : undefined;
+          return Promise.resolve(itemCopy);
+        }
+        return Promise.resolve(null);
       }),
       findFirst: jest.fn().mockImplementation(({ where }) => {
         const item = steps.find(s => s.id === where.id);
-        return Promise.resolve(item || null);
+        if (item) {
+          const itemCopy = { ...item };
+          const session = sessions.find(s => s.id === item.sessionId);
+          itemCopy.session = session ? { id: session.id, learnerId: session.learnerId } : undefined;
+          return Promise.resolve(itemCopy);
+        }
+        return Promise.resolve(null);
       }),
       update: jest.fn().mockImplementation(({ where, data }) => {
         const item = steps.find(s => s.id === where.id);
@@ -444,6 +468,10 @@ describe('Phase 2.9 E2E Runtime Journey Integration Tests', () => {
         assessmentResponses.push(item);
         return Promise.resolve(item);
       }),
+      count: jest.fn().mockResolvedValue(0),
+    },
+    notificationEvent: {
+      create: jest.fn().mockResolvedValue({ id: 'event-1' }),
     },
     sessionEvidence: {
       create: jest.fn().mockImplementation(({ data }) => {

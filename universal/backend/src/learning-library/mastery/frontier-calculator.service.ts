@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class FrontierCalculatorService {
@@ -7,9 +8,15 @@ export class FrontierCalculatorService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async calculateFrontier(learnerId: string, structureVersion: number): Promise<any> {
+  async calculateFrontier(
+    learnerId: string,
+    structureVersion: number,
+    tx?: Prisma.TransactionClient
+  ): Promise<any> {
+    const client = tx || this.prisma;
+
     // 1. Fetch CurriculumStructure
-    const structure = await this.prisma.curriculumStructure.findUnique({
+    const structure = await client.curriculumStructure.findUnique({
       where: { version: structureVersion },
       include: {
         nodes: {
@@ -34,13 +41,13 @@ export class FrontierCalculatorService {
     }
 
     // 2. Fetch Learner Concept and Objective Masteries
-    const conceptMasteries = await this.prisma.learnerConceptMastery.findMany({
+    const conceptMasteries = await client.learnerConceptMastery.findMany({
       where: { learnerId },
     });
     const conceptMasteryMap = new Map<string, number>();
     conceptMasteries.forEach((m) => conceptMasteryMap.set(m.conceptId, m.masteryScore));
 
-    const objMasteries = await this.prisma.learnerObjectiveMastery.findMany({
+    const objMasteries = await client.learnerObjectiveMastery.findMany({
       where: { learnerId },
     });
     const objMasteryMap = new Map<string, number>();
@@ -92,13 +99,10 @@ export class FrontierCalculatorService {
       if (!isTransitivePrereqSatisfied(node.id, new Set())) continue;
 
       // Rule 2: Objective-level readiness check.
-      // Enforce sequenced learning objective readiness within the concept node:
-      // An objective is ready if it is the first objective (lowest sequenceIndex) OR if its predecessor is mastered.
-      // A node is eligible only if there is at least one objective that is ready and unmastered (or the node has no objectives).
       const sortedNodeObjectives = [...node.nodeObjectives].sort((a, b) => a.sequenceIndex - b.sequenceIndex);
 
       const isObjectiveReady = (no: any, index: number): boolean => {
-        if (index === 0) return true; // First objective is always ready to be attempted
+        if (index === 0) return true; // First objective is always ready
         const prevNo = sortedNodeObjectives[index - 1];
         const prevScore = objMasteryMap.get(prevNo.learningObjectiveId) || 0.0;
         return prevScore >= masteryThreshold;
@@ -119,7 +123,7 @@ export class FrontierCalculatorService {
 
     // Clean stale frontier records not in the newly computed active list
     const activeFrontierNodeIds = frontierNodes.map((fn) => fn.id);
-    await this.prisma.learnerCurriculumFrontier.deleteMany({
+    await client.learnerCurriculumFrontier.deleteMany({
       where: {
         learnerId,
         structureId: structure.id,
@@ -129,7 +133,7 @@ export class FrontierCalculatorService {
 
     // Cache / Upsert derived frontier records in LearnerCurriculumFrontier
     for (const fNode of frontierNodes) {
-      await this.prisma.learnerCurriculumFrontier.upsert({
+      await client.learnerCurriculumFrontier.upsert({
         where: {
           learnerId_structureId_currentNodeId: {
             learnerId,

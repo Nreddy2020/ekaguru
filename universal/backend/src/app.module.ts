@@ -22,6 +22,7 @@ import { SubjectController } from './domain/subject.controller';
 import { TutorController } from './domain/tutor.controller';
 import { UploadController } from './domain/upload.controller';
 import { ParentController } from './domain/parent.controller';
+import { ParentService } from './domain/parent.service';
 
 import { VisionService } from './ai/vision.service';
 import { CognitiveLoopService } from './ai/cognitive-loop.service';
@@ -66,7 +67,8 @@ import { MetricsController } from './metrics.controller';
         VisionService,
         CognitiveLoopService,
         SessionGateway,
-        SessionRecordingService
+        SessionRecordingService,
+        ParentService
     ],
 })
 export class AppModule { }

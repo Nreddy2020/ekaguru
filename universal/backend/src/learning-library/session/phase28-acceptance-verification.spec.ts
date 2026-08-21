@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma.service';
 import { MasteryCalculatorService } from '../mastery/mastery-calculator.service';
 import { FrontierCalculatorService } from '../mastery/frontier-calculator.service';
 import { TopologicalSortService } from '../knowledge/curriculum/topological-sort.service';
+import { OutboxService } from './outbox.service';
 import {
   SessionStatus, SessionStepStatus, AssessmentInstanceStatus,
   CurriculumStatus,
@@ -90,7 +91,10 @@ function buildPrismaMock(overrides: any = {}) {
       findFirst: jest.fn().mockResolvedValue(mockInstance()),
       update: jest.fn().mockResolvedValue({ ...mockInstance(), status: AssessmentInstanceStatus.COMPLETED }),
     },
-    assessmentResponse: { create: jest.fn().mockResolvedValue({ id: 'resp-1', rawScore: 1.0, passed: true }) },
+    assessmentResponse: {
+      create: jest.fn().mockResolvedValue({ id: 'resp-1', rawScore: 1.0, passed: true }),
+      count: jest.fn().mockResolvedValue(0),
+    },
     sessionEvidence: { create: jest.fn().mockResolvedValue({ id: 'se-1' }) },
     learningEvidence: { findMany: jest.fn().mockResolvedValue([]) },
     learningMaterial: { findMany: jest.fn().mockResolvedValue([]) },
@@ -127,6 +131,12 @@ describe('Phase 2.8 Acceptance Gates', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: MasteryCalculatorService, useValue: masteryMock },
         { provide: FrontierCalculatorService, useValue: frontierMock },
+        {
+          provide: OutboxService,
+          useValue: {
+            createEvent: jest.fn().mockResolvedValue(null),
+          },
+        },
       ],
     }).compile();
 

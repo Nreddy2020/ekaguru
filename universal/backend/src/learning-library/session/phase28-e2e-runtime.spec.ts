@@ -22,6 +22,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
   let app: INestApplication;
   let jwtService: JwtService;
   let tokenUser: string;
+  let tokenAdmin: string;
 
   // In-memory Database Store
   let learners: any[] = [];
@@ -96,6 +97,10 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
             { sourceId: 'concept-2', targetId: 'concept-3', relationshipType: 'PREREQUISITE' }
           ] : []
         })));
+      }),
+      findUnique: jest.fn().mockImplementation(({ where }) => {
+        const item = concepts.find(c => c.id === where.id);
+        return Promise.resolve(item || null);
       }),
     },
     curriculumStructure: {
@@ -182,6 +187,14 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
         const parts = where.learnerId_structureId;
         const item = enrollments.find(e => e.learnerId === parts.learnerId && e.structureId === parts.structureId);
         return Promise.resolve(item || null);
+      }),
+      findFirst: jest.fn().mockImplementation(({ where }) => {
+        const item = enrollments.find(e => e.learnerId === where.learnerId && e.active === true);
+        if (item) {
+          const struct = curriculumStructures.find(s => s.id === item.structureId);
+          return Promise.resolve({ ...item, structure: struct });
+        }
+        return Promise.resolve(null);
       }),
     },
     learnerConceptMastery: {
@@ -304,9 +317,25 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
           return stepCopy;
         }));
       }),
+      findUnique: jest.fn().mockImplementation(({ where }) => {
+        const item = steps.find(s => s.id === where.id);
+        if (item) {
+          const itemCopy = { ...item };
+          const session = sessions.find(s => s.id === item.sessionId);
+          itemCopy.session = session ? { id: session.id, learnerId: session.learnerId } : undefined;
+          return Promise.resolve(itemCopy);
+        }
+        return Promise.resolve(null);
+      }),
       findFirst: jest.fn().mockImplementation(({ where }) => {
         const item = steps.find(s => s.id === where.id);
-        return Promise.resolve(item || null);
+        if (item) {
+          const itemCopy = { ...item };
+          const session = sessions.find(s => s.id === item.sessionId);
+          itemCopy.session = session ? { id: session.id, learnerId: session.learnerId } : undefined;
+          return Promise.resolve(itemCopy);
+        }
+        return Promise.resolve(null);
       }),
       update: jest.fn().mockImplementation(({ where, data }) => {
         const item = steps.find(s => s.id === where.id);
@@ -335,6 +364,34 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
         const item = { id: `inst-1`, ...data, status: AssessmentInstanceStatus.PENDING };
         assessmentInstances.push(item);
         return Promise.resolve(item);
+      }),
+      findUnique: jest.fn().mockImplementation(({ where }) => {
+        const item = assessmentInstances.find(ai => ai.id === where.id);
+        if (item) {
+          const itemCopy = { ...item };
+          const step = steps.find(s => s.id === item.sessionStepId);
+          if (step) {
+            const { assessmentInstances: _, ...stepCopy } = step;
+            const session = sessions.find(s => s.id === step.sessionId);
+            const sessionCopy = session ? { ...session, targets: undefined, sessionEvidences: undefined } : undefined;
+            const targetItem = targets.find(t => t.id === step.targetId);
+            const targetCopy = targetItem ? {
+              ...targetItem,
+              curriculumNode: curriculumNodes.find(n => n.id === targetItem.curriculumNodeId)
+            } : undefined;
+            if (targetCopy && targetCopy.curriculumNode) {
+              targetCopy.curriculumNode.concept = concepts.find(c => c.id === targetCopy.curriculumNode.conceptId);
+            }
+            itemCopy.sessionStep = {
+              ...stepCopy,
+              session: sessionCopy,
+              target: targetCopy
+            };
+          }
+          itemCopy.assessmentSpecification = assessmentSpecs.find(spec => spec.id === item.assessmentSpecificationId);
+          return Promise.resolve(itemCopy);
+        }
+        return Promise.resolve(null);
       }),
       findFirst: jest.fn().mockImplementation(({ where }) => {
         const item = assessmentInstances.find(ai => ai.id === where.id);
@@ -376,6 +433,10 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
         assessmentResponses.push(item);
         return Promise.resolve(item);
       }),
+      count: jest.fn().mockResolvedValue(0),
+    },
+    notificationEvent: {
+      create: jest.fn().mockResolvedValue({ id: 'event-1' }),
     },
     sessionEvidence: {
       create: jest.fn().mockImplementation(({ data }) => {
@@ -477,6 +538,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
 
     jwtService = moduleRef.get<JwtService>(JwtService);
     tokenUser = jwtService.sign({ sub: 'parent-user-a', email: 'parentA@test.com', role: 'PARENT' });
+    tokenAdmin = jwtService.sign({ sub: 'admin-user', email: 'admin@test.com', role: 'ADMIN' });
   });
 
   afterAll(async () => {
@@ -497,7 +559,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
     // 2. Generate Universal Curriculum Backbone for Mathematics
     const backboneRes = await request(app.getHttpServer())
       .post('/api/v2/curriculum/generate-backbone')
-      .set('Authorization', `Bearer ${tokenUser}`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ domain: 'Mathematics' })
       .expect(200);
 

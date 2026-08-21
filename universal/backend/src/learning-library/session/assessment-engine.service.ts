@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { MasteryCalculatorService } from '../mastery/mastery-calculator.service';
+import { OutboxService } from './outbox.service';
 import { AssessmentInstanceStatus, SessionStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
@@ -15,6 +16,7 @@ export class AssessmentEngineService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly masteryService: MasteryCalculatorService,
+    private readonly outboxService: OutboxService,
   ) {}
 
   async getAssessmentInstance(sessionId: string, instanceId: string): Promise<any> {
@@ -52,13 +54,6 @@ export class AssessmentEngineService {
 
   /**
    * Submit a learner response and process evidence.
-   *
-   * Three-stage transaction boundary (per approved architecture):
-   * Stage 1: Create AssessmentResponse with server-computed rawScore (Phase 2.8 transaction)
-   * Stage 2: Call Phase 2.7 MasteryCalculatorService.recordEvidence (its own transaction)
-   * Stage 3: Create SessionEvidence audit record (Phase 2.8 transaction)
-   *
-   * Client-supplied rawScore/masteryScore/status are REJECTED.
    */
   async submitResponse(sessionId: string, instanceId: string, dto: SubmitResponseDto): Promise<any> {
     const instance = await this.prisma.assessmentInstance.findFirst({
@@ -97,24 +92,21 @@ export class AssessmentEngineService {
     const spec = instance.assessmentSpecification;
     const config = spec.configuration as any;
 
-    // DeterministicAssessmentProvider: configuration IS the assessment
-    // rawScore is server-computed — client response is compared against stored correct answer
     const rawScore = this.scoreResponse(dto.response, config, spec.scoringMethod);
     const passed = rawScore >= spec.passThreshold;
 
-    // Deterministic evidenceKey: SHA256(sessionId|instanceId|attemptNumber)
     const evidenceKey = crypto
       .createHash('sha256')
       .update(`${sessionId}|${instanceId}|${instance.attemptNumber}`)
       .digest('hex');
 
-    // Stage 1 transaction: AssessmentResponse + mark instance complete
+    // Stage 1 transaction: AssessmentResponse + mark instance complete + ASSESSMENT_STRUGGLE check
     await this.prisma.$transaction(async (tx) => {
       await tx.assessmentResponse.create({
         data: {
           assessmentInstanceId: instanceId,
           responsePayload: { response: dto.response },
-          rawScore,   // SERVER-COMPUTED
+          rawScore,
           passed,
           evidenceKey,
           scoredAt: new Date(),
@@ -125,11 +117,44 @@ export class AssessmentEngineService {
         where: { id: instanceId },
         data: { status: AssessmentInstanceStatus.COMPLETED, completedAt: new Date() },
       });
+
+      // Atomic assessment struggle check (>= 3 failures in rolling 7 days)
+      if (!passed && instance.sessionStep.learningObjectiveId) {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const failCount = await tx.assessmentResponse.count({
+          where: {
+            passed: false,
+            scoredAt: { gte: sevenDaysAgo },
+            assessmentInstance: {
+              learnerId: session.learnerId,
+              assessmentSpecification: {
+                learningObjectiveId: instance.sessionStep.learningObjectiveId,
+              },
+            },
+          },
+        });
+
+        if (failCount >= 3) {
+          const utcDateString = new Date().toISOString().split('T')[0]; // UTC YYYY-MM-DD
+          await this.outboxService.createEvent(
+            tx,
+            session.learnerId,
+            'ASSESSMENT_STRUGGLE',
+            'objective',
+            instance.sessionStep.learningObjectiveId,
+            {
+              learningObjectiveId: instance.sessionStep.learningObjectiveId,
+              failedCount: failCount,
+            },
+            utcDateString
+          );
+        }
+      }
     });
 
     // ── Stage 2: Phase 2.7 evidence pipeline (its own transaction) ────────────
-    // Resolve canonical conceptId from CurriculumNode via the step→target→curriculumNode chain.
-    // Phase 2.8 identifies the concept; Phase 2.7 remains solely responsible for mastery calculation.
     const resolvedConceptId = instance.sessionStep.target?.curriculumNode?.concept?.id ?? undefined;
 
     let masteryResult: any = null;
@@ -146,7 +171,6 @@ export class AssessmentEngineService {
       });
     } catch (err) {
       this.logger.error(`Phase 2.7 evidence pipeline error for key '${evidenceKey}': ${err.message}`);
-      // Do not create SessionEvidence if Phase 2.7 fails
       throw err;
     }
 
@@ -166,11 +190,6 @@ export class AssessmentEngineService {
     };
   }
 
-  /**
-   * DeterministicAssessmentProvider scoring logic.
-   * The AssessmentSpecification.configuration IS the complete assessment.
-   * No generation occurs — provider compares response to stored correctOption/correctAnswer.
-   */
   private scoreResponse(response: any, config: any, scoringMethod: string): number {
     switch (scoringMethod) {
       case 'EXACT_MATCH': {
@@ -179,7 +198,6 @@ export class AssessmentEngineService {
         return String(response).trim().toLowerCase() === String(correct).trim().toLowerCase() ? 1.0 : 0.0;
       }
       case 'PARTIAL_CREDIT': {
-        // If config defines correctOptions as array, score fraction of correct answers
         const correctOptions: string[] = config.correctOptions ?? [];
         if (!Array.isArray(response) || correctOptions.length === 0) return 0;
         const correct = response.filter((r: string) =>
@@ -188,7 +206,6 @@ export class AssessmentEngineService {
         return correct.length / correctOptions.length;
       }
       case 'THRESHOLD': {
-        // Numeric response scored against a threshold value
         const numericResponse = parseFloat(String(response));
         const threshold = parseFloat(String(config.threshold ?? 0.5));
         return isNaN(numericResponse) ? 0 : numericResponse >= threshold ? 1.0 : numericResponse / threshold;

@@ -49,6 +49,8 @@ import { SessionPlannerService } from './session/session-planner.service';
 import { SessionLifecycleService } from './session/session-lifecycle.service';
 import { AssessmentEngineService } from './session/assessment-engine.service';
 import { SessionController } from './session/session.controller';
+import { OutboxService } from './session/outbox.service';
+import { OutboxWorkerService } from './session/outbox-worker.service';
 
 @Module({
   controllers: [
@@ -98,6 +100,8 @@ import { SessionController } from './session/session.controller';
     SessionPlannerService,
     SessionLifecycleService,
     AssessmentEngineService,
+    OutboxService,
+    OutboxWorkerService,
   ],
   exports: [
     PrismaService,
@@ -132,6 +136,8 @@ import { SessionController } from './session/session.controller';
     SessionPlannerService,
     SessionLifecycleService,
     AssessmentEngineService,
+    OutboxService,
+    OutboxWorkerService,
   ],
 })
 export class LearningLibraryModule {}

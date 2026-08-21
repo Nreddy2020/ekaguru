@@ -1,6 +1,8 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { MasteryStatus, EvidenceType, EvidenceOutcome } from '@prisma/client';
+import { OutboxService } from '../session/outbox.service';
+import { FrontierCalculatorService } from './frontier-calculator.service';
 
 export interface RecordEvidenceDto {
   evidenceKey: string;
@@ -17,7 +19,11 @@ export interface RecordEvidenceDto {
 export class MasteryCalculatorService {
   private readonly logger = new Logger(MasteryCalculatorService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outboxService: OutboxService,
+    private readonly frontierService: FrontierCalculatorService,
+  ) {}
 
   async recordEvidence(dto: RecordEvidenceDto): Promise<any> {
     if (!dto.conceptId && !dto.learningObjectiveId) {
@@ -134,6 +140,25 @@ export class MasteryCalculatorService {
             lastAssessedAt: referenceTime,
           },
         });
+
+        // Trigger MASTERY_ACHIEVED outbox event if transition occurred
+        if (newStatus === MasteryStatus.MASTERED && previousStatus !== MasteryStatus.MASTERED) {
+          const concept = await tx.concept.findUnique({
+            where: { id: dto.conceptId },
+          });
+          await this.outboxService.createEvent(
+            tx,
+            dto.learnerId,
+            'MASTERY_ACHIEVED',
+            'concept',
+            dto.conceptId,
+            {
+              conceptId: dto.conceptId,
+              name: concept?.canonicalName || 'Concept',
+              score: newScore,
+            }
+          );
+        }
       }
 
       // 5. Calculate Objective-Level Mastery if learningObjectiveId provided
@@ -143,6 +168,7 @@ export class MasteryCalculatorService {
         });
 
         const objPrevScore = priorObjMastery ? priorObjMastery.masteryScore : 0.0;
+        const objPrevStatus = priorObjMastery ? priorObjMastery.status : MasteryStatus.NOT_STARTED;
         
         let objNewScore = dto.rawScore;
         if (priorObjMastery) {
@@ -174,6 +200,25 @@ export class MasteryCalculatorService {
             lastAssessedAt: referenceTime,
           },
         });
+
+        // Trigger MASTERY_ACHIEVED outbox event if transition occurred
+        if (objStatus === MasteryStatus.MASTERED && objPrevStatus !== MasteryStatus.MASTERED) {
+          const objective = await tx.learningObjective.findUnique({
+            where: { id: dto.learningObjectiveId },
+          });
+          await this.outboxService.createEvent(
+            tx,
+            dto.learnerId,
+            'MASTERY_ACHIEVED',
+            'objective',
+            dto.learningObjectiveId,
+            {
+              learningObjectiveId: dto.learningObjectiveId,
+              description: objective?.description || 'Objective',
+              score: objNewScore,
+            }
+          );
+        }
       }
 
       // 6. Insert immutable audit log into MasteryHistory
@@ -190,6 +235,48 @@ export class MasteryCalculatorService {
           policyVersion: policy.version,
         },
       });
+
+      // 7. Atomic Frontier recalculation & FRONTIER_ADVANCED event trigger
+      const activeEnrollment = await tx.learnerCurriculumEnrollment.findFirst({
+        where: { learnerId: dto.learnerId, active: true },
+        include: { structure: true },
+      });
+
+      if (activeEnrollment && activeEnrollment.structure) {
+        // Fetch current frontier cache BEFORE calculation
+        const previousFrontier = await tx.learnerCurriculumFrontier.findMany({
+          where: { learnerId: dto.learnerId, structureId: activeEnrollment.structureId },
+        });
+        const previousNodeIds = new Set(previousFrontier.map((f) => f.currentNodeId));
+
+        // Recalculate frontier atomically using struct version
+        const calcRes = await this.frontierService.calculateFrontier(
+          dto.learnerId,
+          activeEnrollment.structure.version,
+          tx
+        );
+
+        // Find newly unlocked frontier nodes
+        const newFrontierNodes = calcRes.frontierNodes || [];
+        for (const node of newFrontierNodes) {
+          if (!previousNodeIds.has(node.id) && node.conceptId) {
+            const concept = await tx.concept.findUnique({
+              where: { id: node.conceptId },
+            });
+            await this.outboxService.createEvent(
+              tx,
+              dto.learnerId,
+              'FRONTIER_ADVANCED',
+              'concept',
+              node.conceptId,
+              {
+                conceptId: node.conceptId,
+                name: concept?.canonicalName || 'Concept',
+              }
+            );
+          }
+        }
+      }
 
       this.logger.log(`Recorded evidence '${dto.evidenceKey}' for learner '${dto.learnerId}'. Mastery updated to ${newScore.toFixed(2)} (${newStatus}).`);
 

@@ -1,12 +1,16 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { OutboxService } from './outbox.service';
 import { SessionStatus, SessionStepStatus } from '@prisma/client';
 
 @Injectable()
 export class SessionLifecycleService {
   private readonly logger = new Logger(SessionLifecycleService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outboxService: OutboxService,
+  ) {}
 
   async startSession(sessionId: string): Promise<any> {
     const session = await this.prisma.learningSession.findUnique({ where: { id: sessionId } });
@@ -129,6 +133,20 @@ export class SessionLifecycleService {
           sessionEvidences: true,
         },
       });
+
+      // Write SESSION_COMPLETED outbox event atomically
+      await this.outboxService.createEvent(
+        tx,
+        finalized.learnerId,
+        'SESSION_COMPLETED',
+        'session',
+        sessionId,
+        {
+          sessionId,
+          actualDurationSeconds,
+          completedAt: now.toISOString(),
+        }
+      );
 
       this.logger.log(`Session '${sessionId}' FINALIZED with ${evidenceKeys.length} evidence records.`);
       return finalized;

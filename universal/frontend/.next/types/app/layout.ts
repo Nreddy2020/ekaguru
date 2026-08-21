@@ -1,4 +1,4 @@
-// File: E:\Ekaguru\universal\frontend\app\layout.tsx
+// File: C:\Users\nirwa\ekaguru\ekaguru\universal\frontend\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

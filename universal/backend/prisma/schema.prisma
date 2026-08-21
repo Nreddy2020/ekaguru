@@ -1461,3 +1461,53 @@ model SessionEvidence {
   @@index([evidenceKey])
   @@unique([sessionId, evidenceKey])
 }
+
+// ============================================================
+// Phase 3 — Parent Portal & Notification Outbox
+// ============================================================
+
+enum NotificationEventType {
+  SESSION_COMPLETED
+  MASTERY_ACHIEVED
+  MASTERY_DECAYED
+  ASSESSMENT_STRUGGLE
+  FRONTIER_ADVANCED
+  LEARNER_INACTIVE
+}
+
+enum NotificationEventStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+model NotificationEvent {
+  id            String                  @id @default(uuid())
+  learnerId     String
+  eventType     NotificationEventType
+  aggregateType String                  // e.g. "session", "mastery"
+  aggregateId   String                  // e.g. sessionId, masteryId
+  eventKey      String                  @unique // SHA256(learnerId|eventType|aggregateType|aggregateId|utcDateString)
+  payload       Json
+  status        NotificationEventStatus @default(PENDING)
+  attempts      Int                     @default(0)
+  lastAttemptAt DateTime?
+  lastError     String?
+  processedAt   DateTime?
+  createdAt     DateTime                @default(now())
+
+  @@index([status])
+}
+
+model Notification {
+  id           String             @id @default(uuid())
+  parentId     String
+  eventId      String
+  deliveryType String             // "IN_APP", "EMAIL"
+  status       String             // "PENDING", "SENT", "FAILED"
+  sentAt       DateTime?
+  createdAt    DateTime           @default(now())
+
+  @@unique([eventId, deliveryType, parentId])
+}
