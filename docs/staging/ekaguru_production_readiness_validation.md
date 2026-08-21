@@ -201,24 +201,26 @@ Measurable SLA contracts for the EKAGURU platform:
 
 ---
 
-# EKAGURU V2 — Production Readiness Certificate
+# EKAGURU V2 — Staging Gate Verification Certificate
 
-This certificate represents the operational evaluation of the **EKAGURU V2** system.
+This certificate represents the operational evaluation of the **EKAGURU V2** system at commit **`ea488ae`**.
 
 ```
               ┌──────────────────────────────────────────────┐
-              │           PRODUCTION READINESS STATUS        │
+              │           STAGING VERIFICATION STATUS        │
               ├──────────────────────┬───────────────────────┤
               │ Domain               │ Status                │
               ├──────────────────────┼───────────────────────┤
-              │ SECURITY             │ 🟢 PASS               │
-              │ RELIABILITY          │ 🟢 PASS               │
-              │ PERFORMANCE          │ 🟢 PASS               │
-              │ DATA INTEGRITY       │ 🟢 PASS               │
+              │ SECURITY (Arch/Auto) │ 🟢 PASS               │
+              │ RELIABILITY (Staging)│ 🟡 PENDING            │
+              │ PERFORMANCE (Staging)│ 🔴 PENDING            │
+              │ DATA INTEGRITY (PITR)│ 🔴 PENDING            │
               └──────────────────────┴───────────────────────┘
 ```
 
 ### Staging Promotion Verdict:
-### 🟢 GO (Staging Verified)
+### 🟢 GO FOR STAGING PROMOTION (ea488ae Approved)
+The codebase meets all architectural and automated verification criteria and is approved for promotion to the Staging Environment to collect empirical Go/No-Go evidence.
 
-The system meets all staging-ready operational constraints and is approved for Staging Environment Promotion and simulation runs under live PostgreSQL instances.
+### 🔴 HOLD FOR PRODUCTION RELEASE
+Production sign-off is withheld pending execution of the staging validation checklist and submission of live telemetry evidence.
