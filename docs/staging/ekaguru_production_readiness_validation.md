@@ -1,6 +1,12 @@
 # EKAGURU V2 — Production Readiness & Staging Validation Report
 
-This report presents a Principal Architect / CTO-level architectural validation and operational audit of the **EKAGURU V2** system at commit. It verifies the platform's readiness for promotion from development to production-like environments, analyzing safety constraints, performance models, security boundaries, and data integrity guarantees.
+This report presents a Principal Architect / CTO-level architectural validation and operational audit of the **EKAGURU V2** system. It verifies the platform's readiness for promotion from development to production-like environments, analyzing safety constraints, performance models, security boundaries, and data integrity guarantees.
+
+## Operational Evidence Classification
+To prevent design assumptions from being represented as operational proof, all validation items are classified by evidence level:
+* **🟢 E0 — Designed**: The architecture and system design demonstrate the behavior theoretically.
+* **🟢 E1 — Automated**: Local unit, integration, or E2E tests verify the logic under mocked configurations.
+* **🔴 E2 — Empirical Staging**: Real deployed infrastructure (live PostgreSQL, decoupled worker hosts, load generators) demonstrates the behavior under simulated production workloads.
 
 ---
 
@@ -76,7 +82,7 @@ To verify the transaction safety of the outbox claiming logic under horizontal s
    * **Stuck Sweep Recovery**: After 15 minutes, Worker-2's recovery sweep detects the stuck `PROCESSING` event and resets it to `PENDING`.
    * **Redelivery Execution**: Worker-2 claims the event and executes the delivery.
    * **Database Constraint**: The database B-Tree unique constraint on `Notification(eventId, deliveryType, parentId)` triggers an `upsert` rewrite instead of a duplicate row insertion.
-   * **Result**: Effectively exactly-once notification delivery.
+   * **Result**: Exactly-once database notification record creation; external delivery is at-least-once unless the downstream provider supports idempotency keys.
 
 ---
 
@@ -166,8 +172,8 @@ Because EKAGURU serves child learners, the outbox and notification systems are a
 [Notification Outbox Table]
 ```
 
-* **Forbidden Outbox Payloads**: Source textbook content, storage keys, answer keys, raw child answers/inputs, PII (email, passwords), and JWTs are stripped by `OutboxService.createEvent` using a strict blacklist block.
-* **Allowed Outbox Payloads**: Anonymous IDs (e.g. learnerId, sessionId, conceptId), numeric scores, attempt counts, and timestamps.
+* **Data Minimization Strategy**: Enforced via a strict **explicit allowlist mapping** (default-deny policy) at `OutboxService.createEvent`.
+* **Allowed Payload Schema**: Discards all properties from event messages except `learnerId`, `sessionId`, `conceptId`, `score`, `attemptCount`, and `timestamp`. Any other fields (such as raw answers, source materials, user profiles, or credentials) are rejected by default.
 * **Encryption**: Staging database volumes use AES-256 encryption at rest. HTTPS (TLS 1.3) is enforced for all traffic in transit.
 
 ---
