@@ -12,10 +12,14 @@ export interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
     constructor() {
+        const secret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'ekaguru-secret-key-change-in-production' : undefined);
+        if (!secret) {
+            throw new Error('JWT_SECRET environment variable is required.');
+        }
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: process.env.JWT_SECRET || 'ekaguru-secret-key-change-in-production'
+            secretOrKey: secret
         });
     }
 

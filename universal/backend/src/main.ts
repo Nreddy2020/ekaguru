@@ -10,6 +10,9 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     
+    // Enable graceful shutdown hooks for container lifecycle SIGTERM management
+    app.enableShutdownHooks();
+    
     // Global validation pipe for NestJS DTO validation
     app.useGlobalPipes(
         new ValidationPipe({
