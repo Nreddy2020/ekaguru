@@ -11,6 +11,8 @@ import { AssessmentType, ScoringMethod } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { LearningLibraryAuthGuard } from '../learning-library-auth.guard';
 
+import { TutorOrchestratorService } from './tutor-orchestrator.service';
+
 @Controller('api/v2')
 @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
 export class SessionController {
@@ -19,6 +21,7 @@ export class SessionController {
     private readonly planner: SessionPlannerService,
     private readonly lifecycle: SessionLifecycleService,
     private readonly assessmentEngine: AssessmentEngineService,
+    private readonly tutorOrchestrator: TutorOrchestratorService,
   ) {}
 
   // ── Principal Authorization ────────────────────────────────────────────────
@@ -257,5 +260,51 @@ export class SessionController {
     const spec = await this.prisma.assessmentSpecification.findUnique({ where: { id } });
     if (!spec) throw new NotFoundException(`AssessmentSpecification '${id}' not found.`);
     return { data: spec };
+  }
+
+  // ── Socratic Tutor APIs ───────────────────────────────────────────────────
+
+  @Post('sessions/:sessionId/tutor/start')
+  @HttpCode(HttpStatus.OK)
+  async startTutorSession(@Param('sessionId') sessionId: string, @Request() req: any) {
+    await this.getSessionAndCheckAccess(req, sessionId);
+    const result = await this.tutorOrchestrator.startSession(sessionId);
+    return { data: result };
+  }
+
+  @Post('sessions/:sessionId/tutor/respond')
+  @HttpCode(HttpStatus.OK)
+  async submitTutorResponse(
+    @Param('sessionId') sessionId: string,
+    @Body() body: { response: string; attempts?: number },
+    @Request() req: any,
+  ) {
+    await this.getSessionAndCheckAccess(req, sessionId);
+    const result = await this.tutorOrchestrator.respond(sessionId, body.response, body.attempts ?? 1);
+    return { data: result };
+  }
+
+  @Post('sessions/:sessionId/tutor/hint')
+  @HttpCode(HttpStatus.OK)
+  async requestTutorHint(
+    @Param('sessionId') sessionId: string,
+    @Body() body: { level: number },
+    @Request() req: any,
+  ) {
+    await this.getSessionAndCheckAccess(req, sessionId);
+    const result = await this.tutorOrchestrator.requestHint(sessionId, body.level);
+    return { data: result };
+  }
+
+  @Post('sessions/:sessionId/tutor/misconception')
+  @HttpCode(HttpStatus.OK)
+  async explainTutorMisconception(
+    @Param('sessionId') sessionId: string,
+    @Body() body: { misconceptionCode: string },
+    @Request() req: any,
+  ) {
+    await this.getSessionAndCheckAccess(req, sessionId);
+    const result = await this.tutorOrchestrator.explainMisconception(sessionId, body.misconceptionCode);
+    return { data: result };
   }
 }

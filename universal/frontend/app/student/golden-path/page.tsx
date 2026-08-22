@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BookOpen, CheckCircle, HelpCircle, ArrowRight, RefreshCw, Layers, ShieldAlert, Sparkles } from "lucide-react";
+import { api } from "../../../lib/api-client";
 
 export default function GoldenPathPrototype() {
   // Navigation states: 1 = Welcome, 2 = Learner Setup, 3 = Curriculum, 4 = Frontier, 5 = Teach Me (Socratic), 6 = Mastery
@@ -17,8 +18,14 @@ export default function GoldenPathPrototype() {
   const [misconceptionAlert, setMisconceptionAlert] = useState<boolean>(false);
   const [attempts, setAttempts] = useState<number>(0);
 
-  // ULM explainable reason metadata
-  const nextBestActionExplain = {
+  // Backend Integration States
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [tutorStatement, setTutorStatement] = useState<string>("");
+  const [tutorOptions, setTutorOptions] = useState<string[]>([]);
+  const [nbaReason, setNbaReason] = useState<any>(null);
+
+  // ULM explainable reason metadata fallback
+  const nextBestActionExplain = nbaReason || {
     action: "REMEDIATION",
     target: "frac-addition-unlike",
     reason: {
@@ -28,18 +35,131 @@ export default function GoldenPathPrototype() {
     }
   };
 
-  const handleSelectAnswer = (ans: string) => {
-    setSelectedAnswer(ans);
-    setAttempts(prev => prev + 1);
+  // Initialize and resolve active session via real API
+  const initializeTutor = async () => {
+    try {
+      const learnersRes = await api.getLearners();
+      const currentLearner = learnersRes.data?.[0];
+      if (currentLearner) {
+        // Find or create session
+        const sessionsRes = await api.getLearnerSessions(currentLearner.id);
+        let active = (sessionsRes.data || []).find(
+          (s: any) => s.status === "READY" || s.status === "ACTIVE" || s.status === "PAUSED"
+        );
+        if (!active) {
+          const enroll = currentLearner.curriculumEnrollments?.[0];
+          const ver = enroll?.structure?.version ?? 1;
+          const sessionRes = await api.createSession(currentLearner.id, ver, 30);
+          active = sessionRes.data || sessionRes;
+        }
+        
+        // Start the NestJS session lifecycle
+        await fetch(`http://localhost:20000/api/v2/sessions/${active.id}/start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
 
-    if (ans === "2/5") {
-      // Direct denominator addition misconception trigger
-      setMisconceptionAlert(true);
-    } else if (ans === "5/6") {
-      // Correct answer path
-      setMisconceptionAlert(false);
+        setSessionId(active.id);
+        
+        // Start Socratic Tutor session
+        const startRes = await fetch(`http://localhost:20000/api/v2/sessions/${active.id}/tutor/start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const startData = await startRes.json();
+        const tutor = startData.data || startData;
+        setTutorStatement(tutor.statement);
+        setTutorOptions(tutor.options || []);
+      }
+    } catch (e) {
+      console.warn("API fallback: using local pedagogical simulator", e);
+      // Fallback defaults
+      setTutorStatement(ageMode === "young" 
+        ? "Let's work through this problem together. We want to add these two fractions."
+        : "Let's evaluate the addition of these two fractions with unlike denominators."
+      );
+      setTutorOptions([
+        "5/6 (Convert to common denominator)",
+        "2/5 (Add numerators and denominators directly)",
+        "3/6 (Convert first fraction only)"
+      ]);
+    }
+  };
+
+  useEffect(() => {
+    if (currentStep === 5) {
+      initializeTutor();
+    }
+  }, [currentStep]);
+
+  const handleSelectAnswer = async (ans: string) => {
+    setSelectedAnswer(ans);
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
+
+    if (sessionId) {
+      try {
+        const response = await fetch(`http://localhost:20000/api/v2/sessions/${sessionId}/tutor/respond`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ response: ans, attempts: newAttempts })
+        });
+        const data = await response.json();
+        const tutor = data.data || data;
+
+        setTutorStatement(tutor.statement);
+        if (tutor.detectedMisconception) {
+          setMisconceptionAlert(true);
+        } else if (tutor.nextBestAction === "REMEDIATION") {
+          setMisconceptionAlert(false);
+          setNbaReason(tutor.nbaReason);
+        } else {
+          setMisconceptionAlert(false);
+        }
+      } catch (e) {
+        console.error("Failed to submit response to backend tutor:", e);
+      }
     } else {
-      setMisconceptionAlert(false);
+      // Offline fallback logic
+      if (ans === "2/5") {
+        setMisconceptionAlert(true);
+      } else if (ans === "5/6") {
+        setMisconceptionAlert(false);
+      } else {
+        setMisconceptionAlert(false);
+      }
+    }
+  };
+
+  const handleRequestHint = async () => {
+    const nextLevel = hintLevel < 3 ? hintLevel + 1 : 1;
+    setHintLevel(nextLevel);
+
+    if (sessionId) {
+      try {
+        const response = await fetch(`http://localhost:20000/api/v2/sessions/${sessionId}/tutor/hint`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ level: nextLevel })
+        });
+        const data = await response.json();
+        const tutor = data.data || data;
+        setTutorStatement(tutor.statement);
+      } catch (e) {
+        console.error("Failed to request hint from backend tutor:", e);
+      }
     }
   };
 
@@ -48,6 +168,10 @@ export default function GoldenPathPrototype() {
     setHintLevel(0);
     setMisconceptionAlert(false);
     setAttempts(0);
+    setNbaReason(null);
+    if (sessionId) {
+      initializeTutor();
+    }
   };
 
   return (
@@ -287,29 +411,9 @@ export default function GoldenPathPrototype() {
                     EKAGURU Tutor
                   </div>
                   
-                  {/* Age-adaptive Socratic message */}
+                  {/* Dynamic Socratic Tutor statement */}
                   <p className="text-white text-lg leading-relaxed">
-                    {misconceptionAlert ? (
-                      <span>
-                        "I see what you tried. You added the denominators directly. But if we add a half of a pizza and a third of another pizza, are the pieces the same size? Let's check them."
-                      </span>
-                    ) : hintLevel === 1 ? (
-                      <span>
-                        "Let's look at the denominators. Are they the same? What must we do before we add them?"
-                      </span>
-                    ) : hintLevel === 2 ? (
-                      <span>
-                        "Think of sharing. If you have different sized slices, you cannot just add them. We need to cut the slices so they are identical in size."
-                      </span>
-                    ) : hintLevel === 3 ? (
-                      <span>
-                        "Find the least common multiple of 2 and 3. The common denominator is 6. Try converting both fractions."
-                      </span>
-                    ) : (
-                      <span>
-                        "Let's work through this problem together. We want to add these two fractions."
-                      </span>
-                    )}
+                    {tutorStatement || "Let's work through this problem together. We want to add these two fractions."}
                   </p>
                 </div>
 
@@ -338,11 +442,14 @@ export default function GoldenPathPrototype() {
 
                 {/* Socratic interaction option grid */}
                 <div className="space-y-3 pt-4">
-                  {[
-                    { label: "5/6 (Convert to common denominator)", val: "5/6" },
-                    { label: "2/5 (Add numerators and denominators directly)", val: "2/5" },
-                    { label: "3/6 (Convert first fraction only)", val: "3/6" },
-                  ].map((opt) => (
+                  {(tutorOptions.length > 0 
+                    ? tutorOptions.map((opt) => ({ label: opt, val: opt.includes("5/6") ? "5/6" : opt.includes("2/5") ? "2/5" : "3/6" }))
+                    : [
+                        { label: "5/6 (Convert to common denominator)", val: "5/6" },
+                        { label: "2/5 (Add numerators and denominators directly)", val: "2/5" },
+                        { label: "3/6 (Convert first fraction only)", val: "3/6" },
+                      ]
+                  ).map((opt) => (
                     <button
                       key={opt.val}
                       onClick={() => handleSelectAnswer(opt.val)}
@@ -370,7 +477,7 @@ export default function GoldenPathPrototype() {
                 <div className="flex flex-wrap justify-between items-center pt-6 border-t border-slate-800">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setHintLevel(prev => (prev < 3 ? prev + 1 : 1))}
+                      onClick={handleRequestHint}
                       className="px-4 py-2 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-lg text-xs font-bold text-slate-400 hover:text-white"
                     >
                       💡 Request Clue {hintLevel > 0 && `(Level ${hintLevel})`}

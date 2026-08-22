@@ -51,6 +51,8 @@ import { AssessmentEngineService } from './session/assessment-engine.service';
 import { SessionController } from './session/session.controller';
 import { OutboxService } from './session/outbox.service';
 import { OutboxWorkerService } from './session/outbox-worker.service';
+import { DeterministicTutorProvider } from './session/deterministic-tutor-provider.service';
+import { TutorOrchestratorService } from './session/tutor-orchestrator.service';
 
 @Module({
   controllers: [
@@ -102,6 +104,8 @@ import { OutboxWorkerService } from './session/outbox-worker.service';
     AssessmentEngineService,
     OutboxService,
     OutboxWorkerService,
+    DeterministicTutorProvider,
+    TutorOrchestratorService,
   ],
   exports: [
     PrismaService,
@@ -138,6 +142,7 @@ import { OutboxWorkerService } from './session/outbox-worker.service';
     AssessmentEngineService,
     OutboxService,
     OutboxWorkerService,
+    TutorOrchestratorService,
   ],
 })
 export class LearningLibraryModule {}
