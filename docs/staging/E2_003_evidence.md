@@ -3,7 +3,7 @@
 ## E2-003 — Real PostgreSQL Learner Journey
 * **Timestamp**: 2026-08-22T21:07:00+05:30
 * **Repository State**: Clean (except untracked wrapper script `powershell.bat`)
-* **HEAD Commit**: `7c6d503b0c51121d5a7d3066a7bdaa0ad3516ac2`
+* **HEAD Commit**: `5e9fb0fcb64082260c51121d5a7d3066a7bdaa0a`
 * **Test Suite Executed**: `universal/backend/src/learning-library/session/phase29-real-db-e2e.spec.ts`
 
 ### 1. Verification Journey Execution Trace
