@@ -33,7 +33,7 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
       this.recoverStuckEvents().catch((err) => {
         this.logger.error('Error in recoverStuckEvents worker:', err);
       });
-    }, 10 * 60 * 1000);
+    }, 5 * 60 * 1000);
   }
 
   onModuleDestroy() {
