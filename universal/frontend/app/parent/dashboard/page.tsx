@@ -406,7 +406,69 @@ export default function ParentDashboard() {
               </div>
             ) : (
               <div className="space-y-6">
-                
+
+                {/* Simplified Action-Oriented Parent Feed */}
+                <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 space-y-6">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Today's Learning Focus</h3>
+                    <h2 className="text-2xl font-black text-slate-800">Mathematics · Fractions</h2>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-500 font-bold text-lg">✓</span>
+                      <span className="text-sm font-semibold text-slate-700">Understand</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-500 font-bold text-lg">✓</span>
+                      <span className="text-sm font-semibold text-slate-700">Practice</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-500 font-bold text-lg">⚠️</span>
+                      <span className="text-sm font-semibold text-slate-700">Strengthen</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400 text-lg">○</span>
+                      <span className="text-sm font-semibold text-slate-400">Master</span>
+                    </div>
+                  </div>
+
+                  <hr className="border-slate-100" />
+
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-red-500 uppercase tracking-widest">What Needs Attention?</h4>
+                    <div className="bg-red-50/50 border border-red-100 rounded-xl p-6 space-y-4">
+                      <div>
+                        <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">Concept Gap</div>
+                        <div className="text-lg font-black text-slate-800 mt-0.5">Equivalent Denominators</div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">Reason (Active Misconception)</div>
+                        <div className="font-mono text-xs text-red-600 bg-red-50 px-2.5 py-1 rounded inline-block mt-1 font-bold">
+                          ADD_DENOMINATORS_DIRECTLY
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">What EKAGURU Recommends</div>
+                        <p className="text-slate-600 text-sm mt-1">
+                          We recommend a 10-minute guided Socratic practice. Review visual slices of pizza or diagrams together to show why denominators must be identical before adding.
+                        </p>
+                      </div>
+
+                      <div className="pt-4">
+                        <Link 
+                          href="/student/golden-path"
+                          className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all text-sm"
+                        >
+                          Practice Together
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* 1. Attention Alerts Box */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                   <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
