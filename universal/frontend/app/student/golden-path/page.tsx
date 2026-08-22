@@ -19,10 +19,13 @@ export default function GoldenPathPrototype() {
   const [attempts, setAttempts] = useState<number>(0);
 
   // Backend Integration States
+  const [learner, setLearner] = useState<any>(null);
+  const [frontierNodes, setFrontierNodes] = useState<any[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [tutorStatement, setTutorStatement] = useState<string>("");
   const [tutorOptions, setTutorOptions] = useState<string[]>([]);
   const [nbaReason, setNbaReason] = useState<any>(null);
+  const [errorAlert, setErrorAlert] = useState<string | null>(null);
 
   // ULM explainable reason metadata fallback
   const nextBestActionExplain = nbaReason || {
@@ -38,9 +41,11 @@ export default function GoldenPathPrototype() {
   // Initialize and resolve active session via real API
   const initializeTutor = async () => {
     try {
+      setErrorAlert(null);
       const learnersRes = await api.getLearners();
       const currentLearner = learnersRes.data?.[0];
       if (currentLearner) {
+        setLearner(currentLearner);
         // Find or create session
         const sessionsRes = await api.getLearnerSessions(currentLearner.id);
         let active = (sessionsRes.data || []).find(
@@ -79,6 +84,8 @@ export default function GoldenPathPrototype() {
       }
     } catch (e) {
       console.warn("API fallback: using local pedagogical simulator", e);
+      setErrorAlert("Network Error: Backend Socratic Tutor service is offline. Running in local simulation mode.");
+      
       // Fallback defaults
       setTutorStatement(ageMode === "young" 
         ? "Let's work through this problem together. We want to add these two fractions."
@@ -92,11 +99,70 @@ export default function GoldenPathPrototype() {
     }
   };
 
+  const loadFrontier = async () => {
+    try {
+      setErrorAlert(null);
+      const learnersRes = await api.getLearners();
+      const currentLearner = learnersRes.data?.[0];
+      if (currentLearner) {
+        setLearner(currentLearner);
+        const enroll = currentLearner.curriculumEnrollments?.[0];
+        const ver = enroll?.structure?.version ?? 1;
+        const frontierRes = await api.getFrontier(currentLearner.id, ver);
+        setFrontierNodes(frontierRes.data?.frontierNodes || []);
+      }
+    } catch (e) {
+      console.warn("Frontier load fallback:", e);
+      setErrorAlert("Network Error: Backend frontier calculator is offline. Using fallback concepts roadmap.");
+      setFrontierNodes([
+        { concept: { canonicalName: "Numbers & Base 10" }, status: "mastered" },
+        { concept: { canonicalName: "Fractions Basics" }, status: "mastered" },
+        { concept: { canonicalName: "Equivalent Fractions" }, status: "mastered" },
+        { concept: { canonicalName: "Adding Fractions" }, status: "active", desc: "Your Next Step: unlike denominators." },
+        { concept: { canonicalName: "Fraction Problems" }, status: "locked" },
+      ]);
+    }
+  };
+
   useEffect(() => {
+    if (currentStep === 4) {
+      loadFrontier();
+    }
     if (currentStep === 5) {
       initializeTutor();
     }
   }, [currentStep]);
+
+  const handleSaveSetup = async () => {
+    try {
+      const learnersRes = await api.getLearners();
+      const currentLearner = learnersRes.data?.[0];
+      if (currentLearner) {
+        await api.updateParentLearner(currentLearner.id, currentLearner.name, language === "English" ? "en" : language.toLowerCase());
+      }
+      setCurrentStep(3);
+    } catch (e) {
+      console.warn("Failed to save learner setup, transitioning anyway", e);
+      setErrorAlert("Network Error: Unable to save profile configuration to database.");
+      setCurrentStep(3);
+    }
+  };
+
+  const handleSelectCurriculum = async (boardName: string) => {
+    try {
+      const learnersRes = await api.getLearners();
+      const currentLearner = learnersRes.data?.[0];
+      if (currentLearner) {
+        // Enrolling them in the CBSE version 10001
+        await api.enrollLearner(currentLearner.id, 10001);
+      }
+      setCurrentStep(4);
+    } catch (e) {
+      console.warn("Failed to save enrollment, transitioning anyway", e);
+      setErrorAlert("Network Error: Unable to save curriculum selection to database.");
+      setCurrentStep(4);
+    }
+  };
 
   const handleSelectAnswer = async (ans: string) => {
     setSelectedAnswer(ans);
@@ -127,6 +193,7 @@ export default function GoldenPathPrototype() {
         }
       } catch (e) {
         console.error("Failed to submit response to backend tutor:", e);
+        setErrorAlert("Network Error: Socratic Tutor is offline. Input not graded.");
       }
     } else {
       // Offline fallback logic
@@ -159,6 +226,7 @@ export default function GoldenPathPrototype() {
         setTutorStatement(tutor.statement);
       } catch (e) {
         console.error("Failed to request hint from backend tutor:", e);
+        setErrorAlert("Network Error: Tutor hint service is offline.");
       }
     }
   };
@@ -210,6 +278,13 @@ export default function GoldenPathPrototype() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-12 flex flex-col justify-center">
+
+        {errorAlert && (
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-3 text-amber-400 text-sm">
+            <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0" />
+            <span className="font-semibold">{errorAlert}</span>
+          </div>
+        )}
 
         {/* STEP 1: WELCOME SCREEN */}
         {currentStep === 1 && (
@@ -289,7 +364,7 @@ export default function GoldenPathPrototype() {
                 Back
               </button>
               <button
-                onClick={() => setCurrentStep(3)}
+                onClick={handleSaveSetup}
                 className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all"
               >
                 Continue
@@ -311,7 +386,7 @@ export default function GoldenPathPrototype() {
                 <div 
                   key={board}
                   className="p-5 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col justify-between hover:border-slate-700 transition-all cursor-pointer"
-                  onClick={() => setCurrentStep(4)}
+                  onClick={() => handleSelectCurriculum(board)}
                 >
                   <div>
                     <div className="w-10 h-10 rounded-lg bg-indigo-600/10 flex items-center justify-center mb-4">
@@ -344,48 +419,48 @@ export default function GoldenPathPrototype() {
 
             {/* Vertical concept path */}
             <div className="space-y-6">
-              {[
-                { name: "Numbers & Base 10", status: "mastered" },
-                { name: "Fractions Basics", status: "mastered" },
-                { name: "Equivalent Fractions", status: "mastered" },
-                { name: "Adding Fractions", status: "active", desc: "Your Next Step: unlike denominators." },
-                { name: "Fraction Problems", status: "locked" },
-              ].map((node, idx) => (
-                <div key={node.name} className="flex gap-4 items-start relative">
-                  {/* Vertical lines connecting nodes */}
-                  {idx < 4 && (
-                    <div className={`absolute left-5 top-8 w-[2px] h-10 ${node.status === "mastered" ? "bg-emerald-600" : "bg-slate-800"}`} />
-                  )}
-                  
-                  {/* Status Indicator circle */}
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                    node.status === "mastered" 
-                      ? "border-emerald-600 bg-emerald-600/10 text-emerald-500" 
-                      : node.status === "active"
-                      ? "border-indigo-600 bg-indigo-600/10 text-indigo-400 animate-pulse"
-                      : "border-slate-800 bg-slate-900 text-slate-500"
-                  }`}>
-                    {node.status === "mastered" ? <CheckCircle className="w-5 h-5" /> : idx + 1}
-                  </div>
-
-                  <div className="flex-1 pt-1.5">
-                    <div className="flex justify-between items-center">
-                      <span className={`font-bold ${node.status === "mastered" ? "text-slate-400 line-through" : node.status === "active" ? "text-white text-lg" : "text-slate-600"}`}>
-                        {node.name}
-                      </span>
-                      {node.status === "active" && (
-                        <button
-                          onClick={() => setCurrentStep(5)}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm shadow-md transition-all"
-                        >
-                          TEACH ME
-                        </button>
-                      )}
+              {frontierNodes.map((node, idx) => {
+                const name = node.concept?.canonicalName || node.name || "Concept";
+                const status = node.status || "active";
+                const desc = node.desc || (status === "active" ? "Your Next Step: unlike denominators." : "");
+                
+                return (
+                  <div key={name} className="flex gap-4 items-start relative">
+                    {/* Vertical lines connecting nodes */}
+                    {idx < frontierNodes.length - 1 && (
+                      <div className={`absolute left-5 top-8 w-[2px] h-10 ${status === "mastered" ? "bg-emerald-600" : "bg-slate-800"}`} />
+                    )}
+                    
+                    {/* Status Indicator circle */}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                      status === "mastered" 
+                        ? "border-emerald-600 bg-emerald-600/10 text-emerald-500" 
+                        : status === "active"
+                        ? "border-indigo-600 bg-indigo-600/10 text-indigo-400 animate-pulse"
+                        : "border-slate-800 bg-slate-900 text-slate-500"
+                    }`}>
+                      {status === "mastered" ? <CheckCircle className="w-5 h-5" /> : idx + 1}
                     </div>
-                    {node.desc && <p className="text-xs text-slate-400 mt-1">{node.desc}</p>}
+
+                    <div className="flex-1 pt-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className={`font-bold ${status === "mastered" ? "text-slate-400 line-through" : status === "active" ? "text-white text-lg" : "text-slate-600"}`}>
+                          {name}
+                        </span>
+                        {status === "active" && (
+                          <button
+                            onClick={() => setCurrentStep(5)}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm shadow-md transition-all"
+                          >
+                            TEACH ME
+                          </button>
+                        )}
+                      </div>
+                      {desc && <p className="text-xs text-slate-400 mt-1">{desc}</p>}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
