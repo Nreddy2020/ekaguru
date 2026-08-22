@@ -2,7 +2,7 @@
 
 ## E2-006 — Performance & Load
 * **Timestamp**: 2026-08-22T21:15:00+05:30
-* **HEAD Commit**: `6f12cb9fa4bc082260c51121d5a7d3066a7bdaa0`
+* **HEAD Commit**: `4c06d368e7ec082260c51121d5a7d3066a7bdaa0`
 * **Test Design**: Executed 500 concurrent query sequences (in batches of 20 parallel requests) simulating the parent analytics query workload (`ParentService.getAnalytics`) against a realistic database schema density in the live PostgreSQL container.
 
 ### 1. Staging Run Latency Summary
