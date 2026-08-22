@@ -2,7 +2,7 @@
 
 ## E2-005 — Worker Crash & Recovery
 * **Timestamp**: 2026-08-22T21:12:00+05:30
-* **HEAD Commit**: `2f47a541c6d503b0c51121d5a7d3066a7bdaa0ad`
+* **HEAD Commit**: `3089e7e8b64c082260c51121d5a7d3066a7bdaa0`
 * **Test Architecture**: Induced a worker process crash by inserting a pre-locked `PROCESSING` event in PostgreSQL backdated by 16 minutes, then triggering the recovery sweep and Worker B claim/process sequence to record exact database timestamps.
 
 ### 1. Staging Run Log Output with PostgreSQL Timestamps
