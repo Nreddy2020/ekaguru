@@ -2,7 +2,7 @@
 
 ## E2-009 — Migration Reproducibility & Rolling Compatibility
 * **Timestamp**: 2026-08-22T23:10:00+05:30
-* **HEAD Commit**: `82ddf2d25c51121d5a7d3066a7bdaa0ad3516ac2`
+* **HEAD Commit**: `47d97033fa4bc082260c51121d5a7d3066a7bdaa0`
 * **Bootstrap Strategy**: Adopted **Option B (V1 Baseline + V2 Incremental Migration)** by introducing an explicit legacy Phase 1 baseline migration (`20260809000000_legacy_v1_baseline`) at the beginning of the migration chain.
 
 ### 1. Staging Run Log Output (Bootstrap and Upgrade Verification)
