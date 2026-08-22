@@ -2,7 +2,7 @@
 
 ## E2-004 — Real Two-Worker Concurrency
 * **Timestamp**: 2026-08-22T21:09:00+05:30
-* **HEAD Commit**: `a4f73551525a7d3066a7bdaa0ad3516ac23b2b8c`
+* **HEAD Commit**: `3c52285514f7b2c9fcb64082260c51121d5a7d30`
 * **Test Architecture**: Two separate Node.js execution processes spawned concurrently, attempting to acquire reservation locks on the exact same row in the live PostgreSQL database.
 
 ### 1. Concurrency Orchestrator Output
