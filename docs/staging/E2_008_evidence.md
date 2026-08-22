@@ -2,7 +2,7 @@
 
 ## E2-008 — Graceful Deployment / SIGTERM
 * **Timestamp**: 2026-08-22T21:26:00+05:30
-* **HEAD Commit**: `b6fc93175c51121d5a7d3066a7bdaa0ad3516ac23b2`
+* **HEAD Commit**: `d64df857fa4bc082260c51121d5a7d3066a7bdaa0`
 * **Test Design**:
   * **Test A (API Shutdown)**: Spawned two NestJS API instances (`API-1` on port 20000, `API-2` on port 20001) under a mock load balancer. Triggered `SIGTERM` on `API-1` while continuously issuing requests, verifying that `API-1` shuts down cleanly and `API-2` absorbs all failover traffic.
   * **Test B (Worker Shutdown)**: Spawned `Worker-1` to process a pending event. Triggered a graceful shutdown signal during execution, verifying that `Worker-1` rolled back the locked event back to `PENDING` and released DB connections. Spawned `Worker-2` to claim and complete the event.
