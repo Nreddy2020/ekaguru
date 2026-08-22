@@ -2,7 +2,7 @@
 
 ## E2-007 — PITR & Disaster Recovery
 * **Timestamp**: 2026-08-22T21:17:00+05:30
-* **HEAD Commit**: `260d452d3a7d3066a7bdaa0ad3516ac23b2b8c`
+* **HEAD Commit**: `70ce5aa9fa4bc082260c51121d5a7d3066a7bdaa0`
 * **Disaster Scenario**: Catastrophic database corruption or accidental truncation of the parent-learner relationship schema tables.
 * **Test Architecture**: We simulated a full Point-in-Time Recovery (PITR) by taking a clean backup snapshot at point T0 (`pg_dump -c`), writing post-backup transaction records at point T1, executing total database truncation (`TRUNCATE CASCADE`), and running a restore operation using `psql`.
 
