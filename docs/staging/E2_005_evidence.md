@@ -2,7 +2,7 @@
 
 ## E2-005 — Worker Crash & Recovery (5-Minute Cron Verification)
 * **Timestamp**: 2026-08-23T00:12:00+05:30
-* **HEAD Commit**: `e71f0bf8b64c082260c51121d5a7d3066a7bdaa0`
+* **HEAD Commit**: `164b8273fa4bc082260c51121d5a7d3066a7bdaa0`
 * **Test Architecture**: Induced a worker process crash by inserting a pre-locked `PROCESSING` event in PostgreSQL backdated by 16 minutes ($>15$ minutes timeout). Triggered the recovery sweep under the new 5-minute sweep interval configuration and verified immediate takeover and processing by Worker B.
 
 ### 1. Staging Run Log Output with PostgreSQL Timestamps
