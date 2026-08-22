@@ -8,7 +8,7 @@ We have successfully executed the complete **EKAGURU V2 — E2 Staging Runbook**
 
 | Gate | validation Level | Status | Verdict & Raw Staging Evidence |
 |---|---|---|---|
-| **E2-000** Build identity | E2 | 🟢 PASS | Re-baselined cleanly at commit [`204a6ed`](https://github.com/Nreddy2020/ekaguru/commit/204a6ed) |
+| **E2-000** Build identity | E2 | 🟢 PASS | Re-baselined cleanly at commit [`6ebf0c08b64c082260c51121d5a7d3066a7bdaa0`](https://github.com/Nreddy2020/ekaguru/commit/6ebf0c08b64c082260c51121d5a7d3066a7bdaa0) |
 | **E2-001** PostgreSQL live | E2 | 🟢 PASS | PG 15.19 Alpine running under `Read Committed` isolation |
 | **E2-002** Migration execution | E2 | 🟢 PASS | Clean bootstrap and legacy upgrades pass via baseline migration |
 | **E2-002** Index integrity | E2 | 🟢 PASS | Verified active enrollment unique indexes |
