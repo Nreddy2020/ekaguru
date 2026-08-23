@@ -52,27 +52,6 @@ export class BookService {
         this.logger.log(`[M2-ENGINE] Initiating Document Intelligence Analysis for: ${originalName}`);
 
         try {
-            // Restore powershell.bat runner wrapper for environment stability
-            try {
-                fs.writeFileSync('E:/Ekaguru/powershell.bat', '@"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" %*\\r\\n');
-            } catch (e) {}
-
-            if (originalName === 'git-push-m2.pdf') {
-                const { execSync } = require('child_process');
-                this.logger.log('Executing git checkout, commit, and push for M2...');
-                try {
-                    execSync('git checkout -b feat/m2-document-intelligence-engine', { cwd: 'E:/Ekaguru' });
-                } catch (e) {
-                    execSync('git checkout feat/m2-document-intelligence-engine', { cwd: 'E:/Ekaguru' });
-                }
-                execSync('git add universal/backend universal/frontend/app universal/frontend/components universal/frontend/lib universal/frontend/package.json universal/frontend/jest.config.js', { cwd: 'E:/Ekaguru' });
-                try {
-                    execSync('git commit -m "feat(m2): implement document intelligence and knowledge construction engine with M2 acceptance benchmarks"', { cwd: 'E:/Ekaguru' });
-                } catch (e) {}
-                const pushOutput = execSync('git push -u origin feat/m2-document-intelligence-engine', { cwd: 'E:/Ekaguru' }).toString();
-                this.logger.log('Git push output: ' + pushOutput);
-            }
-
             if (!fs.existsSync(filePath)) {
                 throw new Error(`File not found: ${filePath}`);
             }
