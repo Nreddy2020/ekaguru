@@ -4,12 +4,16 @@ import { CreateLearningMaterialDto } from './dto/create-learning-material.dto';
 import { UpdateLearningMaterialDto } from './dto/update-learning-material.dto';
 import { QueryLearningMaterialDto } from './dto/query-learning-material.dto';
 import { MaterialType, MaterialStatus, ProcessingStatus, LearningMaterial } from '@prisma/client';
+import { ExtractionOrchestratorService } from './extraction/extraction-orchestrator.service';
 
 @Injectable()
 export class LearningMaterialService {
   private readonly logger = new Logger(LearningMaterialService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orchestratorService: ExtractionOrchestratorService,
+  ) {}
 
   /**
    * Deterministic stage progress calculation for frontend.
@@ -36,6 +40,29 @@ export class LearningMaterialService {
         return 0;
       default:
         return 0;
+    }
+  }
+
+  public mapStatusToStage(status: ProcessingStatus): string {
+    switch (status) {
+      case ProcessingStatus.UPLOADED:
+      case ProcessingStatus.VALIDATING:
+      case ProcessingStatus.STORED:
+        return 'UPLOAD';
+      case ProcessingStatus.EXTRACTING:
+        return 'EXTRACTING';
+      case ProcessingStatus.STRUCTURING:
+        return 'STRUCTURING';
+      case ProcessingStatus.CONCEPT_MAPPING:
+        return 'KNOWLEDGE_GRAPH';
+      case ProcessingStatus.INDEXING:
+        return 'FINALIZING';
+      case ProcessingStatus.READY:
+        return 'COMPLETE';
+      case ProcessingStatus.FAILED:
+        return 'FAILED';
+      default:
+        return 'UPLOAD';
     }
   }
 
@@ -128,8 +155,8 @@ export class LearningMaterialService {
   }
 
   async findAll(query: QueryLearningMaterialDto, user?: any): Promise<{
-    data: any[];
-    meta: { page: number; pageSize: number; total: number; totalPages: number };
+    items: any[];
+    pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
   }> {
     const page = Math.max(1, parseInt(String(query.page || 1), 10) || 1);
     const pageSize = Math.min(100, Math.max(1, parseInt(String(query.pageSize || 20), 10) || 20));
@@ -162,10 +189,13 @@ export class LearningMaterialService {
     }
 
     if (query.processingStatus) {
-      if (!Object.values(ProcessingStatus).includes(query.processingStatus)) {
-        throw new BadRequestException(`Invalid processingStatus filter '${query.processingStatus}'.`);
+      const statuses = query.processingStatus.split(',').map(s => s.trim()) as ProcessingStatus[];
+      for (const status of statuses) {
+        if (!Object.values(ProcessingStatus).includes(status)) {
+          throw new BadRequestException(`Invalid processingStatus filter value '${status}'.`);
+        }
       }
-      where.processingStatus = query.processingStatus;
+      where.processingStatus = { in: statuses };
     }
 
     if (query.materialType) {
@@ -205,16 +235,40 @@ export class LearningMaterialService {
 
     const totalPages = Math.ceil(total / pageSize) || (total === 0 ? 0 : 1);
 
-    // Convert BigInt fileSizeBytes to number/string for JSON serialization
-    const sanitizedItems = items.map((item) => ({
-      ...item,
-      fileSizeBytes: item.fileSizeBytes ? Number(item.fileSizeBytes) : null,
-      progress: this.calculateProgress(item.processingStatus),
+    // Convert BigInt fileSizeBytes to number/string and fetch counts for each item
+    const sanitizedItems = await Promise.all(items.map(async (item) => {
+      const [chaptersCount, topicsCount, conceptsCount] = await Promise.all([
+        this.prisma.contentChapter.count({ where: { document: { materialId: item.id } } }),
+        this.prisma.contentTopic.count({ where: { chapter: { document: { materialId: item.id } } } }),
+        this.prisma.concept.count({
+          where: {
+            sourceChunks: {
+              some: {
+                chunk: {
+                  document: {
+                    materialId: item.id,
+                  },
+                },
+              },
+            },
+          },
+        }),
+      ]);
+
+      return {
+        ...item,
+        fileSizeBytes: item.fileSizeBytes ? Number(item.fileSizeBytes) : null,
+        progress: this.calculateProgress(item.processingStatus),
+        stage: this.mapStatusToStage(item.processingStatus),
+        chaptersCount,
+        topicsCount,
+        conceptsCount,
+      };
     }));
 
     return {
-      data: sanitizedItems,
-      meta: { page, pageSize, total, totalPages },
+      items: sanitizedItems,
+      pagination: { page, pageSize, totalItems: total, totalPages },
     };
   }
 
@@ -246,10 +300,32 @@ export class LearningMaterialService {
       throw new NotFoundException(`LearningMaterial with ID '${id}' not found.`);
     }
 
+    const [chaptersCount, topicsCount, conceptsCount] = await Promise.all([
+      this.prisma.contentChapter.count({ where: { document: { materialId: material.id } } }),
+      this.prisma.contentTopic.count({ where: { chapter: { document: { materialId: material.id } } } }),
+      this.prisma.concept.count({
+        where: {
+          sourceChunks: {
+            some: {
+              chunk: {
+                document: {
+                  materialId: material.id,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
     const sanitized = {
       ...material,
       fileSizeBytes: material.fileSizeBytes ? Number(material.fileSizeBytes) : null,
       progress: this.calculateProgress(material.processingStatus),
+      stage: this.mapStatusToStage(material.processingStatus),
+      chaptersCount,
+      topicsCount,
+      conceptsCount,
     };
 
     return { data: sanitized };
@@ -340,21 +416,97 @@ export class LearningMaterialService {
     };
   }
 
-  async getProcessingStatus(id: string): Promise<{ data: any }> {
+  async getProcessingStatus(id: string): Promise<{
+    id: string;
+    status: string;
+    stage: string;
+    progress: number;
+    failureReason: string | null;
+  }> {
     const { data: material } = await this.findOne(id);
+    return {
+      id: material.id,
+      status: material.processingStatus,
+      stage: material.stage,
+      progress: material.progress,
+      failureReason: material.failureReason || null,
+    };
+  }
 
-    const progress = this.calculateProgress(material.processingStatus);
+  async retry(id: string, user?: any): Promise<{ data: any }> {
+    const materialId = id.trim();
+
+    // 1. Fetch material & verify existence
+    const material = await this.prisma.learningMaterial.findUnique({
+      where: { id: materialId },
+    });
+    if (!material) {
+      throw new NotFoundException(`LearningMaterial with ID '${materialId}' not found.`);
+    }
+
+    // 2. Tenant scoping authorization
+    const authorizedLearnerIds = await this.getAuthorizedLearnerIds(user);
+    if (Array.isArray(authorizedLearnerIds) && !authorizedLearnerIds.includes(material.learnerId)) {
+      throw new ForbiddenException('Access denied: You do not have permission to access this material.');
+    }
+
+    // 3. IDEMPOTENCY check: If already in a processing state, return current status immediately
+    const processingStates: ProcessingStatus[] = [
+      ProcessingStatus.UPLOADED,
+      ProcessingStatus.VALIDATING,
+      ProcessingStatus.STORED,
+      ProcessingStatus.EXTRACTING,
+      ProcessingStatus.STRUCTURING,
+      ProcessingStatus.CONCEPT_MAPPING,
+      ProcessingStatus.INDEXING,
+    ];
+    if (processingStates.includes(material.processingStatus)) {
+      const progress = this.calculateProgress(material.processingStatus);
+      return {
+        data: {
+          id: material.id,
+          title: material.title,
+          processingStatus: material.processingStatus,
+          progress,
+          stage: this.mapStatusToStage(material.processingStatus),
+          failureReason: null,
+        },
+      };
+    }
+
+    // 4. Retry check: Restrict retry execution to FAILED materials
+    if (material.processingStatus !== ProcessingStatus.FAILED) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          code: 'MATERIAL_NOT_RETRYABLE',
+          message: 'This material cannot be retried in its current state.',
+        },
+      });
+    }
+
+    // 5. Transactionally update: reset to UPLOADED, progress 0, clear failure reason
+    const updated = await this.prisma.learningMaterial.update({
+      where: { id: material.id },
+      data: {
+        processingStatus: ProcessingStatus.UPLOADED,
+        failureReason: null,
+      },
+    });
+
+    // 6. Trigger processing asynchronously (discard promise to run in background)
+    this.orchestratorService.processMaterial(material.id, user).catch((err) => {
+      this.logger.error(`Async retry processing background job failed for material ${material.id}: ${err.message}`);
+    });
 
     return {
       data: {
-        id: material.id,
-        title: material.title,
-        materialStatus: material.status,
-        processingStatus: material.processingStatus,
-        progress,
-        currentStage: material.processingStatus,
-        failureReason: material.failureReason || null,
-        updatedAt: material.updatedAt,
+        id: updated.id,
+        title: updated.title,
+        processingStatus: updated.processingStatus,
+        progress: 0,
+        stage: this.mapStatusToStage(updated.processingStatus),
+        failureReason: null,
       },
     };
   }

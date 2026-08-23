@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request, HttpCode } from '@nestjs/common';
 import { LearningMaterialService } from './learning-material.service';
 import { CreateLearningMaterialDto } from './dto/create-learning-material.dto';
 import { UpdateLearningMaterialDto } from './dto/update-learning-material.dto';
@@ -29,6 +29,12 @@ export class LearningMaterialController {
   @Get(':id/status')
   async getProcessingStatus(@Param('id') id: string) {
     return this.materialService.getProcessingStatus(id);
+  }
+
+  @Post(':id/retry')
+  @HttpCode(200)
+  async retry(@Param('id') id: string, @Request() req: any) {
+    return this.materialService.retry(id, req.user);
   }
 
   @Patch(':id')

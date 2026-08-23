@@ -14,6 +14,13 @@ const links = [
 export default function Navbar() {
     const pathname = usePathname();
 
+    if (
+        pathname === '/home' || pathname.startsWith('/home/') ||
+        pathname === '/library' || pathname.startsWith('/library/')
+    ) {
+        return null;
+    }
+
     return (
         <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#07111f]/90 backdrop-blur-xl">
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 lg:px-8">

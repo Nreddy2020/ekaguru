@@ -161,6 +161,7 @@ describe('Learning Library Real HTTP Security & Integration Tests', () => {
         return Promise.resolve(null);
       }),
       update: jest.fn().mockResolvedValue({ ...mockMaterialUserA, status: MaterialStatus.DELETED }),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     document: {
       create: jest.fn().mockResolvedValue(mockDocumentUserB),
@@ -170,6 +171,15 @@ describe('Learning Library Real HTTP Security & Integration Tests', () => {
         return Promise.resolve(null);
       }),
       update: jest.fn().mockResolvedValue({ ...mockDocumentUserB, pageCount: 35 }),
+    },
+    contentChapter: {
+      count: jest.fn().mockResolvedValue(6),
+    },
+    contentTopic: {
+      count: jest.fn().mockResolvedValue(24),
+    },
+    concept: {
+      count: jest.fn().mockResolvedValue(56),
     },
   };
 
@@ -220,8 +230,8 @@ describe('Learning Library Real HTTP Security & Integration Tests', () => {
       .set('Authorization', `Bearer ${tokenUserA}`)
       .expect(200);
 
-    expect(response.body.data).toHaveLength(1);
-    expect(response.body.data[0].id).toBe('mat-user-a');
+    expect(response.body.items).toHaveLength(1);
+    expect(response.body.items[0].id).toBe('mat-user-a');
   });
 
   it('4. HTTP Security Test — User A requests GET /learners without filters is automatically scoped to User A learners', async () => {
@@ -259,7 +269,7 @@ describe('Learning Library Real HTTP Security & Integration Tests', () => {
       .set('Authorization', `Bearer ${tokenAdmin}`)
       .expect(200);
 
-    expect(response.body.data).toHaveLength(2);
+    expect(response.body.items).toHaveLength(2);
   });
 
   it('8. HTTP Integration Test — Successful Material Creation for Authorized Learner', async () => {
@@ -274,5 +284,29 @@ describe('Learning Library Real HTTP Security & Integration Tests', () => {
       .expect(201);
 
     expect(response.body.data.id).toBe('mat-user-a');
+  });
+
+  it('9. HTTP Integration Test — Successful Material Retry for Failed Material', async () => {
+    (mockMaterialUserA as any).processingStatus = ProcessingStatus.FAILED;
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v2/learning-materials/mat-user-a/retry')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .expect(200);
+
+    expect(response.body.data.processingStatus).toBe('UPLOADED');
+    expect(response.body.data.progress).toBe(0);
+  });
+
+  it('10. HTTP Integration Test — Reject Retry for Non-Failed Material', async () => {
+    (mockMaterialUserA as any).processingStatus = ProcessingStatus.READY;
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v2/learning-materials/mat-user-a/retry')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .expect(400);
+
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('MATERIAL_NOT_RETRYABLE');
   });
 });

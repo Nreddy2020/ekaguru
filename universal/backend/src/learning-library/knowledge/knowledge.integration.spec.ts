@@ -132,6 +132,13 @@ describe('Phase 2.4 Knowledge Abstraction HTTP Integration & Security Tests', ()
         return Promise.resolve(null);
       }),
       upsert: jest.fn().mockResolvedValue(mockConceptA),
+      count: jest.fn().mockResolvedValue(1),
+    },
+    contentChapter: {
+      count: jest.fn().mockResolvedValue(1),
+    },
+    contentTopic: {
+      count: jest.fn().mockResolvedValue(1),
     },
     conceptChunk: {
       upsert: jest.fn().mockResolvedValue({ conceptId: 'concept-123', chunkId: 'chunk-1' }),

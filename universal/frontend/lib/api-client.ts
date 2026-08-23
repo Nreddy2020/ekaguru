@@ -1,5 +1,5 @@
 // API client for EKAGURU.
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:20000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:20000';
 
 class APIError extends Error {
     constructor(public status: number, message: string) {
@@ -31,6 +31,40 @@ export interface ParentAnalytics {
     weeklyProgress: WeeklyStat[];
     recentInsights: Insight[];
     masteredTopics: string[];
+}
+
+export type LearningMaterialStage = 'UPLOAD' | 'EXTRACTING' | 'STRUCTURING' | 'KNOWLEDGE_GRAPH' | 'FINALIZING' | 'COMPLETE' | 'FAILED';
+
+export interface LearningMaterial {
+    id: string;
+    title: string;
+    description?: string;
+    materialType: 'TEXTBOOK' | 'PDF' | 'IMAGE' | 'NOTE' | 'WORKSHEET' | 'ASSIGNMENT' | 'WEB_RESOURCE' | 'VIDEO';
+    status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED' | 'DELETED';
+    processingStatus: 'UPLOADED' | 'VALIDATING' | 'STORED' | 'EXTRACTING' | 'STRUCTURING' | 'CONCEPT_MAPPING' | 'INDEXING' | 'READY' | 'FAILED';
+    subjectName?: string;
+    gradeLevel?: string;
+    language?: string;
+    originalFileName?: string;
+    fileSizeBytes?: number;
+    failureReason?: string;
+    progress: number;
+    stage: LearningMaterialStage;
+    chaptersCount?: number;
+    topicsCount?: number;
+    conceptsCount?: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface LearningMaterialListResponse {
+    items: LearningMaterial[];
+    pagination: {
+        page: number;
+        pageSize: number;
+        totalItems: number;
+        totalPages: number;
+    };
 }
 
 async function apiCall<T>(
@@ -200,6 +234,25 @@ export const api = {
 
     getStudentAnalytics: (studentId: string) =>
         apiCall<ParentAnalytics>(`/tutor/analytics/${studentId}`),
+
+    // Learning Materials APIs
+    getLearningMaterials: (params: { learnerId: string; processingStatus?: string; search?: string; page?: number; pageSize?: number }) => {
+        const queryParams = new URLSearchParams();
+        if (params.learnerId) queryParams.append('learnerId', params.learnerId);
+        if (params.processingStatus) queryParams.append('processingStatus', params.processingStatus);
+        if (params.search) queryParams.append('search', params.search);
+        if (params.page) queryParams.append('page', params.page.toString());
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+        return apiCall<LearningMaterialListResponse>(`/api/v2/learning-materials?${queryParams.toString()}`);
+    },
+
+    getLearningMaterialStatus: (id: string) =>
+        apiCall<{ id: string; status: string; stage: LearningMaterialStage; progress: number; failureReason: string | null }>(`/api/v2/learning-materials/${id}/status`),
+
+    retryLearningMaterial: (id: string) =>
+        apiCall<{ data: LearningMaterial }>(`/api/v2/learning-materials/${id}/retry`, {
+            method: 'POST',
+        }),
 
     // Subject APIs
     getAllSubjects: () => apiCall<any[]>('/subjects'),

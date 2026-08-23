@@ -10,6 +10,9 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     
+    // Enable CORS for frontend
+    app.enableCors();
+    
     // Enable graceful shutdown hooks for container lifecycle SIGTERM management
     app.enableShutdownHooks();
     
@@ -24,9 +27,7 @@ async function bootstrap() {
     // Load environment variables
     await app.init();
     
-    // Enable CORS for frontend
-    app.enableCors();
-    await app.listen(20000);
+    await app.listen(20000, '0.0.0.0');
     console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

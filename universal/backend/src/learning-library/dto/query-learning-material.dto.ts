@@ -12,8 +12,8 @@ export class QueryLearningMaterialDto {
   status?: MaterialStatus;
 
   @IsOptional()
-  @IsEnum(ProcessingStatus)
-  processingStatus?: ProcessingStatus;
+  @IsString()
+  processingStatus?: string;
 
   @IsOptional()
   @IsEnum(MaterialType)

@@ -3,6 +3,7 @@ import { LearningMaterialService } from './learning-material.service';
 import { PrismaService } from './prisma.service';
 import { MaterialType, MaterialStatus, ProcessingStatus, LearnerType } from '@prisma/client';
 import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { ExtractionOrchestratorService } from './extraction/extraction-orchestrator.service';
 
 describe('LearningMaterialService', () => {
   let service: LearningMaterialService;
@@ -56,12 +57,26 @@ describe('LearningMaterialService', () => {
         }),
         update: jest.fn().mockResolvedValue({ ...mockMaterial, status: MaterialStatus.DELETED }),
       },
+      contentChapter: {
+        count: jest.fn().mockResolvedValue(6),
+      },
+      contentTopic: {
+        count: jest.fn().mockResolvedValue(24),
+      },
+      concept: {
+        count: jest.fn().mockResolvedValue(56),
+      },
+    };
+
+    const mockOrchestratorService = {
+      processMaterial: jest.fn().mockResolvedValue({ data: {} }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LearningMaterialService,
         { provide: PrismaService, useValue: prisma },
+        { provide: ExtractionOrchestratorService, useValue: mockOrchestratorService },
       ],
     }).compile();
 
@@ -109,9 +124,9 @@ describe('LearningMaterialService', () => {
   describe('findAll', () => {
     it('should return paginated materials with calculated progress', async () => {
       const res = await service.findAll({ page: 1, pageSize: 10 });
-      expect(res.data).toHaveLength(1);
-      expect(res.data[0].progress).toBe(5); // UPLOADED stage progress is 5
-      expect(res.meta.total).toBe(1);
+      expect(res.items).toHaveLength(1);
+      expect(res.items[0].progress).toBe(5); // UPLOADED stage progress is 5
+      expect(res.pagination.totalItems).toBe(1);
     });
 
     it('should throw ForbiddenException if user requests unauthorized learnerId', async () => {
@@ -127,7 +142,7 @@ describe('LearningMaterialService', () => {
       prisma.learningMaterial.findMany.mockResolvedValueOnce([mockMaterial]);
       const parentUser = { userId: 'parent-1', role: 'PARENT' };
       const res = await service.findAll({}, parentUser);
-      expect(res.data).toHaveLength(1);
+      expect(res.items).toHaveLength(1);
     });
   });
 
@@ -154,10 +169,10 @@ describe('LearningMaterialService', () => {
   describe('getProcessingStatus', () => {
     it('should return processing status with stage progress', async () => {
       const res = await service.getProcessingStatus('mat-123');
-      expect(res.data).toEqual(
+      expect(res).toEqual(
         expect.objectContaining({
           id: 'mat-123',
-          processingStatus: ProcessingStatus.UPLOADED,
+          status: ProcessingStatus.UPLOADED,
           progress: 5,
         }),
       );

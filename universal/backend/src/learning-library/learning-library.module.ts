@@ -27,6 +27,10 @@ import { CandidateExtractorService } from './knowledge/candidate-extractor.servi
 import { IdentityResolutionService } from './knowledge/identity-resolution.service';
 import { ConceptGraphService } from './knowledge/concept-graph.service';
 import { KnowledgeController } from './knowledge/knowledge.controller';
+import { SemanticBoundaryService } from './extraction/semantic-boundary.service';
+import { KnowledgeConstructorService } from './extraction/knowledge-constructor.service';
+import { RelationshipEngineService } from './extraction/relationship-engine.service';
+import { CanonicalModelService } from './extraction/canonical-model.service';
 
 import { OpenAIEmbeddingProvider } from './knowledge/alignment/openai-embedding.provider';
 import { LocalONNXEmbeddingProvider } from './knowledge/alignment/local-onnx-embedding.provider';
@@ -85,6 +89,10 @@ import { TutorOrchestratorService } from './session/tutor-orchestrator.service';
     ExtractorFactoryService,
     StructureDetectorService,
     ExtractionOrchestratorService,
+    SemanticBoundaryService,
+    KnowledgeConstructorService,
+    RelationshipEngineService,
+    CanonicalModelService,
     CandidateExtractorService,
     IdentityResolutionService,
     ConceptGraphService,
@@ -125,6 +133,10 @@ import { TutorOrchestratorService } from './session/tutor-orchestrator.service';
     ExtractorFactoryService,
     StructureDetectorService,
     ExtractionOrchestratorService,
+    SemanticBoundaryService,
+    KnowledgeConstructorService,
+    RelationshipEngineService,
+    CanonicalModelService,
     CandidateExtractorService,
     IdentityResolutionService,
     ConceptGraphService,
