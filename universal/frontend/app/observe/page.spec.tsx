@@ -12,7 +12,7 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
           status: 'HEALTHY',
           backend: { status: 'UP', uptimeSeconds: 120, nodeVersion: 'v20.0.0', pid: 1234 },
           database: { status: 'UP', latencyMs: 5 },
-          memory: { status: 'HEALTHY', heapUsedMb: 45, heapTotalMb: 90, percentUsed: 50 },
+          memory: { status: 'HEALTHY', heapUsedMb: 45, heapTotalMb: 90, percentUsed: 97 },
           storage: { status: 'ACCESSIBLE', uploadDirectory: './uploads', writable: true },
         }),
     });
@@ -25,29 +25,29 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
         Promise.resolve({
           data: [
             {
-              traceId: 'trc_step7c_1',
-              requestId: 'req_step7c_1',
+              traceId: 'trc_nt7lhbb1_b8b15b953233d432',
+              requestId: 'req_nt7lhbb1_09325c464293',
               clientPlatform: 'browser',
-              clientRoute: '/upload',
-              httpMethod: 'POST',
-              httpUrl: '/api/v2/learning-materials/upload',
+              clientRoute: '/api/v2/observe/traces?limit=100',
+              httpMethod: 'GET',
+              httpUrl: '/api/v2/observe/traces?limit=100',
               httpStatus: 200,
               startTimeIso: new Date().toISOString(),
-              startTimeMs: Date.now() - 150,
-              durationMs: 150,
+              startTimeMs: Date.now() - 1,
+              durationMs: 1,
               status: 'OK',
               spans: [],
             },
           ],
           statistics: {
-            totalRequests: 1,
-            successCount: 1,
-            errorCount: 0,
-            avgDurationMs: 150,
-            p50DurationMs: 150,
-            p95DurationMs: 150,
-            errorRatePercent: 0,
-            activeTracesCount: 0,
+            totalRequests: 309,
+            successCount: 308,
+            errorCount: 1,
+            avgDurationMs: 6,
+            p50DurationMs: 1,
+            p95DurationMs: 6,
+            errorRatePercent: 0.3,
+            activeTracesCount: 309,
           },
         }),
     });
@@ -56,16 +56,19 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
   return Promise.reject(new Error('Unknown URL'));
 }) as any;
 
-describe('OBS-001 Step 7C: Data-Driven Observe Diagnostic Center', () => {
-  it('should render the clean operational header without developer implementation steps', () => {
+describe('OBS-001 Step 7C: Observe Cockpit Exact Target Image Match', () => {
+  it('should render the exact top navigation, KPI cards, and system health', () => {
     render(<ObserveCockpitPage />);
     expect(screen.getByText(/EKAGURU OBSERVE/i)).toBeInTheDocument();
-    expect(screen.getByText(/Application Diagnostic Center/i)).toBeInTheDocument();
+    expect(screen.getByText(/Total Requests/i)).toBeInTheDocument();
+    expect(screen.getByText(/Success Rate/i)).toBeInTheDocument();
+    expect(screen.getByText(/Failed Requests/i)).toBeInTheDocument();
   });
 
-  it('should render real telemetry statistics and live request stream', async () => {
+  it('should render the Waterfall View and bottom M2 pipeline overview', async () => {
     render(<ObserveCockpitPage />);
-    expect(await screen.findByText(/Live Request Stream/i)).toBeInTheDocument();
-    expect(screen.getByText(/System Healthy/i)).toBeInTheDocument();
+    expect(await screen.findByText(/REQUEST 360 – WATERFALL VIEW/i)).toBeInTheDocument();
+    expect(screen.getByText(/M2 PIPELINE OVERVIEW \(LAST 10 MIN\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/SYSTEM HEALTH DETAIL/i)).toBeInTheDocument();
   });
 });
