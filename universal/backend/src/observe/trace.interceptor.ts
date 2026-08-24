@@ -72,6 +72,7 @@ export class TraceInterceptor implements NestInterceptor {
 
           const childSpans = TraceStorage.getSpans();
 
+          const isObserveInternal = (req.path || '').startsWith('/api/v2/observe');
           const requestTrace: RequestTrace = {
             traceId: traceCtx.traceId,
             requestId: traceCtx.requestId,
@@ -87,6 +88,8 @@ export class TraceInterceptor implements NestInterceptor {
             endTimeMs,
             durationMs,
             status: rootSpan.status,
+            trafficType: isObserveInternal ? 'OBSERVE_INTERNAL' : 'APPLICATION',
+            isInternal: isObserveInternal,
             spans: [rootSpan, ...childSpans],
           };
 
@@ -122,6 +125,7 @@ export class TraceInterceptor implements NestInterceptor {
 
           const childSpans = TraceStorage.getSpans();
 
+          const isObserveInternal = (req.path || '').startsWith('/api/v2/observe');
           const requestTrace: RequestTrace = {
             traceId: traceCtx.traceId,
             requestId: traceCtx.requestId,
@@ -137,6 +141,8 @@ export class TraceInterceptor implements NestInterceptor {
             endTimeMs,
             durationMs,
             status: 'ERROR',
+            trafficType: isObserveInternal ? 'OBSERVE_INTERNAL' : 'APPLICATION',
+            isInternal: isObserveInternal,
             spans: [rootSpan, ...childSpans],
           };
 

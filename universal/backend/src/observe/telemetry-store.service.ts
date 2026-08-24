@@ -11,6 +11,9 @@ export interface TelemetryStatistics {
   p95DurationMs: number;
   errorRatePercent: number;
   activeTracesCount: number;
+  inProgressCount?: number;
+  applicationRequestsCount?: number;
+  internalRequestsCount?: number;
 }
 
 export interface TraceSearchParams {
@@ -20,6 +23,7 @@ export interface TraceSearchParams {
   status?: TraceStatus;
   errorCategory?: ErrorCategory;
   keyword?: string;
+  trafficType?: 'ALL' | 'APPLICATION' | 'OBSERVE_INTERNAL';
   limit?: number;
   offset?: number;
 }
@@ -38,6 +42,8 @@ export class TelemetryStoreService {
   // Lifetime running counters
   private totalRecorded = 0;
   private totalErrors = 0;
+  private applicationRecorded = 0;
+  private internalRecorded = 0;
 
   constructor(@Optional() maxCapacity = 5000) {
     this.maxCapacity = Math.max(1, maxCapacity);
@@ -59,8 +65,12 @@ export class TelemetryStoreService {
         attributes: TraceSanitizer.sanitizeAttributes(span.attributes || {}),
       }));
 
+      const trafficType = trace.trafficType || (trace.httpUrl.startsWith('/api/v2/observe') ? 'OBSERVE_INTERNAL' : 'APPLICATION');
+
       const sanitizedTrace: RequestTrace = {
         ...trace,
+        trafficType,
+        isInternal: trafficType === 'OBSERVE_INTERNAL',
         spans: sanitizedSpans,
       };
 
@@ -78,6 +88,12 @@ export class TelemetryStoreService {
 
       // 4. Update lifetime counters
       this.totalRecorded++;
+      if (trafficType === 'APPLICATION') {
+        this.applicationRecorded++;
+      } else {
+        this.internalRecorded++;
+      }
+
       if (sanitizedTrace.status === 'ERROR' || (sanitizedTrace.httpStatus && sanitizedTrace.httpStatus >= 400)) {
         this.totalErrors++;
       }
@@ -96,13 +112,18 @@ export class TelemetryStoreService {
   /**
    * Returns recent traces ordered from newest to oldest.
    */
-  getRecent(limit = 50, offset = 0): RequestTrace[] {
-    const all = this.getAllTracesNewestFirst();
+  getRecent(limit = 50, offset = 0, trafficType: 'ALL' | 'APPLICATION' | 'OBSERVE_INTERNAL' = 'ALL'): RequestTrace[] {
+    let all = this.getAllTracesNewestFirst();
+    if (trafficType === 'APPLICATION') {
+      all = all.filter((t) => t.trafficType === 'APPLICATION');
+    } else if (trafficType === 'OBSERVE_INTERNAL') {
+      all = all.filter((t) => t.trafficType === 'OBSERVE_INTERNAL');
+    }
     return all.slice(offset, offset + limit);
   }
 
   /**
-   * Fast lookup of a complete RequestTrace by traceId.
+   * Fast O(1) trace retrieval by traceId.
    */
   getByTraceId(traceId: string): RequestTrace | null {
     if (!traceId) return null;
@@ -110,44 +131,67 @@ export class TelemetryStoreService {
   }
 
   /**
-   * Searches and filters traces based on criteria.
+   * Multi-dimensional search across ring buffer.
    */
   search(params: TraceSearchParams): RequestTrace[] {
-    const all = this.getAllTracesNewestFirst();
-    const limit = params.limit || 50;
+    let traces = this.getAllTracesNewestFirst();
+
+    if (params.trafficType && params.trafficType !== 'ALL') {
+      traces = traces.filter((t) => t.trafficType === params.trafficType);
+    }
+
+    if (params.traceId) {
+      traces = traces.filter((t) => t.traceId.toLowerCase().includes(params.traceId!.toLowerCase()));
+    }
+
+    if (params.requestId) {
+      traces = traces.filter((t) => t.requestId?.toLowerCase().includes(params.requestId!.toLowerCase()));
+    }
+
+    if (params.route) {
+      traces = traces.filter((t) => t.httpUrl.toLowerCase().includes(params.route!.toLowerCase()));
+    }
+
+    if (params.status) {
+      traces = traces.filter((t) => t.status === params.status);
+    }
+
+    if (params.errorCategory) {
+      traces = traces.filter((t) =>
+        t.spans.some((s) => s.errorCategory === params.errorCategory)
+      );
+    }
+
+    if (params.keyword) {
+      const kw = params.keyword.toLowerCase();
+      traces = traces.filter(
+        (t) =>
+          t.httpUrl.toLowerCase().includes(kw) ||
+          t.traceId.toLowerCase().includes(kw) ||
+          t.requestId?.toLowerCase().includes(kw) ||
+          t.errorMessage?.toLowerCase().includes(kw) ||
+          t.spans.some((s) => s.name.toLowerCase().includes(kw) || s.errorMessage?.toLowerCase().includes(kw))
+      );
+    }
+
     const offset = params.offset || 0;
-
-    const filtered = all.filter((trace) => {
-      if (params.traceId && trace.traceId !== params.traceId) return false;
-      if (params.requestId && trace.requestId !== params.requestId) return false;
-      if (params.status && trace.status !== params.status) return false;
-      if (params.route && !trace.httpUrl.toLowerCase().includes(params.route.toLowerCase())) return false;
-      if (params.errorCategory) {
-        const hasCategory = trace.spans.some((s) => s.errorCategory === params.errorCategory);
-        if (!hasCategory) return false;
-      }
-      if (params.keyword) {
-        const kw = params.keyword.toLowerCase();
-        const matchesUrl = trace.httpUrl.toLowerCase().includes(kw);
-        const matchesTraceId = trace.traceId.toLowerCase().includes(kw);
-        const matchesSpans = trace.spans.some((s) =>
-          (s.name && s.name.toLowerCase().includes(kw)) ||
-          (s.errorMessage && s.errorMessage.toLowerCase().includes(kw))
-        );
-        if (!matchesUrl && !matchesTraceId && !matchesSpans) return false;
-      }
-      return true;
-    });
-
-    return filtered.slice(offset, offset + limit);
+    const limit = params.limit || 50;
+    return traces.slice(offset, offset + limit);
   }
 
   /**
-   * Computes real-time statistics across active buffered traces.
+   * Aggregates telemetry statistics.
    */
-  getStatistics(): TelemetryStatistics {
-    const traces = this.getAllTracesNewestFirst();
+  getStatistics(trafficType: 'ALL' | 'APPLICATION' | 'OBSERVE_INTERNAL' = 'ALL'): TelemetryStatistics {
+    let traces = this.getAllTracesNewestFirst();
+    if (trafficType === 'APPLICATION') {
+      traces = traces.filter((t) => t.trafficType === 'APPLICATION');
+    } else if (trafficType === 'OBSERVE_INTERNAL') {
+      traces = traces.filter((t) => t.trafficType === 'OBSERVE_INTERNAL');
+    }
+
     const activeCount = traces.length;
+    const inProgressCount = traces.filter((t) => t.status === 'IN_PROGRESS').length;
 
     if (activeCount === 0) {
       return {
@@ -159,6 +203,8 @@ export class TelemetryStoreService {
         p95DurationMs: 0,
         errorRatePercent: 0,
         activeTracesCount: 0,
+        applicationRequestsCount: 0,
+        internalRequestsCount: 0,
       };
     }
 
@@ -180,7 +226,7 @@ export class TelemetryStoreService {
     const p95Index = Math.min(durations.length - 1, Math.floor(durations.length * 0.95));
 
     return {
-      totalRequests: this.totalRecorded,
+      totalRequests: trafficType === 'APPLICATION' ? this.applicationRecorded : trafficType === 'OBSERVE_INTERNAL' ? this.internalRecorded : this.totalRecorded,
       successCount: activeCount - errorCount,
       errorCount,
       avgDurationMs: Math.round(totalDuration / activeCount),
@@ -188,6 +234,9 @@ export class TelemetryStoreService {
       p95DurationMs: durations[p95Index] || 0,
       errorRatePercent: Math.round((errorCount / activeCount) * 1000) / 10,
       activeTracesCount: activeCount,
+      inProgressCount,
+      applicationRequestsCount: this.applicationRecorded,
+      internalRequestsCount: this.internalRecorded,
     };
   }
 
@@ -201,6 +250,8 @@ export class TelemetryStoreService {
     this.isFull = false;
     this.totalRecorded = 0;
     this.totalErrors = 0;
+    this.applicationRecorded = 0;
+    this.internalRecorded = 0;
   }
 
   private getAllTracesNewestFirst(): RequestTrace[] {

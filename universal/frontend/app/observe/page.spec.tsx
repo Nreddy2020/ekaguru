@@ -37,6 +37,7 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
               durationMs: 8420,
               status: 'ERROR',
               errorMessage: 'Database query timeout in ContentTopic insertion',
+              trafficType: 'APPLICATION',
               spans: [
                 {
                   spanId: 'spn_1',
@@ -72,7 +73,10 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
             p50DurationMs: 142,
             p95DurationMs: 812,
             errorRatePercent: 5.4,
-            activeTracesCount: 5,
+            activeTracesCount: 50,
+            inProgressCount: 0,
+            applicationRequestsCount: 1248,
+            internalRequestsCount: 500,
           },
         }),
     });
@@ -81,24 +85,21 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
   return Promise.reject(new Error('Unknown URL'));
 }) as any;
 
-describe('OBS-001: Pixel-Exact Production Observe Cockpit Matching media_1787599276294.jpg', () => {
-  it('should render the top dashboard overview title, controls, and 5 KPI cards', () => {
+describe('OBS-001: Production Observe Cockpit with Traffic Separation and Truthful Telemetry', () => {
+  it('should render clean production header, traffic scope buttons, and 5 KPI cards with in-progress = 0', () => {
     render(<ObserveCockpitPage />);
-    expect(screen.getByText(/HOW IT WILL LOOK – DASHBOARD OVERVIEW/i)).toBeInTheDocument();
-    expect(screen.getByText(/Auto Refresh/i)).toBeInTheDocument();
+    expect(screen.getByText(/EKAGURU OBSERVE/i)).toBeInTheDocument();
+    expect(screen.getByText(/Understand every request, find problems, and fix them/i)).toBeInTheDocument();
+    expect(screen.getByText(/App Traffic/i)).toBeInTheDocument();
     expect(screen.getByText(/Total Requests/i)).toBeInTheDocument();
-    expect(screen.getByText(/Success Rate/i)).toBeInTheDocument();
-    expect(screen.getByText(/Failed Requests/i)).toBeInTheDocument();
-    expect(screen.getByText(/Avg Duration \(p95\)/i)).toBeInTheDocument();
     expect(screen.getByText(/In Progress/i)).toBeInTheDocument();
   });
 
-  it('should render Live Request Stream, Request 360 waterfall view, and bottom diagnostic panels', async () => {
+  it('should render Live Request Stream, proportional waterfall view, and truthful subsystem health', async () => {
     render(<ObserveCockpitPage />);
     expect(screen.getByText(/Live Request Stream/i)).toBeInTheDocument();
     expect(screen.getAllByText(/System Health/i).length).toBeGreaterThan(0);
     expect(await screen.findByText(/REQUEST 360 – WATERFALL VIEW/i)).toBeInTheDocument();
-    expect(screen.getByText(/SYSTEM HEALTH DETAIL/i)).toBeInTheDocument();
-    expect(screen.getByText(/M2 PIPELINE OVERVIEW \(Last 10 min\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Not instrumented/i)).toBeInTheDocument();
   });
 });

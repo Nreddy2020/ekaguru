@@ -30,6 +30,8 @@ interface RequestTrace {
   endTimeMs?: number;
   durationMs?: number;
   status: 'OK' | 'ERROR' | 'IN_PROGRESS';
+  trafficType?: 'APPLICATION' | 'OBSERVE_INTERNAL';
+  isInternal?: boolean;
   errorCategory?: string;
   errorMessage?: string;
   userAgent?: string;
@@ -46,6 +48,9 @@ interface TelemetryStatistics {
   p95DurationMs: number;
   errorRatePercent: number;
   activeTracesCount: number;
+  inProgressCount?: number;
+  applicationRequestsCount?: number;
+  internalRequestsCount?: number;
 }
 
 interface SystemHealthReport {
@@ -89,12 +94,14 @@ type NavSection =
   | 'SETTINGS';
 
 type Request360Tab = 'WATERFALL' | 'SPANS' | 'METADATA' | 'LOGS' | 'REQUEST_RESPONSE';
+type TrafficScope = 'APPLICATION' | 'ALL' | 'OBSERVE_INTERNAL';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:20000';
 
 export default function ObserveCockpitPage() {
   const [activeNav, setActiveNav] = useState<NavSection>('OVERVIEW');
   const [activeTab, setActiveTab] = useState<Request360Tab>('WATERFALL');
+  const [trafficScope, setTrafficScope] = useState<TrafficScope>('APPLICATION');
   const [traces, setTraces] = useState<RequestTrace[]>([]);
   const [statistics, setStatistics] = useState<TelemetryStatistics | null>(null);
   const [health, setHealth] = useState<SystemHealthReport | null>(null);
@@ -110,7 +117,11 @@ export default function ObserveCockpitPage() {
         .then(async (res) => (res.ok ? await res.json() : null))
         .catch(() => null);
 
-      const tracesPromise = fetch(`${API_BASE}/api/v2/observe/traces?limit=100`)
+      const tracesUrl = trafficScope === 'ALL'
+        ? `${API_BASE}/api/v2/observe/traces?limit=100`
+        : `${API_BASE}/api/v2/observe/traces?limit=100&trafficType=${trafficScope}`;
+
+      const tracesPromise = fetch(tracesUrl)
         .then(async (res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.json();
@@ -136,7 +147,7 @@ export default function ObserveCockpitPage() {
     } catch (err) {
       console.error('Observe telemetry fetch error:', err);
     }
-  }, []);
+  }, [trafficScope]);
 
   useEffect(() => {
     fetchTelemetry();
@@ -145,14 +156,14 @@ export default function ObserveCockpitPage() {
     return () => clearInterval(interval);
   }, [fetchTelemetry, autoRefresh]);
 
-  // Derived real metrics
+  // Derived real metrics: scoped to application traffic by default
   const totalCount = statistics?.totalRequests ?? traces.length;
   const errorCount = statistics?.errorCount ?? traces.filter((t) => t.status === 'ERROR' || (t.httpStatus && t.httpStatus >= 400)).length;
   const successRate = totalCount > 0 ? (((totalCount - errorCount) / totalCount) * 100).toFixed(1) : '100.0';
   const p95 = statistics?.p95DurationMs ?? (traces.length > 0 ? Math.max(...traces.map((t) => t.durationMs || 0)) : 0);
-  const inProgressCount = statistics?.activeTracesCount ?? traces.filter((t) => t.status === 'IN_PROGRESS').length;
+  const inProgressCount = statistics?.inProgressCount ?? traces.filter((t) => t.status === 'IN_PROGRESS').length;
 
-  // Filtered requests
+  // Filtered requests for the stream
   const visibleTraces = useMemo(() => {
     return traces.filter((t) => {
       if (activeNav === 'ERRORS' && t.status !== 'ERROR' && (!t.httpStatus || t.httpStatus < 400)) return false;
@@ -243,6 +254,7 @@ export default function ObserveCockpitPage() {
           httpStatus: trace.httpStatus || (isSelectedError ? 500 : 200),
           durationMs: trace.durationMs || 0,
           clientPlatform: trace.clientPlatform,
+          trafficType: trace.trafficType || 'APPLICATION',
         },
         rootCause: rootCauseDiagnosis,
         realSubsystemSpans: trace.spans.map((s) => ({
@@ -274,31 +286,63 @@ export default function ObserveCockpitPage() {
 
   return (
     <div className="min-h-screen bg-[#060b14] text-slate-200 font-sans antialiased p-4 sm:p-6 space-y-4">
-      {/* 1. Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="text-xs sm:text-sm font-bold tracking-wider text-slate-300 uppercase">
-            HOW IT WILL LOOK – DASHBOARD OVERVIEW
+      {/* 1. Production Top Header: EKAGURU OBSERVE */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-[#0c1424] border border-slate-800/80 rounded-xl px-5 py-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-teal-400 font-extrabold text-base tracking-wide flex items-center gap-2">
+            <span>🔭</span> EKAGURU OBSERVE
+          </span>
+          <span className="text-slate-400 text-xs hidden md:inline border-l border-slate-700 pl-3">
+            Understand every request, find problems, and fix them.
           </span>
         </div>
 
         <div className="flex items-center gap-2.5 self-end sm:self-auto">
+          {/* Traffic Scope Filter */}
+          <div className="flex items-center rounded-lg bg-[#070e1c] border border-slate-700 p-0.5 text-[11px] font-medium">
+            <button
+              onClick={() => setTrafficScope('APPLICATION')}
+              className={`px-2.5 py-1 rounded transition-all ${
+                trafficScope === 'APPLICATION'
+                  ? 'bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              App Traffic
+            </button>
+            <button
+              onClick={() => setTrafficScope('ALL')}
+              className={`px-2.5 py-1 rounded transition-all ${
+                trafficScope === 'ALL'
+                  ? 'bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setTrafficScope('OBSERVE_INTERNAL')}
+              className={`px-2.5 py-1 rounded transition-all ${
+                trafficScope === 'OBSERVE_INTERNAL'
+                  ? 'bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Observe Internal
+            </button>
+          </div>
+
           {/* Auto Refresh Toggle */}
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0d1626] border border-slate-700/70 text-xs font-medium text-emerald-400 hover:border-slate-600 transition-all shadow-sm"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#070e1c] border border-slate-700 text-xs font-medium text-emerald-400 hover:border-slate-600 transition-all shadow-sm"
           >
             <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
             <span>Auto Refresh (2s)</span>
           </button>
 
-          {/* Filter Button */}
-          <button className="px-2.5 py-1.5 rounded-lg bg-[#0d1626] border border-slate-700/70 text-slate-300 hover:text-white transition-colors shadow-sm">
-            <span>⑂</span>
-          </button>
-
           {/* Time Range Selector */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0d1626] border border-slate-700/70 text-slate-300 text-xs cursor-pointer shadow-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#070e1c] border border-slate-700 text-slate-300 text-xs cursor-pointer shadow-sm">
             <span>⏱️ {timeRange}</span>
             <span className="text-[10px] text-slate-400">▼</span>
           </div>
@@ -320,7 +364,7 @@ export default function ObserveCockpitPage() {
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 px-2 py-2 text-white font-bold text-sm tracking-wide border-b border-slate-800 mb-2">
               <span className="text-teal-400">📖</span>
-              <span>EKAGURU OBSERVE</span>
+              <span>NAVIGATION</span>
             </div>
 
             {[
@@ -424,12 +468,21 @@ export default function ObserveCockpitPage() {
                 <span className="font-bold text-white text-sm">Live Request Stream</span>
                 <span className="text-xs text-slate-400">({visibleTraces.length} recorded)</span>
               </div>
-              <button
-                onClick={() => setActiveNav('LIVE_REQUESTS')}
-                className="text-xs text-teal-400 hover:text-teal-300 font-medium hover:underline"
-              >
-                View All
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Filter route, method, ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-[#070e1c] border border-slate-700 text-xs rounded px-2.5 py-1 text-slate-200 placeholder-slate-500 w-44 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                />
+                <button
+                  onClick={() => setActiveNav('LIVE_REQUESTS')}
+                  className="text-xs text-teal-400 hover:text-teal-300 font-medium hover:underline"
+                >
+                  View All
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -449,7 +502,7 @@ export default function ObserveCockpitPage() {
                   {visibleTraces.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-8 text-center text-slate-500 text-xs">
-                        No requests recorded in telemetry buffer.
+                        No requests recorded for this traffic scope.
                       </td>
                     </tr>
                   ) : (
@@ -573,11 +626,13 @@ export default function ObserveCockpitPage() {
               </div>
             </div>
 
-            {/* Redis */}
+            {/* Redis: Truthful status */}
             <div className="pt-2.5 border-t border-slate-800">
               <div className="flex items-center justify-between">
-                <span className="text-slate-300 font-medium flex items-center gap-2">⚡ Redis Cache</span>
-                <span className="text-emerald-400 font-semibold">🟢 Healthy</span>
+                <span className="text-slate-400 flex items-center gap-2">⚡ Redis Cache</span>
+                <span className="text-slate-500 text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800/80">
+                  Not instrumented
+                </span>
               </div>
             </div>
           </div>
@@ -683,16 +738,16 @@ export default function ObserveCockpitPage() {
                 ))}
               </div>
 
-              {/* Waterfall Timeline Graphic */}
+              {/* Waterfall Timeline Graphic (Mathematically Proportional to Span Duration) */}
               {activeTab === 'WATERFALL' && (
                 <div className="bg-[#080e1c] rounded-xl p-4 border border-slate-800 space-y-3.5">
                   <div className="grid grid-cols-6 text-[11px] text-slate-400 font-mono border-b border-slate-800/80 pb-2">
                     <span>0 ms</span>
-                    <span className="text-center">2,000 ms</span>
-                    <span className="text-center">4,000 ms</span>
-                    <span className="text-center">6,000 ms</span>
-                    <span className="text-center">8,000 ms</span>
-                    <span className="text-right">8,420 ms</span>
+                    <span className="text-center">{Math.round((selectedTrace.durationMs || 1) * 0.25)} ms</span>
+                    <span className="text-center">{Math.round((selectedTrace.durationMs || 1) * 0.5)} ms</span>
+                    <span className="text-center">{Math.round((selectedTrace.durationMs || 1) * 0.75)} ms</span>
+                    <span className="text-center">{selectedTrace.durationMs || 1} ms</span>
+                    <span className="text-right">End</span>
                   </div>
 
                   <div className="space-y-3 py-1">
@@ -704,9 +759,9 @@ export default function ObserveCockpitPage() {
                       selectedTrace.spans.map((span, idx) => {
                         const isErr = span.status === 'ERROR';
                         const dur = span.durationMs || 1;
-                        const totalDur = selectedTrace.durationMs || 1;
-                        // Proportional bar width
-                        const widthPct = Math.min(100, Math.max(12, (dur / totalDur) * 100));
+                        const totalDur = Math.max(1, selectedTrace.durationMs || 1);
+                        // True mathematical percentage width
+                        const widthPct = Math.min(100, Math.max(3, (dur / totalDur) * 100));
 
                         return (
                           <div key={span.spanId || idx} className="space-y-1">
@@ -779,6 +834,7 @@ export default function ObserveCockpitPage() {
                 <div className="p-4 bg-[#080e1c] rounded-xl border border-slate-800 text-xs font-mono space-y-2">
                   <div><span className="text-slate-500">Trace ID:</span> <span className="text-slate-200">{selectedTrace.traceId}</span></div>
                   <div><span className="text-slate-500">Request ID:</span> <span className="text-slate-200">{selectedTrace.requestId}</span></div>
+                  <div><span className="text-slate-500">Traffic Type:</span> <span className="text-teal-400">{selectedTrace.trafficType || 'APPLICATION'}</span></div>
                   <div><span className="text-slate-500">Client Platform:</span> <span className="text-slate-200">{selectedTrace.clientPlatform}</span></div>
                   <div><span className="text-slate-500">Client Route:</span> <span className="text-slate-200">{selectedTrace.clientRoute || '/'}</span></div>
                   <div><span className="text-slate-500">HTTP URL:</span> <span className="text-slate-200">{selectedTrace.httpUrl}</span></div>

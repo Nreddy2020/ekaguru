@@ -66,6 +66,10 @@ export interface RequestTrace {
   endTimeMs?: number;
   durationMs?: number;
   status: TraceStatus;
+  trafficType?: 'APPLICATION' | 'OBSERVE_INTERNAL';
+  isInternal?: boolean;
+  errorMessage?: string;
+  errorCategory?: ErrorCategory;
   rootCause?: RootCauseDiagnostic;
   spans: TraceSpan[];
 }

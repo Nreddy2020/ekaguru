@@ -67,6 +67,7 @@ export class ObserveController {
     @Query('status') status?: TraceStatus,
     @Query('errorCategory') errorCategory?: ErrorCategory,
     @Query('keyword') keyword?: string,
+    @Query('trafficType') trafficType?: 'ALL' | 'APPLICATION' | 'OBSERVE_INTERNAL',
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
@@ -77,12 +78,13 @@ export class ObserveController {
       status,
       errorCategory,
       keyword,
+      trafficType,
       limit: limit ? parseInt(limit, 10) : 50,
       offset: offset ? parseInt(offset, 10) : 0,
     };
 
     const traces = this.telemetryStore.search(searchParams);
-    const statistics = this.telemetryStore.getStatistics();
+    const statistics = this.telemetryStore.getStatistics(trafficType);
 
     return {
       data: traces,
