@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { RequestTrace, TraceStatus, ErrorCategory } from './trace-contract.types';
 import { TraceSanitizer } from './trace-sanitizer';
 
@@ -39,7 +39,7 @@ export class TelemetryStoreService {
   private totalRecorded = 0;
   private totalErrors = 0;
 
-  constructor(maxCapacity = 5000) {
+  constructor(@Optional() maxCapacity = 5000) {
     this.maxCapacity = Math.max(1, maxCapacity);
     this.buffer = new Array<RequestTrace>(this.maxCapacity);
     this.indexMap = new Map<string, RequestTrace>();

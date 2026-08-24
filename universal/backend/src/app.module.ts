@@ -33,6 +33,8 @@ import { SessionRecordingController } from './ai/session-recording.controller';
 import { HealthController } from './health.controller';
 import { MetricsController } from './metrics.controller';
 
+import { ObserveModule } from './observe/observe.module';
+
 @Module({
     imports: [
         ConfigModule.forRoot(),
@@ -47,7 +49,8 @@ import { MetricsController } from './metrics.controller';
             limit: 100
         }]),
         AuthModule,
-        LearningLibraryModule
+        LearningLibraryModule,
+        ObserveModule,
     ],
     controllers: [SubjectController, TutorController, UploadController, CognitiveLoopController, ParentController, HealthController, MetricsController, SessionRecordingController],
     providers: [
