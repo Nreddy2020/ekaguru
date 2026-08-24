@@ -81,39 +81,39 @@ export default function VitalisObservePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060A12] text-[#F4F7FA] font-sans antialiased flex flex-col selection:bg-teal-500 selection:text-black">
+    <div className="h-screen w-screen bg-[#060A12] text-[#F4F7FA] font-sans antialiased flex flex-col overflow-hidden selection:bg-teal-500 selection:text-black">
       {/* 1. Master Top Bar */}
-      <header className="h-18 bg-[#09111f] border-b border-white/[0.1] px-6 sm:px-10 flex items-center justify-between z-10 shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="h-16 bg-[#09111f] border-b border-white/[0.1] px-6 sm:px-8 flex items-center justify-between z-10 shrink-0">
+        <div className="flex items-center gap-3.5">
           <span className="text-2xl text-[#18D8D0]">◈</span>
-          <span className="text-white font-black text-lg sm:text-xl tracking-wider font-mono">
+          <span className="text-white font-black text-lg tracking-wider font-mono">
             VITALIS OBSERVE
           </span>
-          <span className="text-sm sm:text-base text-slate-300 font-medium hidden md:inline pl-4 border-l border-white/[0.15]">
+          <span className="text-xs sm:text-sm text-slate-300 font-medium hidden md:inline pl-3.5 border-l border-white/[0.15]">
             Universal Observability • Causal Intelligence
           </span>
         </div>
 
         {/* Search */}
-        <div className="hidden lg:flex items-center gap-3 bg-[#060A12] border border-white/[0.12] rounded-2xl px-4 py-2.5 w-96 text-sm text-slate-300 focus-within:border-teal-400 transition-colors">
-          <span className="text-slate-400 text-base">⌕</span>
+        <div className="hidden lg:flex items-center gap-2.5 bg-[#060A12] border border-white/[0.12] rounded-2xl px-3.5 py-1.5 w-80 text-sm text-slate-300 focus-within:border-teal-400 transition-colors">
+          <span className="text-slate-400 text-sm">⌕</span>
           <input
             type="text"
-            placeholder="Search requests, services, incidents..."
+            placeholder="Search services, requests, incidents..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent text-white placeholder-slate-400 text-sm sm:text-base w-full focus:outline-none font-mono"
+            className="bg-transparent text-white placeholder-slate-400 text-xs sm:text-sm w-full focus:outline-none font-mono"
           />
-          <kbd className="text-xs font-mono text-slate-400 px-2 py-0.5 rounded bg-white/[0.08] font-bold">
+          <kbd className="text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-white/[0.08] font-bold">
             ⌘K
           </kbd>
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setPresentationMode(!presentationMode)}
-            className={`px-4 py-2 rounded-2xl text-sm font-bold border transition-all ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold border transition-all ${
               presentationMode
                 ? 'bg-teal-500/20 text-teal-300 border-teal-500/40 shadow-sm'
                 : 'text-slate-300 border-white/[0.12] hover:text-white hover:bg-white/[0.04]'
@@ -122,10 +122,10 @@ export default function VitalisObservePage() {
             📺 <span className="hidden lg:inline ml-1">Presentation</span>
           </button>
 
-          <div className="flex items-center rounded-2xl bg-[#060A12] border border-white/[0.12] p-1 text-sm font-bold">
+          <div className="flex items-center rounded-xl bg-[#060A12] border border-white/[0.12] p-0.5 text-xs sm:text-sm font-bold">
             <button
               onClick={() => setEnvironment('LAB')}
-              className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${
+              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
                 environment === 'LAB'
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -136,7 +136,7 @@ export default function VitalisObservePage() {
             </button>
             <button
               onClick={() => setEnvironment('DEMO')}
-              className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${
+              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
                 environment === 'DEMO'
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -147,7 +147,7 @@ export default function VitalisObservePage() {
             </button>
             <button
               onClick={() => setEnvironment('PRODUCTION')}
-              className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${
+              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
                 environment === 'PRODUCTION'
                   ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -160,18 +160,18 @@ export default function VitalisObservePage() {
 
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-[#060A12] border border-white/[0.12] text-sm font-bold text-emerald-400 hover:border-white/[0.2] transition-all shadow-sm"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#060A12] border border-white/[0.12] text-xs sm:text-sm font-bold text-emerald-400 hover:border-white/[0.2] transition-all shadow-sm"
           >
-            <span className={`w-3 h-3 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400' : 'bg-slate-500'}`} />
+            <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400' : 'bg-slate-500'}`} />
             <span className="hidden sm:inline">LIVE (3s)</span>
           </button>
         </div>
       </header>
 
       {/* 2. Global Context Bar */}
-      <div className="bg-[#0b1424] border-b border-white/[0.1] px-6 sm:px-10 py-3 flex flex-wrap items-center justify-between text-sm sm:text-base font-mono text-slate-300 gap-4 shrink-0">
-        <div className="flex items-center gap-3.5 flex-wrap">
-          <span className="text-[#18D8D0] font-black text-sm sm:text-base">
+      <div className="bg-[#0b1424] border-b border-white/[0.1] px-6 sm:px-8 py-2 flex flex-wrap items-center justify-between text-xs sm:text-sm font-mono text-slate-300 gap-3 shrink-0">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-[#18D8D0] font-black">
             {environment === 'LAB'
               ? 'LAB · EKAGURU LIVE'
               : environment === 'DEMO'
@@ -196,12 +196,12 @@ export default function VitalisObservePage() {
           )}
         </div>
 
-        <div className="flex items-center gap-4 ml-auto">
-          <div className="flex items-center gap-2 bg-[#060A12] px-3.5 py-1.5 rounded-xl border border-white/[0.1] text-xs sm:text-sm">
+        <div className="flex items-center gap-3.5 ml-auto">
+          <div className="flex items-center gap-2 bg-[#060A12] px-3 py-1 rounded-xl border border-white/[0.1] text-xs">
             <span>⏱️ Last 15m</span>
           </div>
-          <span className="text-emerald-400 font-bold flex items-center gap-2 text-xs sm:text-sm">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" />
+          <span className="text-emerald-400 font-bold flex items-center gap-1.5 text-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" />
             <span>Nominal</span>
           </span>
         </div>
@@ -209,7 +209,7 @@ export default function VitalisObservePage() {
 
       {/* DEMO Mode Banner */}
       {environment === 'DEMO' && (
-        <div className="bg-amber-950/40 border-b border-amber-600/40 px-6 py-2.5 text-center text-sm sm:text-base text-amber-300 font-bold flex items-center justify-center gap-2">
+        <div className="bg-amber-950/40 border-b border-amber-600/40 px-6 py-2 text-center text-xs sm:text-sm text-amber-300 font-bold flex items-center justify-center gap-2">
           <span>⚠️ DEMO MODE ACTIVE</span>
           <span className="font-normal text-amber-200/90">
             — Rendering simulated enterprise transaction journey (WebSphere ➔ MQ ➔ DB2 with lock contention RCA).
@@ -228,7 +228,7 @@ export default function VitalisObservePage() {
           />
         )}
 
-        <main className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-8 w-full h-[calc(100vh-4.75rem)]">
+        <main className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 w-full">
           {activeNav === 'COMMAND_CENTER' && overview && (
             <CommandCenterView
               overview={overview}
@@ -247,14 +247,14 @@ export default function VitalisObservePage() {
               <div className="p-8 rounded-3xl bg-[#0d1629] border border-white/[0.12] shadow-2xl space-y-4">
                 <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 text-sm font-mono">
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-white text-lg sm:text-xl">Canonical Request Stream</span>
+                    <span className="font-bold text-white text-lg">Canonical Request Stream</span>
                     <span className="text-slate-400">({requests.length} recorded)</span>
                   </div>
                   <span className="text-teal-400 font-bold">Click row to open Request 360 Sheet</span>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm sm:text-base border-collapse">
+                  <table className="w-full text-left text-sm border-collapse">
                     <thead>
                       <tr className="border-b border-white/[0.08] text-slate-400 font-bold bg-[#060A12]/50">
                         <th className="py-4 px-5">Started At</th>
@@ -268,7 +268,7 @@ export default function VitalisObservePage() {
                     <tbody className="divide-y divide-white/[0.06] font-mono">
                       {requests.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-12 text-center text-slate-400 text-base font-sans">
+                          <td colSpan={6} className="p-12 text-center text-slate-400 text-sm font-sans">
                             No requests recorded for active environment.
                           </td>
                         </tr>
