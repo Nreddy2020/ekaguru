@@ -8,6 +8,8 @@ interface Request360DrawerProps {
   request: VitalisRequest | null;
   isOpen: boolean;
   onClose: () => void;
+  onOpenAgentContext?: () => void;
+  onOpenFixVerification?: () => void;
 }
 
 type TabType = 'overview' | 'journey' | 'spans' | 'causal' | 'evidence' | 'learning';
@@ -16,6 +18,8 @@ export const Request360Drawer: React.FC<Request360DrawerProps> = ({
   request,
   isOpen,
   onClose,
+  onOpenAgentContext,
+  onOpenFixVerification,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
@@ -23,7 +27,7 @@ export const Request360Drawer: React.FC<Request360DrawerProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-xl bg-[#08101D] border-l border-[#1a2d4c] shadow-2xl h-full flex flex-col justify-between p-6 overflow-y-auto text-slate-200 font-sans">
+      <div className="w-full max-w-xl bg-[#08101D] border-l border-[#1a2d4c] shadow-2xl h-full flex flex-col justify-between p-6 overflow-y-auto text-slate-200 font-sans space-y-6">
         <div className="space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[#1a2d4c] pb-3">
@@ -42,6 +46,28 @@ export const Request360Drawer: React.FC<Request360DrawerProps> = ({
             >
               ✕
             </button>
+          </div>
+
+          {/* Machine Control Surface Action Banner */}
+          <div className="p-3.5 rounded-xl bg-[#0B1526] border border-teal-500/30 flex items-center justify-between text-xs font-mono">
+            <div>
+              <span className="text-white font-bold block">🤖 AGENT DIAGNOSTIC</span>
+              <span className="text-slate-400 text-[11px]">Structured machine evidence contract</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={onOpenAgentContext}
+                className="px-2.5 py-1.5 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-xs font-bold transition-colors"
+              >
+                Open Context →
+              </button>
+              <button
+                onClick={onOpenFixVerification}
+                className="px-2.5 py-1.5 rounded-lg bg-[#14233c] hover:bg-[#1c3258] text-slate-200 border border-[#234375] text-xs font-bold transition-colors"
+              >
+                Verify Fix ⚖️
+              </button>
+            </div>
           </div>
 
           {/* 6 Tabs */}
@@ -120,7 +146,7 @@ export const Request360Drawer: React.FC<Request360DrawerProps> = ({
           {activeTab === 'spans' && (
             <div className="space-y-3">
               <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
-                Database & Subsystem Spans
+                Database &amp; Subsystem Spans
               </span>
               <div className="space-y-2">
                 {(request.evidenceJson?.databaseQueries || [
@@ -144,7 +170,7 @@ export const Request360Drawer: React.FC<Request360DrawerProps> = ({
           {activeTab === 'causal' && (
             <div className="space-y-3">
               <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
-                Upstream Cause & Downstream Propagation
+                Upstream Cause &amp; Downstream Propagation
               </span>
               <div className="p-4 rounded-xl bg-[#0B1526] border border-[#1a2d4c] space-y-3 text-xs">
                 <div>

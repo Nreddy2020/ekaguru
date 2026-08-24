@@ -212,4 +212,29 @@ describe('VITALIS OBSERVE: Phase 1 & 2 Canonical Architecture & Intelligence Coc
       expect(screen.getByText(/KA-DB2-LOCK-CONTENTION-001/i)).toBeInTheDocument();
     });
   });
+
+  it('should open Agent Diagnostic Package drawer when clicking Agent Package button', async () => {
+    render(<VitalisObservePage />);
+    const agentPackageBtn = screen.getByText(/Agent Package/i);
+    fireEvent.click(agentPackageBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/AGENT DIAGNOSTIC PACKAGE/i)).toBeInTheDocument();
+      expect(screen.getByText(/COPY AGENT PACKAGE/i)).toBeInTheDocument();
+      expect(screen.getByText(/Suspected Code Location/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should open Fix Verification drawer and render Before vs After fingerprint', async () => {
+    render(<VitalisObservePage />);
+    const verifyFixBtn = screen.getByText(/Verify Fix/i);
+    fireEvent.click(verifyFixBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/VITALIS FIX VERIFICATION/i)).toBeInTheDocument();
+      expect(screen.getByText(/BEFORE FIX \(Incident\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/AFTER FIX \(Re-observed\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/5 \/ 5 PASS/i)).toBeInTheDocument();
+    });
+  });
 });
