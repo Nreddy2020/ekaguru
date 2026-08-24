@@ -17,5 +17,8 @@ dist/
 
 # Ekaguru Artifacts
 *.log
+*.exe
+*.bat
+*.cmd
 tmp/
 uploads/
