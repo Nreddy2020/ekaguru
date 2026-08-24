@@ -5,14 +5,15 @@ import {
   CallHandler,
   Logger,
   HttpException,
+  Optional,
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Request, Response } from 'express';
 import { TraceSpan, TraceIdGenerator, TraceContext, RequestTrace } from './trace-contract.types';
 import { TraceSanitizer } from './trace-sanitizer';
+import { TelemetryStoreService } from './telemetry-store.service';
 
-// Extend Express Request interface to carry completed request trace
 declare global {
   namespace Express {
     interface Request {
@@ -25,12 +26,13 @@ declare global {
 export class TraceInterceptor implements NestInterceptor {
   private readonly logger = new Logger(TraceInterceptor.name);
 
+  constructor(@Optional() private readonly telemetryStore?: TelemetryStoreService) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const httpContext = context.switchToHttp();
     const req = httpContext.getRequest<Request>();
     const res = httpContext.getResponse<Response>();
 
-    // Fallback if middleware was bypassed
     const traceCtx: TraceContext =
       req?.traceContext || TraceIdGenerator.createTraceContext({ clientRoute: req?.path });
 
@@ -86,6 +88,10 @@ export class TraceInterceptor implements NestInterceptor {
           };
 
           req.completedTrace = requestTrace;
+
+          if (this.telemetryStore) {
+            this.telemetryStore.store(requestTrace);
+          }
         } catch (err: any) {
           this.logger.warn(`Fail-safe span completion error: ${err?.message || err}`);
         }
@@ -125,6 +131,10 @@ export class TraceInterceptor implements NestInterceptor {
           };
 
           req.completedTrace = requestTrace;
+
+          if (this.telemetryStore) {
+            this.telemetryStore.store(requestTrace);
+          }
         } catch (err: any) {
           this.logger.warn(`Fail-safe error span completion error: ${err?.message || err}`);
         }
