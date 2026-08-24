@@ -57,6 +57,8 @@ import { OutboxService } from './session/outbox.service';
 import { OutboxWorkerService } from './session/outbox-worker.service';
 import { DeterministicTutorProvider } from './session/deterministic-tutor-provider.service';
 import { TutorOrchestratorService } from './session/tutor-orchestrator.service';
+import { KnowledgeActivatorService } from './knowledge/knowledge-activator.service';
+import { MisconceptionClassifierService } from './mastery/misconception-classifier.service';
 
 @Module({
   controllers: [
@@ -114,6 +116,8 @@ import { TutorOrchestratorService } from './session/tutor-orchestrator.service';
     OutboxWorkerService,
     DeterministicTutorProvider,
     TutorOrchestratorService,
+    KnowledgeActivatorService,
+    MisconceptionClassifierService,
   ],
   exports: [
     PrismaService,
@@ -155,6 +159,8 @@ import { TutorOrchestratorService } from './session/tutor-orchestrator.service';
     OutboxService,
     OutboxWorkerService,
     TutorOrchestratorService,
+    KnowledgeActivatorService,
+    MisconceptionClassifierService,
   ],
 })
 export class LearningLibraryModule {}
