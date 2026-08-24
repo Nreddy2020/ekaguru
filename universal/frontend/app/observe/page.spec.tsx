@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import ObserveCockpitPage from './page';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import VitalisObservePage from './page';
 
 global.fetch = jest.fn().mockImplementation((url: string) => {
   if (url.includes('/health')) {
@@ -11,7 +11,7 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
           timestamp: new Date().toISOString(),
           status: 'HEALTHY',
           backend: { status: 'UP', uptimeSeconds: 120, nodeVersion: 'v20.0.0', pid: 1234 },
-          database: { status: 'UP', latencyMs: 5 },
+          database: { status: 'UP', latencyMs: 4 },
           memory: { status: 'HEALTHY', heapUsedMb: 45, heapTotalMb: 90, percentUsed: 72 },
           storage: { status: 'ACCESSIBLE', uploadDirectory: './uploads', writable: true },
         }),
@@ -25,58 +25,61 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
         Promise.resolve({
           data: [
             {
-              traceId: '7f8e2d1a-4c9b-4b7a-9aab-2e1c9f8b6d11',
+              traceId: 'trc_real_prisma_01',
               requestId: 'req_01J923K8Y2QW5X7V6B1GJ8K2M9',
               clientPlatform: 'browser',
-              clientRoute: '/upload',
-              httpMethod: 'POST',
-              httpUrl: '/upload',
-              httpStatus: 500,
+              clientRoute: '/library',
+              httpMethod: 'GET',
+              httpUrl: '/api/v2/learning-materials',
+              httpStatus: 200,
               startTimeIso: new Date().toISOString(),
-              startTimeMs: Date.now() - 8420,
-              durationMs: 8420,
-              status: 'ERROR',
-              errorMessage: 'Database query timeout in ContentTopic insertion',
+              startTimeMs: Date.now() - 25,
+              durationMs: 25,
+              status: 'OK',
               trafficType: 'APPLICATION',
               spans: [
                 {
                   spanId: 'spn_1',
-                  traceId: '7f8e2d1a-4c9b-4b7a-9aab-2e1c9f8b6d11',
-                  requestId: 'req_01J923K8Y2QW5X7V6B1GJ8K2M9',
-                  name: 'HTTP POST /upload',
+                  traceId: 'trc_real_prisma_01',
+                  name: 'HTTP GET /api/v2/learning-materials',
                   kind: 'CONTROLLER',
-                  startTimeMs: Date.now() - 8420,
-                  durationMs: 8420,
-                  status: 'ERROR',
+                  durationMs: 25,
+                  status: 'OK',
                   attributes: {},
                 },
                 {
                   spanId: 'spn_2',
-                  traceId: '7f8e2d1a-4c9b-4b7a-9aab-2e1c9f8b6d11',
-                  requestId: 'req_01J923K8Y2QW5X7V6B1GJ8K2M9',
-                  name: 'Prisma ContentTopic.create',
+                  traceId: 'trc_real_prisma_01',
+                  name: 'Prisma Learner.findMany',
                   kind: 'DATABASE',
-                  startTimeMs: Date.now() - 8400,
-                  durationMs: 7140,
-                  status: 'ERROR',
-                  errorMessage: 'Query timeout in ContentTopic insertion',
-                  attributes: { model: 'ContentTopic', action: 'create' },
+                  durationMs: 4,
+                  status: 'OK',
+                  attributes: { model: 'Learner', action: 'findMany' },
+                },
+                {
+                  spanId: 'spn_3',
+                  traceId: 'trc_real_prisma_01',
+                  name: 'Prisma LearningMaterial.findMany',
+                  kind: 'DATABASE',
+                  durationMs: 4,
+                  status: 'OK',
+                  attributes: { model: 'LearningMaterial', action: 'findMany' },
                 },
               ],
             },
           ],
           statistics: {
-            totalRequests: 1248,
-            successCount: 1180,
-            errorCount: 68,
-            avgDurationMs: 412,
-            p50DurationMs: 142,
-            p95DurationMs: 812,
-            errorRatePercent: 5.4,
-            activeTracesCount: 50,
+            totalRequests: 2,
+            successCount: 2,
+            errorCount: 0,
+            avgDurationMs: 25,
+            p50DurationMs: 25,
+            p95DurationMs: 25,
+            errorRatePercent: 0,
+            activeTracesCount: 2,
             inProgressCount: 0,
-            applicationRequestsCount: 1248,
-            internalRequestsCount: 500,
+            applicationRequestsCount: 2,
+            internalRequestsCount: 15,
           },
         }),
     });
@@ -85,21 +88,34 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
   return Promise.reject(new Error('Unknown URL'));
 }) as any;
 
-describe('OBS-001: Production Observe Cockpit with Traffic Separation and Truthful Telemetry', () => {
-  it('should render clean production header, traffic scope buttons, and 5 KPI cards with in-progress = 0', () => {
-    render(<ObserveCockpitPage />);
-    expect(screen.getByText(/EKAGURU OBSERVE/i)).toBeInTheDocument();
-    expect(screen.getByText(/Understand every request, find problems, and fix them/i)).toBeInTheDocument();
-    expect(screen.getByText(/App Traffic/i)).toBeInTheDocument();
-    expect(screen.getByText(/Total Requests/i)).toBeInTheDocument();
-    expect(screen.getByText(/In Progress/i)).toBeInTheDocument();
+describe('VITALIS OBSERVE: Phase 1 Canonical Architecture & Cockpit', () => {
+  it('should render the VITALIS header, mode switchers, and Command Center by default in LAB mode', async () => {
+    render(<VitalisObservePage />);
+    expect(screen.getByText(/VITALIS OBSERVE/i)).toBeInTheDocument();
+    expect(screen.getByText(/LAB \(Ekaguru Live\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/DEMO \(Enterprise Simulator\)/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Operational Score/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/SLA Compliance/i).length).toBeGreaterThan(0);
   });
 
-  it('should render Live Request Stream, proportional waterfall view, and truthful subsystem health', async () => {
-    render(<ObserveCockpitPage />);
-    expect(screen.getByText(/Live Request Stream/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/System Health/i).length).toBeGreaterThan(0);
-    expect(await screen.findByText(/REQUEST 360 – WATERFALL VIEW/i)).toBeInTheDocument();
-    expect(screen.getByText(/Not instrumented/i)).toBeInTheDocument();
+  it('should switch to Application Inventory view and render services catalog', async () => {
+    render(<VitalisObservePage />);
+    const inventoryButton = screen.getByText(/Application Inventory/i);
+    fireEvent.click(inventoryButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/universal-backend/i)).toBeInTheDocument();
+      expect(screen.getByText(/cognitive_memory \(PostgreSQL\)/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should switch to DEMO mode and show enterprise simulation banner and scenarios', async () => {
+    render(<VitalisObservePage />);
+    const demoButton = screen.getByText(/DEMO \(Enterprise Simulator\)/i);
+    fireEvent.click(demoButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/DEMO MODE ACTIVE/i)).toBeInTheDocument();
+    });
   });
 });
