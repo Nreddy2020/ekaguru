@@ -51,35 +51,35 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
 }) => {
   const navGroups: NavGroup[] = [
     {
-      groupName: 'Overview',
+      groupName: 'OVERVIEW',
       items: [{ id: 'COMMAND_CENTER', label: 'Command Center', icon: '◉' }],
     },
     {
-      groupName: 'Observe',
+      groupName: 'OBSERVE',
       items: [
-        { id: 'LIVE_REQUESTS', label: 'Live Requests', icon: '↗' },
+        { id: 'LIVE_REQUESTS', label: 'Live Requests', icon: '⚡' },
         { id: 'REQUEST_JOURNEYS', label: 'Request Journeys', icon: '◎' },
       ],
     },
     {
-      groupName: 'Environment',
+      groupName: 'ENVIRONMENT',
       items: [
         { id: 'APP_INVENTORY', label: 'Application Inventory', icon: '▦' },
         { id: 'TOPOLOGY', label: 'Topology Map', icon: '⌘' },
       ],
     },
     {
-      groupName: 'Health & Impact',
+      groupName: 'HEALTH & IMPACT',
       items: [
         { id: 'PERFORMANCE', label: 'Performance', icon: '◒' },
         { id: 'HEALTH', label: 'Subsystem Health', icon: '♥' },
         { id: 'BUSINESS_IMPACT', label: 'Business Impact', icon: '◈' },
         { id: 'ERRORS', label: 'Errors & Anomalies', icon: '△', badge: activeIncidentsCount },
-        { id: 'CAPACITY', label: 'Capacity', icon: '◌' },
+        { id: 'CAPACITY', label: 'Capacity Intelligence', icon: '◌' },
       ],
     },
     {
-      groupName: 'Intelligence',
+      groupName: 'INTELLIGENCE',
       items: [
         { id: 'EVIDENCE_RCA', label: 'Evidence & RCA', icon: '⌕' },
         { id: 'CHANGE_INTELLIGENCE', label: 'Change Timeline', icon: '⇄' },
@@ -89,7 +89,7 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
       ],
     },
     {
-      groupName: 'Action',
+      groupName: 'ACTION & REPORT',
       items: [
         { id: 'CONDITIONS_ALERTS', label: 'Conditions & Alerts', icon: '◇' },
         { id: 'ACTIONS_RUNBOOKS', label: 'Actions & Runbooks', icon: '⚙' },
@@ -99,45 +99,45 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
   ];
 
   return (
-    <aside className="w-64 bg-[#08101D]/90 backdrop-blur-2xl border-r border-white/[0.08] p-4 flex flex-col justify-between h-full overflow-y-auto shrink-0 select-none">
+    <aside className="w-72 bg-[#09111f] border-r border-white/[0.1] p-5 flex flex-col justify-between h-full overflow-y-auto shrink-0 select-none">
       <div className="space-y-6">
-        {/* Upload Hub Button */}
+        {/* Upload Action */}
         <button
           onClick={onOpenUpload}
-          className="w-full py-3 px-4 rounded-2xl bg-teal-500/15 border border-teal-500/35 text-teal-300 font-bold text-xs flex items-center justify-center gap-2.5 hover:bg-teal-500/25 transition-all shadow-sm"
+          className="w-full py-3.5 px-4 rounded-2xl bg-teal-500/20 border border-teal-500/40 text-teal-300 font-bold text-sm flex items-center justify-center gap-2.5 hover:bg-teal-500/30 transition-all shadow-md"
         >
-          <span className="text-base font-bold">＋</span>
-          <span className="tracking-wide">Upload Evidence</span>
+          <span className="text-lg">＋</span>
+          <span>Upload Evidence</span>
         </button>
 
         {/* Navigation Groups */}
-        <div className="space-y-5">
+        <div className="space-y-6">
           {navGroups.map((group) => (
-            <div key={group.groupName} className="space-y-1">
-              <div className="text-[11px] font-bold text-slate-400 px-3 uppercase tracking-wider">
+            <div key={group.groupName} className="space-y-1.5">
+              <div className="text-xs font-extrabold text-slate-400 uppercase tracking-widest px-3">
                 {group.groupName}
               </div>
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {group.items.map((item) => {
                   const isActive = activeNav === item.id;
                   return (
                     <button
                       key={item.id}
                       onClick={() => onSelectNav(item.id)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-medium transition-all text-left ${
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition-all text-left ${
                         isActive
-                          ? 'bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40 shadow-xs'
+                          ? 'bg-teal-500/25 text-teal-300 font-bold border border-teal-500/40 shadow-sm'
                           : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className={`text-sm ${isActive ? 'text-teal-400 font-bold' : 'text-slate-400'}`}>
+                        <span className={`text-base ${isActive ? 'text-teal-400 font-bold' : 'text-slate-400'}`}>
                           {item.icon}
                         </span>
                         <span className="truncate">{item.label}</span>
                       </div>
                       {item.badge !== undefined && item.badge > 0 && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 border border-rose-500/40 font-mono">
                           {item.badge}
                         </span>
                       )}
@@ -150,13 +150,13 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
         </div>
       </div>
 
-      {/* Footer Trust Indicator */}
-      <div className="pt-4 border-t border-white/[0.08] text-xs text-slate-400 space-y-1 px-1">
-        <div className="text-teal-400 font-bold flex items-center gap-1.5 text-xs">
+      {/* Footer Safe Telemetry Status */}
+      <div className="pt-5 border-t border-white/[0.1] text-xs text-slate-400 space-y-1.5 px-2">
+        <div className="text-teal-400 font-bold flex items-center gap-2 text-sm">
           <span>🔒</span>
           <span>Safe Observation</span>
         </div>
-        <p className="text-[11px] text-slate-400 leading-snug">PII auto-masked before canonical indexing.</p>
+        <p className="text-xs text-slate-400 leading-snug">PII automatically masked before canonical indexing.</p>
       </div>
     </aside>
   );

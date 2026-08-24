@@ -7,7 +7,6 @@ import { ApplicationInventoryView } from '../../components/vitalis/ApplicationIn
 import { UploadEvidenceModal } from '../../components/vitalis/UploadEvidenceModal';
 import { Request360Drawer } from '../../components/vitalis/drawers/Request360Drawer';
 import { SubsystemDrawer } from '../../components/vitalis/drawers/SubsystemDrawer';
-import { VitalisContextHeader } from '../../components/vitalis/ui/VitalisContextHeader';
 import { VitalisStatusPill } from '../../components/vitalis/ui/VitalisBadge';
 import {
   TopologyView,
@@ -41,7 +40,6 @@ export default function VitalisObservePage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [presentationMode, setPresentationMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   const provider = getVitalisProvider(environment);
 
@@ -85,52 +83,52 @@ export default function VitalisObservePage() {
   return (
     <div className="min-h-screen bg-[#060A12] text-[#F4F7FA] font-sans antialiased flex flex-col selection:bg-teal-500 selection:text-black">
       {/* 1. Master Top Bar */}
-      <header className="h-16 bg-[#08101D]/70 backdrop-blur-xl border-b border-white/[0.06] px-5 sm:px-8 flex items-center justify-between z-10 shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="text-xl text-[#18D8D0]">◈</span>
-          <span className="text-white font-extrabold text-sm tracking-wider font-mono">
+      <header className="h-18 bg-[#09111f] border-b border-white/[0.1] px-6 sm:px-10 flex items-center justify-between z-10 shrink-0">
+        <div className="flex items-center gap-4">
+          <span className="text-2xl text-[#18D8D0]">◈</span>
+          <span className="text-white font-black text-base sm:text-lg tracking-wider font-mono">
             VITALIS OBSERVE
           </span>
-          <span className="text-xs text-slate-400 font-normal hidden sm:inline pl-2 border-l border-white/[0.08]">
+          <span className="text-sm text-slate-300 font-medium hidden md:inline pl-3 border-l border-white/[0.15]">
             Universal Observability • Causal Intelligence
           </span>
         </div>
 
         {/* Search */}
-        <div className="hidden md:flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 py-1.5 w-80 text-xs text-slate-400 focus-within:border-teal-500 transition-colors">
-          <span className="text-slate-500">⌕</span>
+        <div className="hidden lg:flex items-center gap-2.5 bg-[#060A12] border border-white/[0.12] rounded-2xl px-4 py-2 w-96 text-sm text-slate-300 focus-within:border-teal-400 transition-colors">
+          <span className="text-slate-400 text-base">⌕</span>
           <input
             type="text"
             placeholder="Search requests, services, incidents..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent text-slate-200 placeholder-slate-500 text-xs w-full focus:outline-none font-mono"
+            className="bg-transparent text-white placeholder-slate-400 text-sm w-full focus:outline-none font-mono"
           />
-          <kbd className="text-[10px] font-mono text-slate-500 px-1.5 py-0.5 rounded bg-white/[0.04]">
+          <kbd className="text-xs font-mono text-slate-400 px-2 py-0.5 rounded bg-white/[0.08] font-bold">
             ⌘K
           </kbd>
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <button
             onClick={() => setPresentationMode(!presentationMode)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+            className={`px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-bold border transition-all ${
               presentationMode
                 ? 'bg-teal-500/20 text-teal-300 border-teal-500/40 shadow-sm'
-                : 'text-slate-400 border-white/[0.08] hover:text-slate-200'
+                : 'text-slate-300 border-white/[0.12] hover:text-white hover:bg-white/[0.04]'
             }`}
           >
             📺 <span className="hidden lg:inline ml-1">Presentation</span>
           </button>
 
-          <div className="flex items-center rounded-xl bg-white/[0.03] border border-white/[0.08] p-0.5 text-xs font-semibold">
+          <div className="flex items-center rounded-2xl bg-[#060A12] border border-white/[0.12] p-1 text-xs sm:text-sm font-bold">
             <button
               onClick={() => setEnvironment('LAB')}
-              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                 environment === 'LAB'
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <span>🧪</span>
@@ -138,10 +136,10 @@ export default function VitalisObservePage() {
             </button>
             <button
               onClick={() => setEnvironment('DEMO')}
-              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                 environment === 'DEMO'
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <span>🎭</span>
@@ -149,10 +147,10 @@ export default function VitalisObservePage() {
             </button>
             <button
               onClick={() => setEnvironment('PRODUCTION')}
-              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                 environment === 'PRODUCTION'
                   ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <span>🏭</span>
@@ -162,177 +160,171 @@ export default function VitalisObservePage() {
 
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-emerald-400 hover:border-white/[0.16] transition-all shadow-sm"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-[#060A12] border border-white/[0.12] text-xs sm:text-sm font-bold text-emerald-400 hover:border-white/[0.2] transition-all shadow-sm"
           >
-            <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+            <span className={`w-2.5 h-2.5 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400' : 'bg-slate-500'}`} />
             <span className="hidden sm:inline">LIVE (3s)</span>
           </button>
         </div>
       </header>
 
-      {/* 2. Global Context Header */}
-      <VitalisContextHeader
-        environment={environment}
-        servicesCount={inventory.length}
-        activeService={selectedRequest?.businessService}
-        activeRequest={selectedRequest?.transactionType}
-      />
+      {/* 2. Global Context Bar */}
+      <div className="bg-[#0b1424] border-b border-white/[0.1] px-6 sm:px-10 py-2.5 flex flex-wrap items-center justify-between text-xs sm:text-sm font-mono text-slate-300 gap-4 shrink-0">
+        <div className="flex items-center gap-3.5 flex-wrap">
+          <span className="text-[#18D8D0] font-black text-sm">
+            {environment === 'LAB'
+              ? 'LAB · EKAGURU LIVE'
+              : environment === 'DEMO'
+              ? 'DEMO · ENTERPRISE SIMULATOR'
+              : 'PROD · ENTERPRISE CLUSTERS'}
+          </span>
+          <span className="text-slate-600">•</span>
+          <span>Region: <strong className="text-white">Local Node</strong></span>
+          <span className="text-slate-600">•</span>
+          <span>Services: <strong className="text-white">{inventory.length}</strong></span>
+          {selectedRequest?.businessService && (
+            <>
+              <span className="text-slate-600">•</span>
+              <span>Service: <strong className="text-teal-300 font-bold">{selectedRequest.businessService}</strong></span>
+            </>
+          )}
+          {selectedRequest?.transactionType && (
+            <>
+              <span className="text-slate-600">•</span>
+              <span>Focus: <strong className="text-amber-300 font-bold">{selectedRequest.transactionType}</strong></span>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-2 bg-[#060A12] px-3 py-1 rounded-xl border border-white/[0.1] text-xs">
+            <span>⏱️ Last 15m</span>
+          </div>
+          <span className="text-emerald-400 font-bold flex items-center gap-2 text-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" />
+            <span>Nominal</span>
+          </span>
+        </div>
+      </div>
 
       {/* DEMO Mode Banner */}
       {environment === 'DEMO' && (
-        <div className="bg-amber-950/40 border-b border-amber-600/40 px-4 py-2 text-center text-xs text-amber-300 font-semibold flex items-center justify-center gap-2">
+        <div className="bg-amber-950/40 border-b border-amber-600/40 px-6 py-2 text-center text-sm text-amber-300 font-bold flex items-center justify-center gap-2">
           <span>⚠️ DEMO MODE ACTIVE</span>
-          <span className="font-normal text-amber-200/80">
+          <span className="font-normal text-amber-200/90">
             — Rendering simulated enterprise transaction journey (WebSphere ➔ MQ ➔ DB2 with lock contention RCA).
           </span>
         </div>
       )}
 
-      {/* Presentation Mode Editorial Storytelling */}
-      {presentationMode ? (
-        <div className="flex-1 p-10 max-w-4xl mx-auto flex flex-col justify-center items-center text-center space-y-10 animate-in fade-in duration-300">
-          <div className="space-y-3">
-            <span className="text-teal-400 font-mono text-xs font-bold uppercase tracking-widest">
-              VITALIS CAUSAL STORY
-            </span>
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
-              {environment === 'DEMO' ? 'Payment Processing Incident' : 'Operational System Status'}
-            </h1>
-          </div>
-
-          <div className="grid grid-cols-3 gap-6 w-full">
-            <div className="p-8 rounded-3xl bg-[#0c1424]/80 backdrop-blur-xl border border-white/[0.08] space-y-2">
-              <span className="text-xs text-slate-400 font-mono">OPERATIONAL HEALTH</span>
-              <span className="text-6xl font-extrabold text-white font-mono block">{overview?.operationalScore || 100}</span>
-              <span className="text-xs text-emerald-400">Nominal Telemetry</span>
-            </div>
-            <div className="p-8 rounded-3xl bg-[#0c1424]/80 backdrop-blur-xl border border-white/[0.08] space-y-2">
-              <span className="text-xs text-slate-400 font-mono">SLA COMPLIANCE</span>
-              <span className="text-6xl font-extrabold text-teal-300 font-mono block">{overview?.slaPercent || 100}%</span>
-              <span className="text-xs text-teal-400">Target ≤ 2.0s</span>
-            </div>
-            <div className="p-8 rounded-3xl bg-[#0c1424]/80 backdrop-blur-xl border border-white/[0.08] space-y-2">
-              <span className="text-xs text-slate-400 font-mono">ACTIVE RISKS</span>
-              <span className="text-6xl font-extrabold text-emerald-400 font-mono block">0</span>
-              <span className="text-xs text-slate-400">Protected Architecture</span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setPresentationMode(false)}
-            className="px-6 py-2.5 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-lg transition-all"
-          >
-            Exit Presentation Mode
-          </button>
-        </div>
-      ) : (
-        /* Standard iPadOS Workspace Layout */
-        <div className="flex flex-1 overflow-hidden">
+      {/* Main Workspace Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {!presentationMode && (
           <VitalisSidebar
             activeNav={activeNav}
             onSelectNav={setActiveNav}
             activeIncidentsCount={overview?.activeIncidentsCount || 0}
             onOpenUpload={() => setIsUploadOpen(true)}
           />
+        )}
 
-          <main className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-8">
-            {activeNav === 'COMMAND_CENTER' && overview && (
-              <CommandCenterView
-                overview={overview}
-                onInvestigateIncident={() => setActiveNav('EVIDENCE_RCA')}
-                onViewAllRequests={() => setActiveNav('LIVE_REQUESTS')}
-                onSelectSubsystem={handleSelectSubsystem}
-              />
-            )}
+        <main className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-8 w-full">
+          {activeNav === 'COMMAND_CENTER' && overview && (
+            <CommandCenterView
+              overview={overview}
+              onInvestigateIncident={() => setActiveNav('EVIDENCE_RCA')}
+              onViewAllRequests={() => setActiveNav('LIVE_REQUESTS')}
+              onSelectSubsystem={handleSelectSubsystem}
+            />
+          )}
 
-            {activeNav === 'APP_INVENTORY' && (
-              <ApplicationInventoryView inventory={inventory} />
-            )}
+          {activeNav === 'APP_INVENTORY' && (
+            <ApplicationInventoryView inventory={inventory} />
+          )}
 
-            {(activeNav === 'LIVE_REQUESTS' || activeNav === 'REQUEST_JOURNEYS') && (
-              <div className="space-y-4 max-w-6xl mx-auto">
-                <div className="p-7 rounded-3xl bg-[#0c1424]/80 backdrop-blur-xl border border-white/[0.08] shadow-sm space-y-4">
-                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 text-xs font-mono">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-base">Canonical Request Stream</span>
-                      <span className="text-slate-400">({requests.length} recorded)</span>
-                    </div>
-                    <span className="text-teal-400 font-semibold">Click row to open Request 360 Sheet</span>
+          {(activeNav === 'LIVE_REQUESTS' || activeNav === 'REQUEST_JOURNEYS') && (
+            <div className="space-y-4 w-full">
+              <div className="p-8 rounded-3xl bg-[#0d1629] border border-white/[0.12] shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 text-sm font-mono">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-white text-lg">Canonical Request Stream</span>
+                    <span className="text-slate-400">({requests.length} recorded)</span>
                   </div>
+                  <span className="text-teal-400 font-bold">Click row to open Request 360 Sheet</span>
+                </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-white/[0.06] text-slate-400 font-medium">
-                          <th className="py-3 px-4">Started At</th>
-                          <th className="py-3 px-3">Transaction</th>
-                          <th className="py-3 px-3 text-center">Status</th>
-                          <th className="py-3 px-3 text-right">Duration</th>
-                          <th className="py-3 px-3 text-center">Current Hop</th>
-                          <th className="py-3 px-4 text-right font-mono">Action</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/[0.08] text-slate-400 font-bold bg-[#060A12]/50">
+                        <th className="py-3.5 px-4">Started At</th>
+                        <th className="py-3.5 px-3">Transaction</th>
+                        <th className="py-3.5 px-3 text-center">Status</th>
+                        <th className="py-3.5 px-3 text-right">Duration</th>
+                        <th className="py-3.5 px-3 text-center">Current Hop</th>
+                        <th className="py-3.5 px-4 text-right font-mono">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.06] font-mono">
+                      {requests.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-12 text-center text-slate-400 text-sm font-sans">
+                            No requests recorded for active environment.
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/[0.04] font-mono">
-                        {requests.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="p-8 text-center text-slate-500 text-xs font-sans">
-                              No requests recorded for active environment.
+                      ) : (
+                        requests.map((req) => (
+                          <tr
+                            key={req.id}
+                            onClick={() => handleOpenRequest360(req)}
+                            className="cursor-pointer hover:bg-white/[0.06] transition-colors"
+                          >
+                            <td className="py-4 px-4 text-slate-300 text-xs">
+                              {new Date(req.startedAt).toLocaleTimeString()}
+                            </td>
+                            <td className="py-4 px-3 font-bold text-teal-300 text-sm">
+                              {req.transactionType}
+                            </td>
+                            <td className="py-4 px-3 text-center">
+                              <VitalisStatusPill status={req.status} size="sm" />
+                            </td>
+                            <td className="py-4 px-3 text-right text-white font-bold text-sm">
+                              {req.durationMs} ms
+                            </td>
+                            <td className="py-4 px-3 text-center text-slate-200 font-sans text-xs">
+                              {req.currentHop}
+                            </td>
+                            <td className="py-4 px-4 text-right">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenRequest360(req);
+                                }}
+                                className="px-3.5 py-1.5 rounded-xl bg-teal-500/20 text-teal-300 hover:bg-teal-500/30 text-xs font-bold border border-teal-500/40"
+                              >
+                                360 →
+                              </button>
                             </td>
                           </tr>
-                        ) : (
-                          requests.map((req) => (
-                            <tr
-                              key={req.id}
-                              onClick={() => handleOpenRequest360(req)}
-                              className="cursor-pointer hover:bg-white/[0.04] transition-colors"
-                            >
-                              <td className="py-3.5 px-4 text-slate-400 text-[11px]">
-                                {new Date(req.startedAt).toLocaleTimeString()}
-                              </td>
-                              <td className="py-3.5 px-3 font-bold text-teal-300">
-                                {req.transactionType}
-                              </td>
-                              <td className="py-3.5 px-3 text-center">
-                                <VitalisStatusPill status={req.status} size="sm" />
-                              </td>
-                              <td className="py-3.5 px-3 text-right text-white font-bold">
-                                {req.durationMs} ms
-                              </td>
-                              <td className="py-3.5 px-3 text-center text-slate-300 font-sans text-xs">
-                                {req.currentHop}
-                              </td>
-                              <td className="py-3.5 px-4 text-right">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenRequest360(req);
-                                  }}
-                                  className="px-3 py-1 rounded-xl bg-teal-500/15 text-teal-300 hover:bg-teal-500/25 text-[11px] font-bold border border-teal-500/30"
-                                >
-                                  360 →
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {activeNav === 'TOPOLOGY' && <TopologyView />}
-            {activeNav === 'PERFORMANCE' && <PerformanceView />}
-            {activeNav === 'BUSINESS_IMPACT' && <BusinessImpactView />}
-            {activeNav === 'CHANGE_INTELLIGENCE' && <ChangeIntelligenceView />}
-            {activeNav === 'EVIDENCE_RCA' && <EvidenceRcaView />}
-            {activeNav === 'PREDICTIVE_RISK' && <PredictiveRiskView />}
-            {activeNav === 'WHAT_IF' && <WhatIfView />}
-            {activeNav === 'CONTINUOUS_LEARNING' && <ContinuousLearningView />}
-          </main>
-        </div>
-      )}
+          {activeNav === 'TOPOLOGY' && <TopologyView />}
+          {activeNav === 'PERFORMANCE' && <PerformanceView />}
+          {activeNav === 'BUSINESS_IMPACT' && <BusinessImpactView />}
+          {activeNav === 'CHANGE_INTELLIGENCE' && <ChangeIntelligenceView />}
+          {activeNav === 'EVIDENCE_RCA' && <EvidenceRcaView />}
+          {activeNav === 'PREDICTIVE_RISK' && <PredictiveRiskView />}
+          {activeNav === 'WHAT_IF' && <WhatIfView />}
+          {activeNav === 'CONTINUOUS_LEARNING' && <ContinuousLearningView />}
+        </main>
+      </div>
 
       {/* Floating iPad Sheets / Drawers */}
       <Request360Drawer
