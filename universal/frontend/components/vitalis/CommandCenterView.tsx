@@ -8,6 +8,8 @@ interface CommandCenterViewProps {
   onInvestigateIncident: (incident: VitalisIncident) => void;
   onViewAllRequests: () => void;
   onSelectSubsystem: (sub: { name: string; tier: string; score: number; status: string }) => void;
+  onOpenHealthDetail: () => void;
+  onOpenImpactDetail: () => void;
 }
 
 export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
@@ -15,6 +17,8 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
   onInvestigateIncident,
   onViewAllRequests,
   onSelectSubsystem,
+  onOpenHealthDetail,
+  onOpenImpactDetail,
 }) => {
   const primaryIncident = overview.activeIncidents[0];
 
@@ -29,17 +33,24 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
 
   return (
     <div className="space-y-4 w-full pb-8">
-      {/* 1. Editorial Greeting (Snug Proportions) */}
+      {/* 1. Editorial Greeting */}
       <div className="space-y-1">
         <div className="flex items-center gap-2.5 text-xs font-mono text-slate-300">
           <span className="text-teal-400 font-bold tracking-wider">VITALIS INTELLIGENCE</span>
           <span className="text-slate-600">•</span>
           <span>Last analyzed 2s ago</span>
           <span className="text-slate-600">•</span>
-          <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" />
-            <span>Nominal Operations</span>
-          </span>
+          {overview.provenance === 'REAL_OBSERVED' ? (
+            <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400 animate-pulse" />
+              <span>REAL OBSERVED EVIDENCE</span>
+            </span>
+          ) : (
+            <span className="text-amber-400 font-semibold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span>SIMULATED EVIDENCE</span>
+            </span>
+          )}
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
           Everything is operating normally.
@@ -49,12 +60,15 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
         </p>
       </div>
 
-      {/* 2. Balanced 2-Column Hero Duo (Proportional Card Sizing) */}
+      {/* 2. Balanced 2-Column Hero Duo (Interactive Clickable Cards) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
         {/* Left Card: System Health */}
-        <div className="p-5 sm:p-6 rounded-2xl bg-[#0B1526] border border-[#1a2d4c] shadow-md flex flex-col justify-between space-y-4">
+        <div
+          onClick={onOpenHealthDetail}
+          className="p-5 sm:p-6 rounded-2xl bg-[#0B1526] hover:bg-[#0e1b32] border border-[#1a2d4c] hover:border-teal-400/60 cursor-pointer shadow-md flex flex-col justify-between space-y-4 transition-all duration-200 group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono group-hover:text-teal-300 transition-colors">
               SYSTEM HEALTH
             </span>
             <span className="text-[11px] font-bold px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono shadow-xs">
@@ -68,6 +82,9 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
                 {overview.operationalScore}
               </span>
               <span className="text-lg text-slate-400 font-bold font-mono">/ 100</span>
+              <span className="text-xs text-teal-400 font-mono ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                Explain score →
+              </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-300 font-medium">
               Operational performance is <strong className="text-emerald-400 font-bold">↑ 2.4% better</strong> than rolling baseline.
@@ -91,13 +108,16 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
         </div>
 
         {/* Right Card: Business Impact */}
-        <div className={`p-5 sm:p-6 rounded-2xl border shadow-md flex flex-col justify-between space-y-4 ${
-          overview.activeIncidentsCount > 0
-            ? 'bg-rose-950/30 border-rose-800'
-            : 'bg-[#0B1526] border-[#1a2d4c]'
-        }`}>
+        <div
+          onClick={onOpenImpactDetail}
+          className={`p-5 sm:p-6 rounded-2xl border hover:border-teal-400/60 cursor-pointer shadow-md flex flex-col justify-between space-y-4 transition-all duration-200 group ${
+            overview.activeIncidentsCount > 0
+              ? 'bg-rose-950/30 border-rose-800'
+              : 'bg-[#0B1526] hover:bg-[#0e1b32] border-[#1a2d4c]'
+          }`}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono group-hover:text-teal-300 transition-colors">
               BUSINESS IMPACT
             </span>
             <span className={`text-[11px] font-bold px-3 py-0.5 rounded-full font-mono ${
@@ -110,14 +130,21 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
           </div>
 
           <div className="space-y-1 py-1">
-            <span className={`text-4xl sm:text-5xl font-black tracking-tight block ${
-              overview.activeIncidentsCount > 0 ? 'text-rose-400' : 'text-emerald-400'
-            }`}>
-              {overview.activeIncidentsCount > 0 ? `${overview.activeIncidentsCount} Active` : 'Protected'}
-            </span>
+            <div className="flex items-baseline justify-between">
+              <span className={`text-4xl sm:text-5xl font-black tracking-tight block ${
+                overview.activeIncidentsCount > 0 ? 'text-rose-400' : 'text-emerald-400'
+              }`}>
+                {overview.activeIncidentsCount > 0 ? `${overview.activeIncidentsCount} Active` : 'Protected'}
+              </span>
+              <span className="text-xs text-teal-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                Inspect impact →
+              </span>
+            </div>
             <p className="text-xs sm:text-sm text-slate-300">
               {overview.activeIncidentsCount > 0
                 ? 'Payment processing latency spike affecting live sessions.'
+                : overview.provenance === 'REAL_OBSERVED'
+                ? 'All observed LAB transactions operating within nominal baseline.'
                 : 'No customers or revenue pipelines are currently affected.'}
             </p>
           </div>
@@ -125,7 +152,9 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
           <div className="pt-3 border-t border-[#1a2d4c] grid grid-cols-3 gap-2 text-xs font-mono">
             <div>
               <span className="text-slate-400 block text-[10px] font-bold">USERS MONITORED</span>
-              <span className="text-white font-bold text-sm mt-0.5 block">12,458</span>
+              <span className="text-white font-bold text-sm mt-0.5 block">
+                {overview.businessImpactDetail?.monitoredUsers ? overview.businessImpactDetail.monitoredUsers.toLocaleString() : 'Live Sample'}
+              </span>
             </div>
             <div>
               <span className="text-slate-400 block text-[10px] font-bold">FAILED TXNS</span>
@@ -133,7 +162,9 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
             </div>
             <div>
               <span className="text-slate-400 block text-[10px] font-bold">EXPOSURE</span>
-              <span className="text-teal-300 font-bold text-sm mt-0.5 block">₹0.00</span>
+              <span className="text-teal-300 font-bold text-sm mt-0.5 block">
+                {overview.businessImpactDetail?.estimatedFinancialExposure || '₹0.00'}
+              </span>
             </div>
           </div>
         </div>

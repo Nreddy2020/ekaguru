@@ -88,7 +88,7 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
   return Promise.reject(new Error('Unknown URL'));
 }) as any;
 
-describe('VITALIS OBSERVE: Phase 1 Canonical Architecture & Executive Cockpit', () => {
+describe('VITALIS OBSERVE: Phase 1 & 2 Canonical Architecture & Intelligence Cockpit', () => {
   it('should render the VITALIS header, mode switchers, and Command Center by default in LAB mode', async () => {
     render(<VitalisObservePage />);
     expect(screen.getByText(/VITALIS OBSERVE/i)).toBeInTheDocument();
@@ -96,6 +96,38 @@ describe('VITALIS OBSERVE: Phase 1 Canonical Architecture & Executive Cockpit', 
     expect(screen.getByText(/DEMO/i)).toBeInTheDocument();
     expect((await screen.findAllByText(/System Health/i)).length).toBeGreaterThan(0);
     expect(await screen.findByText(/SLA Health/i)).toBeInTheDocument();
+  });
+
+  it('should open System Health explanation drawer when clicking System Health card', async () => {
+    render(<VitalisObservePage />);
+    const healthCard = await screen.findByText('Explain score →');
+    fireEvent.click(healthCard);
+
+    await waitFor(() => {
+      expect(screen.getByText(/System Health Explanation/i)).toBeInTheDocument();
+      expect(screen.getByText(/Dimension Scores/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should open Business Impact drawer when clicking Business Impact card', async () => {
+    render(<VitalisObservePage />);
+    const impactCard = await screen.findByText('Inspect impact →');
+    fireEvent.click(impactCard);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Business Impact Analysis/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should switch to Evidence & RCA and render Causal Story Chain with 6 scenarios', async () => {
+    render(<VitalisObservePage />);
+    const rcaButton = screen.getByText(/Evidence & RCA/i);
+    fireEvent.click(rcaButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/VITALIS CAUSAL STORY ENGINE/i)).toBeInTheDocument();
+      expect(screen.getByText(/DB2 Lock Contention/i)).toBeInTheDocument();
+    });
   });
 
   it('should switch to Application Inventory view and render registered assets', async () => {

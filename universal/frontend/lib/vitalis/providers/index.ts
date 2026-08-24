@@ -1,12 +1,14 @@
-import { IVitalisDataProvider } from './vitalis-data-provider.interface';
-import { LabProvider } from './lab-provider';
-import { DemoProvider } from './demo-provider';
+import { VitalisLabDataProvider } from './lab-provider';
+import { VitalisDemoDataProvider } from './demo-provider';
 import { VitalisEnvironment } from '../domain/types';
 
-const labProviderInstance = new LabProvider();
-const demoProviderInstance = new DemoProvider();
+export const LabProvider = VitalisLabDataProvider;
+export const DemoProvider = VitalisDemoDataProvider;
 
-export function getVitalisProvider(env: VitalisEnvironment): IVitalisDataProvider {
+const labProviderInstance = new VitalisLabDataProvider();
+const demoProviderInstance = new VitalisDemoDataProvider();
+
+export function getVitalisProvider(env: VitalisEnvironment): any {
   switch (env) {
     case 'DEMO':
       return demoProviderInstance;
@@ -15,3 +17,4 @@ export function getVitalisProvider(env: VitalisEnvironment): IVitalisDataProvide
       return labProviderInstance;
   }
 }
+

@@ -1,236 +1,166 @@
 /**
- * ============================================================================
- * 🔭 VITALIS OBSERVE — CANONICAL DOMAIN MODEL
- * ============================================================================
+ * VITALIS OBSERVE: Canonical Intelligence Domain Model (Milestone 2)
  */
 
-export type VitalisEnvironment = 'DEMO' | 'LAB' | 'PRODUCTION';
-export type SubsystemKind =
-  | 'CLIENT'
-  | 'DNS'
-  | 'GATEWAY'
-  | 'CONTROLLER'
-  | 'SERVICE'
-  | 'MIDDLEWARE'
-  | 'DATABASE'
-  | 'STORAGE'
-  | 'M2_ENGINE'
-  | 'QUEUE'
-  | 'DOWNSTREAM';
+export type VitalisEnvironment = 'LAB' | 'DEMO' | 'PRODUCTION';
+export type VitalisHealthStatus = 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN';
+export type VitalisProvenance = 'REAL_OBSERVED' | 'SIMULATED' | 'USER_PROVIDED';
 
-export type HealthScoreStatus = 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN';
-export type SeverityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
+export interface VitalisProvenanceBadge {
+  type: VitalisProvenance;
+  label: string;
+  subLabel?: string;
+}
 
-// 1. Unified Request & Hop Journey
-export interface VitalisHop {
-  nodeId: string;
+export interface VitalisHealthExplanation {
+  overallScore: number;
+  status: 'NOMINAL' | 'DEVIATION' | 'INCIDENT';
+  reasons: string[];
+  dimensions: {
+    name: string;
+    score: number;
+    description: string;
+    signalsCount: number;
+  }[];
+  scoringPhilosophy: string;
+}
+
+export interface VitalisBusinessImpactDetail {
+  status: 'PROTECTED' | 'ATTENTION_REQUIRED';
+  provenance: VitalisProvenance;
+  monitoredUsers?: number;
+  failedTransactions?: number;
+  estimatedFinancialExposure?: string;
+  impactedService?: string;
+  slaCompliancePercent: number;
+  summary: string;
+  sourceNote: string;
+}
+
+export interface VitalisCausalStep {
+  id: string;
+  stepNumber: number;
   nodeName: string;
-  kind: SubsystemKind;
-  status: 'OK' | 'WARNING' | 'ERROR' | 'IN_PROGRESS';
-  latencyMs: number;
-  error?: string;
-  attributes: Record<string, any>;
+  tier: string;
+  changeOrSignal: string;
+  metricDelta?: string;
+  timestamp: string;
+  observedEffect: string;
+  evidenceTitle: string;
+  evidenceSnippet: string;
+  evidenceType: 'CONFIG_AUDIT' | 'METRIC_SPIKE' | 'THREAD_DUMP' | 'QUEUE_LOG' | 'ERROR_TRACE' | 'LOG_PARSED';
+  confidencePercent: number;
+}
+
+export interface VitalisScenario {
+  id: string;
+  scenarioNumber: number;
+  name: string;
+  tagline: string;
+  description: string;
+  status: 'NOMINAL' | 'DEGRADED' | 'CRITICAL';
+  operationalScore: number;
+  p95LatencyMs: number;
+  slaPercent: number;
+  errorCount: number;
+  businessImpact: VitalisBusinessImpactDetail;
+  journey: {
+    name: string;
+    kind: string;
+    time: string;
+    status: 'HEALTHY' | 'DEGRADED' | 'CRITICAL';
+    anomalyNote?: string;
+  }[];
+  causalStory: VitalisCausalStep[];
+  rca: {
+    summary: string;
+    rootCauseNode: string;
+    confidencePercent: number;
+    recommendedAction: string;
+    runbookId?: string;
+  };
+}
+
+export interface VitalisSpan {
+  id: string;
+  name: string;
+  subsystem: string;
+  tier: 'CLIENT' | 'GATEWAY' | 'CONTROLLER' | 'DATABASE' | 'STORAGE' | 'M2' | 'DOWNSTREAM';
+  durationMs: number;
+  statusCode?: number;
+  error?: boolean;
+  metadata?: Record<string, any>;
 }
 
 export interface VitalisRequest {
   id: string;
-  traceId: string;
-  requestId: string;
   transactionType: string;
   businessService: string;
-  user: string;
   environment: VitalisEnvironment;
-  region: string;
-  currentHop: string;
-  durationMs: number;
-  status: 'OK' | 'DEGRADED' | 'ERROR' | 'IN_PROGRESS';
-  riskScore: number; // 0-100
+  provenance: VitalisProvenance;
+  status: 'HEALTHY' | 'DEVIATION' | 'INCIDENT' | 'IN_PROGRESS';
   startedAt: string;
   completedAt?: string;
-  trafficType: 'APPLICATION' | 'OBSERVE_INTERNAL';
-  hops: VitalisHop[];
-  rawTrace?: any;
-}
-
-// 2. Topology & Dependency Graph
-export interface VitalisTopologyNode {
-  id: string;
-  name: string;
-  type: 'SERVICE' | 'DATABASE' | 'QUEUE' | 'GATEWAY' | 'STORAGE' | 'EXTERNAL';
-  tier: 'FRONTEND' | 'APPLICATION' | 'MIDDLEWARE' | 'DATA' | 'INFRASTRUCTURE';
-  healthScore: number; // 0-100
-  status: HealthScoreStatus;
-  metrics: {
-    p95LatencyMs: number;
-    errorRatePercent: number;
-    throughputRps: number;
+  durationMs: number;
+  statusCode: number;
+  clientIp?: string;
+  userAgent?: string;
+  client?: string;
+  method?: string;
+  route?: string;
+  currentHop: string;
+  spans: VitalisSpan[];
+  evidenceJson?: Record<string, any>;
+  causalChain?: {
+    cause: string;
+    effect: string;
+    confidencePercent: number;
   };
-  dependencies: string[]; // downstream node IDs
-}
-
-// 3. Application & Service Inventory
-export interface VitalisInventoryItem {
-  id: string;
-  name: string;
-  type: 'APPLICATION' | 'SERVICE' | 'API_ROUTE' | 'DATABASE' | 'QUEUE' | 'STORAGE_BUCKET' | 'CLUSTER';
-  environment: VitalisEnvironment;
-  tier: string;
-  status: HealthScoreStatus;
-  version: string;
-  owner: string;
-  businessService: string;
-  endpoint?: string;
-  p95LatencyMs: number;
-  errorRatePercent: number;
-  dependencyCount: number;
-  lastObserved: string;
-}
-
-// 4. Normalized Signals & Correlation
-export interface VitalisSignal {
-  id: string;
-  source: string;
-  component: string;
-  signalType: 'METRIC' | 'LOG' | 'SPAN' | 'EVENT' | 'AUDIT';
-  name: string;
-  value: number | string | Record<string, any>;
-  unit?: string;
-  timestamp: string;
-  correlationId?: string;
-  traceId?: string;
-  requestId?: string;
-  environment: VitalisEnvironment;
-}
-
-export interface VitalisCorrelation {
-  correlationId: string;
-  traceId?: string;
-  requestId?: string;
-  primaryComponent: string;
-  relatedComponents: string[];
-  firstSeen: string;
-  lastSeen: string;
-  confidenceScore: number; // 0-100
-  evidenceCount: number;
-}
-
-// 5. Evidence & RCA Intelligence
-export interface VitalisEvidence {
-  id: string;
-  source: string;
-  timestamp: string;
-  type: 'SPAN' | 'QUERY' | 'ERROR_LOG' | 'CONFIG_DIFF' | 'METRIC_SPIKE' | 'STORAGE_IO';
-  confidencePercent: number;
-  correlationId?: string;
-  traceId?: string;
-  requestId?: string;
-  component: string;
-  summary: string;
-  rawPayload?: any;
-}
-
-export interface VitalisRcaReport {
-  incidentId: string;
-  title: string;
-  confidencePercent: number;
-  rootCauseComponent: string;
-  mode: 'REAL_EVIDENCE' | 'SIMULATED';
-  summary: string;
-  recommendedAction: string[];
-  evidenceCount: number;
-  evidenceItems: VitalisEvidence[];
-  relatedSpan?: string;
+  learningMemory?: {
+    patternId: string;
+    occurrences: number;
+    recommendedAction: string;
+  };
 }
 
 export interface VitalisIncident {
   id: string;
   title: string;
-  severity: SeverityLevel;
-  status: 'ACTIVE' | 'INVESTIGATING' | 'MITIGATED' | 'RESOLVED';
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
   businessService: string;
-  primaryComponent: string;
-  affectedRequestsCount: number;
-  durationMinutes: number;
-  startedAt: string;
-  rca?: VitalisRcaReport;
-}
-
-// 6. Business Impact Assessment
-export interface VitalisBusinessImpact {
-  serviceName: string;
-  affectedUsers: number;
-  failedTransactions: number;
-  estimatedRevenueExposure: string;
-  slaStatus: 'COMPLIANT' | 'AT_RISK' | 'BREACHED';
-  slaPercent: number;
-  severity: SeverityLevel;
-}
-
-// 7. Predictive Risk & What-If Simulation
-export interface VitalisRiskAlert {
-  id: string;
-  component: string;
-  riskType: string;
-  probabilityPercent: number;
-  expectedBreachWindow: string;
-  severity: SeverityLevel;
-  suggestedAction: string;
-}
-
-export interface VitalisSimulationResult {
-  scenarioId: string;
-  injectedFailure: string;
-  targetComponent: string;
-  affectedServices: string[];
-  estimatedBlastRadiusPercent: number;
-  projectedRevenueRisk: string;
-  suggestedMitigation: string;
-}
-
-// 8. Action & Continuous Learning
-export interface VitalisAction {
-  id: string;
-  title: string;
-  component: string;
-  status: 'RECOMMENDED' | 'SIMULATED' | 'APPROVED' | 'EXECUTED';
-  safetyLevel: 'SAFE' | 'SUPERVISED' | 'CRITICAL';
-  estimatedRecoveryTimeMinutes: number;
-  actionScript: string;
-}
-
-export interface VitalisLearningRule {
-  id: string;
-  ruleName: string;
-  patternDetected: string;
-  rootCause: string;
-  preventionRule: string;
-  timesApplied: number;
-  createdFromIncidentId: string;
-  createdAt: string;
-}
-
-// 9. Command Center Overview Bundle
-export interface VitalisCommandCenterOverview {
   environment: VitalisEnvironment;
-  timestamp: string;
-  operationalScore: number; // 0-100
+  startedAt: string;
+  status: 'ACTIVE' | 'RESOLVING' | 'RESOLVED';
+  rca?: {
+    summary: string;
+    confidencePercent: number;
+    evidenceCount: number;
+  };
+}
+
+export interface VitalisCommandCenterOverview {
+  operationalScore: number;
   slaPercent: number;
+  p95LatencyMs: number;
   activeIncidentsCount: number;
   totalRequestsCount: number;
   errorCount: number;
-  p95LatencyMs: number;
-  inProgressCount: number;
   activeIncidents: VitalisIncident[];
-  liveObservations: Array<{
-    time: string;
-    message: string;
-    severity: SeverityLevel;
-    component: string;
-  }>;
-  subsystemHealthMatrix: Array<{
-    name: string;
-    tier: string;
-    score: number;
-    status: HealthScoreStatus;
-  }>;
+  environment: VitalisEnvironment;
+  provenance: VitalisProvenance;
+  healthExplanation?: VitalisHealthExplanation;
+  businessImpactDetail?: VitalisBusinessImpactDetail;
+}
+
+export interface VitalisInventoryItem {
+  id: string;
+  name: string;
+  runtime: string;
+  version: string;
+  environment: VitalisEnvironment;
+  status: VitalisHealthStatus;
+  subsystemsCount: number;
+  p95LatencyMs: number;
+  signalsFreshnessSec: number;
+  collectors: string[];
 }

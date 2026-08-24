@@ -1,220 +1,198 @@
 'use client';
 
-import React from 'react';
-import { VitalisCard, VitalisPanel } from '../ui/VitalisCard';
-import { VitalisStatusPill } from '../ui/VitalisBadge';
-import { VitalisConfidenceIndicator, VitalisTimeline } from '../ui/VitalisTimeline';
+import React, { useState } from 'react';
+import { DEMO_ENTERPRISE_SCENARIOS } from '../../../lib/vitalis/providers/demo-provider';
+import { VitalisScenario, VitalisCausalStep } from '../../../lib/vitalis/domain/types';
+import { CausalEvidenceDrawer } from '../drawers/CausalEvidenceDrawer';
 
-// 1. Topology & Dependencies View
-export const TopologyView: React.FC = () => {
-  return (
-    <div className="space-y-4 max-w-7xl mx-auto">
-      <VitalisCard>
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 mb-4">
-          <div>
-            <h2 className="text-base font-bold text-white">⌘ Topology &amp; Service Dependency Map</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Real-time discovered architecture and failure propagation paths.</p>
-          </div>
-          <span className="text-xs font-mono text-emerald-400 font-bold">5 Active Nodes</span>
-        </div>
-
-        {/* Visual Map */}
-        <div className="p-8 bg-[#050a12] rounded-xl border border-white/[0.06] flex flex-col items-center space-y-6">
-          <div className="p-3.5 rounded-xl bg-[#0b1422] border border-teal-500/40 text-center w-56 shadow-md">
-            <span className="text-[10px] text-teal-400 font-mono block">FRONTEND</span>
-            <span className="font-bold text-white text-sm">Browser / Client</span>
-            <span className="text-xs text-emerald-400 block font-mono mt-1">● 99% SLA</span>
-          </div>
-
-          <span className="text-teal-400 font-mono text-sm">↓ (12 req/s)</span>
-
-          <div className="p-3.5 rounded-xl bg-[#0b1422] border border-white/[0.1] text-center w-64 shadow-md">
-            <span className="text-[10px] text-teal-400 font-mono block">APPLICATION</span>
-            <span className="font-bold text-white text-sm">NestJS Backend Core</span>
-            <span className="text-xs text-emerald-400 block font-mono mt-1">● 98% Health (45ms)</span>
-          </div>
-
-          <span className="text-teal-400 font-mono text-sm">↙ &emsp; ↓ &emsp; ↘</span>
-
-          <div className="grid grid-cols-3 gap-4 w-full max-w-2xl">
-            <div className="p-3.5 rounded-xl bg-[#0b1422] border border-white/[0.08] text-center">
-              <span className="text-[10px] text-teal-400 font-mono block">DATA</span>
-              <span className="font-bold text-white text-xs">PostgreSQL (Prisma)</span>
-              <span className="text-[11px] text-emerald-400 font-mono block mt-1">● 96% (14ms)</span>
-            </div>
-            <div className="p-3.5 rounded-xl bg-[#0b1422] border border-white/[0.08] text-center">
-              <span className="text-[10px] text-teal-400 font-mono block">STORAGE</span>
-              <span className="font-bold text-white text-xs">LocalStorageProvider</span>
-              <span className="text-[11px] text-emerald-400 font-mono block mt-1">● 95% (6ms)</span>
-            </div>
-            <div className="p-3.5 rounded-xl bg-[#0b1422] border border-white/[0.08] text-center">
-              <span className="text-[10px] text-teal-400 font-mono block">COGNITIVE</span>
-              <span className="font-bold text-white text-xs">M2 Intelligence Engine</span>
-              <span className="text-[11px] text-emerald-400 font-mono block mt-1">● 94% (820ms)</span>
-            </div>
-          </div>
-        </div>
-      </VitalisCard>
-    </div>
-  );
-};
-
-// 2. Performance Intelligence View
-export const PerformanceView: React.FC = () => {
-  return (
-    <div className="space-y-4 max-w-7xl mx-auto">
-      <div className="grid grid-cols-4 gap-3">
-        <VitalisPanel><span className="text-slate-400 text-xs block">P50 Latency</span><span className="text-2xl font-bold text-white font-mono mt-1 block">8 ms</span></VitalisPanel>
-        <VitalisPanel><span className="text-slate-400 text-xs block">P95 Latency</span><span className="text-2xl font-bold text-teal-300 font-mono mt-1 block">25 ms</span></VitalisPanel>
-        <VitalisPanel><span className="text-slate-400 text-xs block">P99 Latency</span><span className="text-2xl font-bold text-amber-300 font-mono mt-1 block">42 ms</span></VitalisPanel>
-        <VitalisPanel><span className="text-slate-400 text-xs block">Throughput</span><span className="text-2xl font-bold text-emerald-400 font-mono mt-1 block">428 req/s</span></VitalisPanel>
-      </div>
-
-      <VitalisCard>
-        <h3 className="font-bold text-white text-sm mb-2">Execution Breakdown by Tier</h3>
-        <div className="space-y-3 font-mono text-xs">
-          <div><div className="flex justify-between text-slate-300 mb-1"><span>HTTP Controller</span><span>32% (8ms)</span></div><div className="h-2 bg-slate-800 rounded-full overflow-hidden"><div style={{ width: '32%' }} className="h-full bg-teal-400" /></div></div>
-          <div><div className="flex justify-between text-slate-300 mb-1"><span>Prisma PostgreSQL</span><span>28% (7ms)</span></div><div className="h-2 bg-slate-800 rounded-full overflow-hidden"><div style={{ width: '28%' }} className="h-full bg-emerald-400" /></div></div>
-          <div><div className="flex justify-between text-slate-300 mb-1"><span>Storage IO</span><span>16% (4ms)</span></div><div className="h-2 bg-slate-800 rounded-full overflow-hidden"><div style={{ width: '16%' }} className="h-full bg-amber-400" /></div></div>
-        </div>
-      </VitalisCard>
-    </div>
-  );
-};
-
-// 3. Business Impact View
-export const BusinessImpactView: React.FC = () => {
-  return (
-    <div className="space-y-4 max-w-7xl mx-auto">
-      <div className="grid grid-cols-4 gap-3">
-        <VitalisPanel><span className="text-slate-400 text-xs block">Impacted Users</span><span className="text-2xl font-bold text-white font-mono mt-1 block">0</span></VitalisPanel>
-        <VitalisPanel><span className="text-slate-400 text-xs block">Failed Txns</span><span className="text-2xl font-bold text-emerald-400 font-mono mt-1 block">0</span></VitalisPanel>
-        <VitalisPanel><span className="text-slate-400 text-xs block">Revenue Risk</span><span className="text-2xl font-bold text-white font-mono mt-1 block">₹0.00</span></VitalisPanel>
-        <VitalisPanel><span className="text-slate-400 text-xs block">SLA Compliance</span><span className="text-2xl font-bold text-teal-300 font-mono mt-1 block">100%</span></VitalisPanel>
-      </div>
-
-      <VitalisCard>
-        <h3 className="font-bold text-white text-sm mb-2">Business Service Risk Assessment</h3>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          Zero SLA violations detected across Learning Library, Identity Auth, and Cognitive Ingestion services.
-        </p>
-      </VitalisCard>
-    </div>
-  );
-};
-
-// 4. Change Intelligence View
-export const ChangeIntelligenceView: React.FC = () => {
-  return (
-    <div className="space-y-4 max-w-7xl mx-auto">
-      <VitalisCard>
-        <h2 className="text-base font-bold text-white mb-1">⇄ Change Intelligence &amp; Correlation Timeline</h2>
-        <p className="text-xs text-slate-400 mb-4">Correlate configuration diffs, schema updates, and deployments with latency changes.</p>
-        <VitalisTimeline
-          events={[
-            {
-              time: '01:05:00',
-              title: 'Prisma Telemetry Middleware Deployed',
-              description: 'Activated automatic database span collection across all Learner and Content models.',
-              type: 'CHANGE',
-              source: 'PRISMA_MIDDLEWARE',
-            },
-            {
-              time: '01:02:00',
-              title: 'Observe Traffic Filtering Activated',
-              description: 'Separated internal dashboard polling from application requests.',
-              type: 'ACTION',
-              source: 'OBSERVE_CORE',
-            },
-          ]}
-        />
-      </VitalisCard>
-    </div>
-  );
-};
-
-// 5. Evidence & RCA View
 export const EvidenceRcaView: React.FC = () => {
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string>('SCENARIO_6_LOCK_CONTENTION');
+  const [selectedStep, setSelectedStep] = useState<VitalisCausalStep | null>(null);
+  const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
+
+  const scenario = DEMO_ENTERPRISE_SCENARIOS.find((s) => s.id === selectedScenarioId) || DEMO_ENTERPRISE_SCENARIOS[5];
+
+  const handleOpenEvidence = (step: VitalisCausalStep) => {
+    setSelectedStep(step);
+    setIsEvidenceOpen(true);
+  };
+
   return (
-    <div className="space-y-4 max-w-7xl mx-auto">
-      <VitalisCard>
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 mb-4">
+    <div className="space-y-5 max-w-6xl mx-auto pb-10 text-slate-200">
+      {/* 1. Header & Scenario Switcher */}
+      <div className="p-5 rounded-2xl bg-[#0B1526] border border-[#1a2d4c] space-y-3">
+        <div className="flex items-center justify-between border-b border-[#1a2d4c] pb-2">
           <div>
-            <h2 className="text-base font-bold text-white">◉ Root-Cause Intelligence &amp; Evidence Graph</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Automated causal diagnosis from multi-source correlated telemetry.</p>
+            <span className="text-[10px] font-mono text-teal-400 font-bold block uppercase">
+              VITALIS CAUSAL STORY ENGINE
+            </span>
+            <h1 className="text-lg font-bold text-white tracking-tight">
+              Evidence &amp; Root Cause Analysis
+            </h1>
           </div>
-          <VitalisConfidenceIndicator percent={96} />
+          <span className="text-xs font-mono font-bold text-amber-300">
+            Confidence: {scenario.rca.confidencePercent}% HIGH
+          </span>
         </div>
 
-        <div className="p-4 bg-[#050a12] rounded-xl border border-teal-500/30 space-y-2">
-          <div className="text-xs font-bold text-teal-300 uppercase tracking-wide">Nominal Runtime State</div>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            All 428 recorded requests executed with zero root-cause failures. Database connection pool, heap memory, and storage I/O are operating within nominal thresholds.
-          </p>
-        </div>
-      </VitalisCard>
-    </div>
-  );
-};
-
-// 6. Predictive Risk View
-export const PredictiveRiskView: React.FC = () => {
-  return (
-    <div className="space-y-4 max-w-7xl mx-auto">
-      <VitalisCard>
-        <h2 className="text-base font-bold text-white mb-1">◇ Predictive Risk &amp; Early Warning Radar</h2>
-        <p className="text-xs text-slate-400 mb-4">Forecast resource saturation and SLA degradation before outages occur.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
-          <VitalisPanel><span className="text-slate-400 block text-[10px]">HEAP SATURATION</span><span className="text-emerald-400 font-bold">Stable (72% utilized)</span><span className="text-slate-500 text-[10px] block mt-1">Runway: &gt; 48 hours</span></VitalisPanel>
-          <VitalisPanel><span className="text-slate-400 block text-[10px]">DB CONNECTION POOL</span><span className="text-emerald-400 font-bold">Low Load (8 / 20)</span><span className="text-slate-500 text-[10px] block mt-1">Saturation Risk: LOW</span></VitalisPanel>
-          <VitalisPanel><span className="text-slate-400 block text-[10px]">STORAGE CAPACITY</span><span className="text-emerald-400 font-bold">64% Capacity</span><span className="text-slate-500 text-[10px] block mt-1">Runway: 120 days</span></VitalisPanel>
-        </div>
-      </VitalisCard>
-    </div>
-  );
-};
-
-// 7. What-If Simulation View
-export const WhatIfView: React.FC = () => {
-  return (
-    <div className="space-y-4 max-w-7xl mx-auto">
-      <VitalisCard>
-        <h2 className="text-base font-bold text-white mb-1">✦ What-If Failure Injection &amp; Blast Radius Simulator</h2>
-        <p className="text-xs text-slate-400 mb-4">Simulate component degradation and calculate projected business risk.</p>
-        <div className="p-4 bg-[#050a12] rounded-xl border border-white/[0.06] space-y-3 font-mono text-xs">
-          <div className="flex gap-2">
-            {['PostgreSQL Outage', 'Storage Degraded', 'M2 Engine Timeout'].map((sc, i) => (
-              <button key={i} className="px-3 py-1.5 rounded-lg bg-[#0b1422] border border-white/[0.1] text-slate-300 hover:text-white hover:border-teal-500">
-                {sc}
+        {/* 6 Scenario Switcher Pills */}
+        <div className="space-y-1.5">
+          <span className="text-[11px] font-mono text-slate-400 block">Select Scenario:</span>
+          <div className="flex flex-wrap gap-2">
+            {DEMO_ENTERPRISE_SCENARIOS.map((sc) => (
+              <button
+                key={sc.id}
+                onClick={() => setSelectedScenarioId(sc.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold font-mono transition-all ${
+                  selectedScenarioId === sc.id
+                    ? 'bg-teal-500/25 text-teal-300 border border-teal-500/50 shadow-sm'
+                    : 'bg-[#070E1B] text-slate-400 border border-[#14233c] hover:text-white'
+                }`}
+              >
+                #{sc.scenarioNumber} {sc.name}
               </button>
             ))}
           </div>
-          <p className="text-slate-400 text-xs font-sans">
-            Select a failure scenario above to calculate propagation paths, affected services, and recovery runbooks.
-          </p>
         </div>
-      </VitalisCard>
+      </div>
+
+      {/* 2. Causal Story Chain (Step by Step) */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+          Causal Propagation Chain (Why Did This Happen?)
+        </h2>
+
+        <div className="space-y-3">
+          {scenario.causalStory.map((step, idx) => (
+            <div
+              key={step.id}
+              onClick={() => handleOpenEvidence(step)}
+              className="p-4 rounded-xl bg-[#0B1526] hover:bg-[#0e1b32] border border-[#1a2d4c] hover:border-teal-400/60 cursor-pointer shadow-sm transition-all group space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-[#14233c] text-teal-300">
+                    STEP {step.stepNumber}
+                  </span>
+                  <span className="font-bold text-white text-xs sm:text-sm">{step.nodeName}</span>
+                  <span className="text-[10px] font-mono text-teal-400">({step.tier})</span>
+                </div>
+                <span className="text-xs text-teal-400 font-mono font-bold group-hover:underline">
+                  View Evidence →
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-lg bg-[#070E1B] border border-[#14233c]">
+                  <span className="text-[10px] text-slate-400 block font-mono">CHANGE / SIGNAL</span>
+                  <span className="font-bold text-amber-300 font-mono mt-0.5 block">{step.changeOrSignal}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[#070E1B] border border-[#14233c]">
+                  <span className="text-[10px] text-slate-400 block font-mono">OBSERVED EFFECT</span>
+                  <span className="text-slate-200 mt-0.5 block">{step.observedEffect}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. Root Cause Conclusion & Action Card */}
+      <div className="p-5 rounded-2xl bg-indigo-950/30 border border-indigo-700/60 space-y-3">
+        <span className="text-xs font-mono text-indigo-300 font-bold uppercase tracking-wider block">
+          ROOT CAUSE CONCLUSION
+        </span>
+        <h3 className="text-base font-bold text-white">
+          {scenario.rca.summary}
+        </h3>
+        <div className="p-3 rounded-xl bg-[#070E1B] border border-[#14233c] text-xs font-mono text-emerald-400">
+          <strong>Recommended Remediation:</strong> {scenario.rca.recommendedAction}
+        </div>
+      </div>
+
+      {/* Floating Evidence Sheet */}
+      <CausalEvidenceDrawer
+        step={selectedStep}
+        isOpen={isEvidenceOpen}
+        onClose={() => setIsEvidenceOpen(false)}
+      />
     </div>
   );
 };
 
-// 8. Continuous Learning View
-export const ContinuousLearningView: React.FC = () => {
-  return (
-    <div className="space-y-4 max-w-7xl mx-auto">
-      <VitalisCard>
-        <h2 className="text-base font-bold text-white mb-1">◎ Continuous Learning &amp; Prevention Memory</h2>
-        <p className="text-xs text-slate-400 mb-4">Organizational intelligence linking past incidents to validated prevention rules.</p>
-        <div className="p-4 bg-[#08111d] rounded-xl border border-white/[0.06] space-y-2 font-mono text-xs">
-          <div className="flex justify-between text-teal-300 font-bold">
-            <span>KA-EKAGURU-PRISMA-001</span>
-            <span>Applied 12 times</span>
-          </div>
-          <p className="text-slate-300 font-sans text-xs">
-            Automatic child span nesting with AsyncLocalStorage context ensures asynchronous queries never lose trace correlation.
-          </p>
-        </div>
-      </VitalisCard>
-    </div>
-  );
-};
+export const TopologyView: React.FC = () => (
+  <div className="p-6 rounded-2xl bg-[#0B1526] border border-[#1a2d4c] text-slate-200 space-y-4 max-w-5xl mx-auto">
+    <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+      Enterprise Topology Map
+    </h2>
+    <p className="text-xs text-slate-300">
+      Live distributed service dependency graph connecting Client ➔ Gateway ➔ WebSphere ➔ MQ ➔ PostgreSQL/DB2.
+    </p>
+  </div>
+);
+
+export const PerformanceView: React.FC = () => (
+  <div className="p-6 rounded-2xl bg-[#0B1526] border border-[#1a2d4c] text-slate-200 space-y-4 max-w-5xl mx-auto">
+    <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+      Subsystem Performance Analytics
+    </h2>
+    <p className="text-xs text-slate-300">
+      Real-time latency percentiles, throughput rates, and database query profiling across all tiers.
+    </p>
+  </div>
+);
+
+export const BusinessImpactView: React.FC = () => (
+  <div className="p-6 rounded-2xl bg-[#0B1526] border border-[#1a2d4c] text-slate-200 space-y-4 max-w-5xl mx-auto">
+    <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+      Business Impact &amp; SLA Compliance
+    </h2>
+    <p className="text-xs text-slate-300">
+      Conversion funnel risk, monitored user sessions, and estimated financial exposure calculations.
+    </p>
+  </div>
+);
+
+export const ChangeIntelligenceView: React.FC = () => (
+  <div className="p-6 rounded-2xl bg-[#0B1526] border border-[#1a2d4c] text-slate-200 space-y-4 max-w-5xl mx-auto">
+    <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+      Change Timeline &amp; Configuration Diffs
+    </h2>
+    <p className="text-xs text-slate-300">
+      Chronological audit trail of deployments, parameter alterations, and environment configuration changes.
+    </p>
+  </div>
+);
+
+export const PredictiveRiskView: React.FC = () => (
+  <div className="p-6 rounded-2xl bg-[#0B1526] border border-[#1a2d4c] text-slate-200 space-y-4 max-w-5xl mx-auto">
+    <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+      Predictive Risk &amp; Anomaly Detection
+    </h2>
+    <p className="text-xs text-slate-300">
+      Early-warning horizon forecasts for thread pool saturation, memory exhaust, and certificate expiry.
+    </p>
+  </div>
+);
+
+export const WhatIfView: React.FC = () => (
+  <div className="p-6 rounded-2xl bg-[#0B1526] border border-[#1a2d4c] text-slate-200 space-y-4 max-w-5xl mx-auto">
+    <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+      What-If Simulation Engine
+    </h2>
+    <p className="text-xs text-slate-300">
+      Simulate configuration modifications and traffic surges before deploying changes to production.
+    </p>
+  </div>
+);
+
+export const ContinuousLearningView: React.FC = () => (
+  <div className="p-6 rounded-2xl bg-[#0B1526] border border-[#1a2d4c] text-slate-200 space-y-4 max-w-5xl mx-auto">
+    <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+      Continuous Organizational Learning
+    </h2>
+    <p className="text-xs text-slate-300">
+      Memory index capturing historical incident patterns, verified root causes, and runbook remediation efficacy.
+    </p>
+  </div>
+);

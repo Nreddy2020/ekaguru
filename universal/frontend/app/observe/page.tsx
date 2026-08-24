@@ -7,6 +7,8 @@ import { ApplicationInventoryView } from '../../components/vitalis/ApplicationIn
 import { UploadEvidenceModal } from '../../components/vitalis/UploadEvidenceModal';
 import { Request360Drawer } from '../../components/vitalis/drawers/Request360Drawer';
 import { SubsystemDrawer } from '../../components/vitalis/drawers/SubsystemDrawer';
+import { SystemHealthDrawer } from '../../components/vitalis/drawers/SystemHealthDrawer';
+import { BusinessImpactDrawer } from '../../components/vitalis/drawers/BusinessImpactDrawer';
 import { VitalisStatusPill } from '../../components/vitalis/ui/VitalisBadge';
 import {
   TopologyView,
@@ -36,6 +38,8 @@ export default function VitalisObservePage() {
   const [selectedSubsystem, setSelectedSubsystem] = useState<{ name: string; tier: string; score: number; status: string } | null>(null);
   const [isRequestDrawerOpen, setIsRequestDrawerOpen] = useState(false);
   const [isSubsystemDrawerOpen, setIsSubsystemDrawerOpen] = useState(false);
+  const [isHealthDrawerOpen, setIsHealthDrawerOpen] = useState(false);
+  const [isImpactDrawerOpen, setIsImpactDrawerOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [presentationMode, setPresentationMode] = useState(false);
@@ -235,6 +239,8 @@ export default function VitalisObservePage() {
               onInvestigateIncident={() => setActiveNav('EVIDENCE_RCA')}
               onViewAllRequests={() => setActiveNav('LIVE_REQUESTS')}
               onSelectSubsystem={handleSelectSubsystem}
+              onOpenHealthDetail={() => setIsHealthDrawerOpen(true)}
+              onOpenImpactDetail={() => setIsImpactDrawerOpen(true)}
             />
           )}
 
@@ -337,6 +343,20 @@ export default function VitalisObservePage() {
         subsystem={selectedSubsystem}
         isOpen={isSubsystemDrawerOpen}
         onClose={() => setIsSubsystemDrawerOpen(false)}
+      />
+
+      <SystemHealthDrawer
+        explanation={overview?.healthExplanation}
+        provenance={overview?.provenance || 'REAL_OBSERVED'}
+        isOpen={isHealthDrawerOpen}
+        onClose={() => setIsHealthDrawerOpen(false)}
+      />
+
+      <BusinessImpactDrawer
+        impact={overview?.businessImpactDetail}
+        provenance={overview?.provenance || 'REAL_OBSERVED'}
+        isOpen={isImpactDrawerOpen}
+        onClose={() => setIsImpactDrawerOpen(false)}
       />
 
       {/* Global Ingestion Hub Modal */}
