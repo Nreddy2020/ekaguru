@@ -12,7 +12,7 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
           status: 'HEALTHY',
           backend: { status: 'UP', uptimeSeconds: 120, nodeVersion: 'v20.0.0', pid: 1234 },
           database: { status: 'UP', latencyMs: 5 },
-          memory: { status: 'HEALTHY', heapUsedMb: 45, heapTotalMb: 90, percentUsed: 97 },
+          memory: { status: 'HEALTHY', heapUsedMb: 45, heapTotalMb: 90, percentUsed: 50 },
           storage: { status: 'ACCESSIBLE', uploadDirectory: './uploads', writable: true },
         }),
     });
@@ -25,29 +25,52 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
         Promise.resolve({
           data: [
             {
-              traceId: 'trc_nt7lhbb1_b8b15b953233d432',
-              requestId: 'req_nt7lhbb1_09325c464293',
+              traceId: 'trc_gui_refine_1',
+              requestId: 'req_gui_refine_1',
               clientPlatform: 'browser',
-              clientRoute: '/api/v2/observe/traces?limit=100',
+              clientRoute: '/library',
               httpMethod: 'GET',
-              httpUrl: '/api/v2/observe/traces?limit=100',
+              httpUrl: '/api/v2/learning-materials',
               httpStatus: 200,
               startTimeIso: new Date().toISOString(),
-              startTimeMs: Date.now() - 1,
-              durationMs: 1,
+              startTimeMs: Date.now() - 25,
+              durationMs: 25,
               status: 'OK',
-              spans: [],
+              spans: [
+                {
+                  spanId: 'spn_1',
+                  traceId: 'trc_gui_refine_1',
+                  requestId: 'req_gui_refine_1',
+                  name: 'HTTP GET /api/v2/learning-materials',
+                  kind: 'CONTROLLER',
+                  startTimeMs: Date.now() - 25,
+                  durationMs: 25,
+                  status: 'OK',
+                  attributes: {},
+                },
+                {
+                  spanId: 'spn_2',
+                  traceId: 'trc_gui_refine_1',
+                  requestId: 'req_gui_refine_1',
+                  name: 'Prisma Learner.findMany',
+                  kind: 'DATABASE',
+                  startTimeMs: Date.now() - 20,
+                  durationMs: 4,
+                  status: 'OK',
+                  attributes: { model: 'Learner', action: 'findMany' },
+                },
+              ],
             },
           ],
           statistics: {
-            totalRequests: 309,
-            successCount: 308,
-            errorCount: 1,
-            avgDurationMs: 6,
-            p50DurationMs: 1,
-            p95DurationMs: 6,
-            errorRatePercent: 0.3,
-            activeTracesCount: 309,
+            totalRequests: 1,
+            successCount: 1,
+            errorCount: 0,
+            avgDurationMs: 25,
+            p50DurationMs: 25,
+            p95DurationMs: 25,
+            errorRatePercent: 0,
+            activeTracesCount: 1,
           },
         }),
     });
@@ -56,19 +79,19 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
   return Promise.reject(new Error('Unknown URL'));
 }) as any;
 
-describe('OBS-001 Step 7C: Observe Cockpit Exact Target Image Match', () => {
-  it('should render the exact top navigation, KPI cards, and system health', () => {
+describe('OBS-001: Refined Production Observe Cockpit GUI', () => {
+  it('should render the clean production header and summary KPI cards', () => {
     render(<ObserveCockpitPage />);
     expect(screen.getByText(/EKAGURU OBSERVE/i)).toBeInTheDocument();
+    expect(screen.getByText(/Understand every request, find problems, and fix them/i)).toBeInTheDocument();
     expect(screen.getByText(/Total Requests/i)).toBeInTheDocument();
     expect(screen.getByText(/Success Rate/i)).toBeInTheDocument();
-    expect(screen.getByText(/Failed Requests/i)).toBeInTheDocument();
   });
 
-  it('should render the Waterfall View and bottom M2 pipeline overview', async () => {
+  it('should render real Prisma spans under Request 360 waterfall view', async () => {
     render(<ObserveCockpitPage />);
-    expect(await screen.findByText(/REQUEST 360 – WATERFALL VIEW/i)).toBeInTheDocument();
-    expect(screen.getByText(/M2 PIPELINE OVERVIEW \(LAST 10 MIN\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/SYSTEM HEALTH DETAIL/i)).toBeInTheDocument();
+    expect(await screen.findByText(/REQUEST 360: GET/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Prisma Learner.findMany/i)).toBeInTheDocument();
+    expect(screen.getByText(/Subsystem Execution Journey/i)).toBeInTheDocument();
   });
 });

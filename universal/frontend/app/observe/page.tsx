@@ -33,6 +33,7 @@ interface RequestTrace {
   errorCategory?: string;
   errorMessage?: string;
   userAgent?: string;
+  clientIp?: string;
   spans: TraceSpan[];
 }
 
@@ -75,31 +76,23 @@ interface SystemHealthReport {
   };
 }
 
-type NavSection =
-  | 'OVERVIEW'
-  | 'LIVE_REQUESTS'
-  | 'TRACES'
-  | 'ERRORS'
-  | 'M2_PIPELINE'
-  | 'DATABASE'
-  | 'HEALTH'
-  | 'CERTIFICATES'
-  | 'ALERTS'
-  | 'SETTINGS';
-
-type Request360Tab = 'WATERFALL' | 'SPANS' | 'METADATA' | 'LOGS' | 'REQUEST_RESPONSE';
+type NavSection = 'OVERVIEW' | 'LIVE_REQUESTS' | 'ERRORS' | 'TRACES' | 'DATABASE' | 'M2_PIPELINE' | 'SYSTEM_HEALTH';
+type DetailsTab = 'WATERFALL' | 'SPANS' | 'METADATA' | 'EVIDENCE_PACKAGE';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:20000';
 
 export default function ObserveCockpitPage() {
   const [activeNav, setActiveNav] = useState<NavSection>('OVERVIEW');
-  const [activeTab, setActiveTab] = useState<Request360Tab>('WATERFALL');
+  const [activeTab, setActiveTab] = useState<DetailsTab>('WATERFALL');
   const [traces, setTraces] = useState<RequestTrace[]>([]);
   const [statistics, setStatistics] = useState<TelemetryStatistics | null>(null);
   const [health, setHealth] = useState<SystemHealthReport | null>(null);
   const [selectedTrace, setSelectedTrace] = useState<RequestTrace | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   const fetchTelemetry = useCallback(async () => {
     try {
@@ -126,11 +119,14 @@ export default function ObserveCockpitPage() {
             const updated = traceList.find((t) => t.traceId === prev.traceId);
             return updated || prev;
           }
-          return traceList[0] || null;
+          // Default selection: pick newest trace or first error
+          const errorTrace = traceList.find((t) => t.status === 'ERROR' || (t.httpStatus && t.httpStatus >= 400));
+          return errorTrace || traceList[0] || null;
         });
       }
-    } catch (err) {
-      console.error('Observe telemetry fetch error:', err);
+      setApiError(null);
+    } catch (err: any) {
+      setApiError(err?.message || 'Telemetry service connection unavailable');
     } finally {
       setLoading(false);
     }
@@ -143,78 +139,260 @@ export default function ObserveCockpitPage() {
     return () => clearInterval(interval);
   }, [fetchTelemetry, autoRefresh]);
 
-  // Derived Dynamic Statistics
-  const totalCount = statistics?.totalRequests ?? (traces.length > 0 ? traces.length : 309);
+  // Derived real metrics
+  const totalCount = statistics?.totalRequests ?? traces.length;
   const errorCount = statistics?.errorCount ?? traces.filter((t) => t.status === 'ERROR' || (t.httpStatus && t.httpStatus >= 400)).length;
-  const successRate = totalCount > 0 ? (((totalCount - errorCount) / totalCount) * 100).toFixed(1) : '99.7';
-  const p95 = statistics?.p95DurationMs ?? 6;
-  const inProgressCount = statistics?.activeTracesCount ?? (traces.length > 0 ? traces.length : 309);
+  const successRate = totalCount > 0 ? (((totalCount - errorCount) / totalCount) * 100).toFixed(1) : '100.0';
+  const p95 = statistics?.p95DurationMs ?? (traces.length > 0 ? Math.max(...traces.map((t) => t.durationMs || 0)) : 0);
+  const activeCount = statistics?.activeTracesCount ?? traces.filter((t) => t.status === 'IN_PROGRESS').length;
 
-  // Filtered requests for the Live Stream
+  // Filtered requests
   const visibleTraces = useMemo(() => {
-    if (activeNav === 'ERRORS') {
-      return traces.filter((t) => t.status === 'ERROR' || (t.httpStatus && t.httpStatus >= 400));
-    }
-    if (activeNav === 'M2_PIPELINE') {
-      return traces.filter((t) => t.httpUrl.toLowerCase().includes('upload') || t.httpUrl.toLowerCase().includes('process') || t.httpUrl.toLowerCase().includes('concept'));
-    }
-    if (activeNav === 'DATABASE') {
-      return traces.filter((t) => t.spans.some((s) => s.kind === 'DATABASE'));
-    }
-    return traces;
-  }, [traces, activeNav]);
+    return traces.filter((t) => {
+      if (activeNav === 'ERRORS' && t.status !== 'ERROR' && (!t.httpStatus || t.httpStatus < 400)) return false;
+      if (activeNav === 'M2_PIPELINE' && !t.httpUrl.toLowerCase().includes('upload') && !t.httpUrl.toLowerCase().includes('process')) return false;
+      if (activeNav === 'DATABASE' && !t.spans.some((s) => s.kind === 'DATABASE')) return false;
 
-  // Request 360 Waterfall breakdown calculation
-  const waterfallSpans = useMemo(() => {
-    if (!selectedTrace) return [];
-    if (selectedTrace.spans && selectedTrace.spans.length > 0) {
-      return selectedTrace.spans;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchUrl = t.httpUrl.toLowerCase().includes(q);
+        const matchId = t.traceId.toLowerCase().includes(q);
+        const matchReq = t.requestId?.toLowerCase().includes(q);
+        const matchMethod = t.httpMethod.toLowerCase().includes(q);
+        if (!matchUrl && !matchId && !matchReq && !matchMethod) return false;
+      }
+      return true;
+    });
+  }, [traces, activeNav, searchQuery]);
+
+  // Fresher diagnosis generator for selected trace
+  const diagnosis = useMemo(() => {
+    if (!selectedTrace) return null;
+    const isError = selectedTrace.status === 'ERROR' || (selectedTrace.httpStatus && selectedTrace.httpStatus >= 400);
+
+    if (!isError) {
+      return {
+        isError: false,
+        what: `Request to ${selectedTrace.httpUrl} completed successfully.`,
+        where: 'Application & Subsystems Nominal',
+        why: 'All database queries and controller handlers responded within safety thresholds with 0 errors.',
+        action: 'No action required. Telemetry reflects nominal operational health.',
+      };
     }
-    return [
-      {
-        spanId: 'root',
-        traceId: selectedTrace.traceId,
-        name: `HTTP ${selectedTrace.httpMethod} ${selectedTrace.httpUrl}`,
-        kind: 'CONTROLLER',
-        startTimeMs: selectedTrace.startTimeMs,
-        durationMs: selectedTrace.durationMs || 1,
-        status: (selectedTrace.status === 'ERROR' ? 'ERROR' : 'OK') as const,
-      },
-    ];
+
+    const failedSpan = selectedTrace.spans.find((s) => s.status === 'ERROR');
+    const isAuth = selectedTrace.httpStatus === 401 || selectedTrace.httpStatus === 403;
+    const isDb = selectedTrace.errorCategory === 'DATABASE' || failedSpan?.kind === 'DATABASE' || (selectedTrace.errorMessage && selectedTrace.errorMessage.toLowerCase().includes('database'));
+    const isM2 = selectedTrace.httpUrl.includes('upload') || selectedTrace.httpUrl.includes('process');
+
+    if (isAuth) {
+      return {
+        isError: true,
+        what: 'Authentication required or session expired.',
+        where: 'Guard Security Boundary',
+        why: 'The request was rejected because an authentication token was missing, malformed, or expired.',
+        action: 'Log in again via /login to obtain a valid access token.',
+      };
+    }
+
+    if (isDb) {
+      return {
+        isError: true,
+        what: 'Database operation timed out or failed.',
+        where: `Database (${failedSpan?.name || 'PostgreSQL'})`,
+        why: failedSpan?.errorMessage || selectedTrace.errorMessage || 'Query exceeded database safety timeout threshold.',
+        action: 'Check slow queries, PostgreSQL connection pool capacity, and table indexing.',
+      };
+    }
+
+    if (isM2) {
+      return {
+        isError: true,
+        what: 'Document intelligence processing failed.',
+        where: 'M2 Processing Engine',
+        why: selectedTrace.errorMessage || 'PDF extraction or chunking encountered an unexpected error.',
+        action: 'Inspect PDF structure, verify upload size, and review M2 worker logs.',
+      };
+    }
+
+    return {
+      isError: true,
+      what: `Request failed with HTTP ${selectedTrace.httpStatus || 500}.`,
+      where: 'Application Backend',
+      why: selectedTrace.errorMessage || 'Server returned an unhandled execution exception.',
+      action: 'Inspect application stack trace and verify request payload parameters.',
+    };
   }, [selectedTrace]);
 
-  const isSelectedError = selectedTrace?.status === 'ERROR' || (selectedTrace?.httpStatus && selectedTrace.httpStatus >= 400);
+  // Evidence package generator
+  const generateEvidencePackage = (trace: RequestTrace) => {
+    return JSON.stringify(
+      {
+        observation: {
+          traceId: trace.traceId,
+          requestId: trace.requestId,
+          timestamp: trace.startTimeIso,
+          route: trace.httpUrl,
+          httpMethod: trace.httpMethod,
+          httpStatus: trace.httpStatus || 200,
+          durationMs: trace.durationMs || 0,
+          clientPlatform: trace.clientPlatform,
+        },
+        diagnosis: {
+          status: trace.status,
+          category: trace.errorCategory || 'APPLICATION',
+          message: trace.errorMessage || null,
+        },
+        realSubsystemSpans: trace.spans.map((s) => ({
+          name: s.name,
+          kind: s.kind,
+          durationMs: s.durationMs || 0,
+          status: s.status,
+          attributes: s.attributes,
+          error: s.errorMessage,
+        })),
+        systemHealthSnapshot: {
+          database: health?.database.status || 'UNKNOWN',
+          databaseLatencyMs: health?.database.latencyMs,
+          memoryPercent: health?.memory.percentUsed,
+          storage: health?.storage.status || 'UNKNOWN',
+        },
+      },
+      null,
+      2
+    );
+  };
+
+  const handleCopyEvidence = (trace: RequestTrace) => {
+    const pkg = generateEvidencePackage(trace);
+    navigator.clipboard.writeText(pkg);
+    setCopyFeedback('Diagnostic Evidence Package copied to clipboard!');
+    setTimeout(() => setCopyFeedback(null), 3000);
+  };
 
   return (
     <div className="min-h-screen bg-[#070d18] text-slate-100 font-sans flex flex-col antialiased selection:bg-teal-500/30 selection:text-white p-4 sm:p-5 space-y-4">
-      {/* Top Section: Left Nav | Top 5 KPI Cards & Live Stream | Right System Health */}
+      {/* 1. Production Top Header */}
+      <header className="bg-[#0b1424] border border-slate-800/90 rounded-xl px-5 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-md font-mono">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <span className="text-teal-400 font-bold text-base sm:text-lg">🔭 EKAGURU OBSERVE</span>
+            <span className="text-slate-400 text-xs sm:text-sm font-normal">
+              — Understand every request, find problems, and fix them.
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 self-end md:self-auto text-xs">
+          {/* Status Badge */}
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                health?.status === 'HEALTHY'
+                  ? 'bg-emerald-400 animate-pulse'
+                  : health?.status === 'DEGRADED'
+                  ? 'bg-amber-400'
+                  : 'bg-rose-500'
+              }`}
+            />
+            <span className="font-semibold text-slate-200">
+              {health?.status === 'HEALTHY'
+                ? 'Healthy'
+                : health?.status === 'DEGRADED'
+                ? 'Degraded'
+                : 'Critical'}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className={`px-3 py-1 font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${
+              autoRefresh
+                ? 'bg-teal-500/15 border-teal-500/40 text-teal-300 shadow-sm'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? 'bg-teal-400 animate-ping' : 'bg-slate-500'}`} />
+            {autoRefresh ? 'Live Refresh (2s)' : 'Paused'}
+          </button>
+        </div>
+      </header>
+
+      {/* Copy Toast */}
+      {copyFeedback && (
+        <div className="p-3 rounded-lg bg-teal-950/80 border border-teal-500/60 text-teal-200 text-xs font-mono flex items-center justify-between shadow-lg">
+          <span>✅ {copyFeedback}</span>
+          <button onClick={() => setCopyFeedback(null)} className="text-slate-400 hover:text-white">✕</button>
+        </div>
+      )}
+
+      {/* 2. Top Summary KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono">
+        <div className="bg-[#0b1424] border border-slate-800/90 rounded-xl p-3.5">
+          <span className="text-[11px] text-slate-400 block">Total Requests</span>
+          <div className="text-xl font-bold text-white mt-1">{totalCount}</div>
+          <span className="text-[10px] text-slate-500 block mt-0.5">In telemetry buffer</span>
+        </div>
+
+        <div className="bg-[#0b1424] border border-slate-800/90 rounded-xl p-3.5">
+          <span className="text-[11px] text-slate-400 block">Success Rate</span>
+          <div className="text-xl font-bold text-emerald-400 mt-1">{successRate}%</div>
+          <span className="text-[10px] text-emerald-400 block mt-0.5">Nominal</span>
+        </div>
+
+        <div className={`border rounded-xl p-3.5 ${
+          errorCount > 0
+            ? 'bg-rose-950/20 border-rose-900/80'
+            : 'bg-[#0b1424] border-slate-800/90'
+        }`}>
+          <span className={`text-[11px] block ${errorCount > 0 ? 'text-rose-300' : 'text-slate-400'}`}>
+            Failed Requests
+          </span>
+          <div className={`text-xl font-bold mt-1 ${errorCount > 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+            {errorCount}
+          </div>
+          <span className="text-[10px] text-slate-500 block mt-0.5">
+            {errorCount > 0 ? 'Requires attention' : '0 errors'}
+          </span>
+        </div>
+
+        <div className="bg-[#0b1424] border border-slate-800/90 rounded-xl p-3.5">
+          <span className="text-[11px] text-slate-400 block">Avg Duration (p95)</span>
+          <div className="text-xl font-bold text-teal-400 mt-1">{p95} ms</div>
+          <span className="text-[10px] text-slate-500 block mt-0.5">Calculated p95</span>
+        </div>
+
+        <div className="bg-[#0b1424] border border-slate-800/90 rounded-xl p-3.5 col-span-2 sm:col-span-1">
+          <span className="text-[11px] text-slate-400 block">Active Requests</span>
+          <div className="text-xl font-bold text-indigo-400 mt-1">{activeCount}</div>
+          <span className="text-[10px] text-slate-500 block mt-0.5">Executing now</span>
+        </div>
+      </div>
+
+      {/* 3. Main Workspace: Navigation | Request Stream */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* 1. Left Navigation Menu (Col 2) */}
-        <div className="lg:col-span-2 bg-[#0c1524] border border-slate-800/90 rounded-xl p-3 flex flex-col justify-between space-y-4 font-mono shadow-sm">
+        {/* Left Navigation (Col 2) */}
+        <div className="lg:col-span-2 bg-[#0b1424] border border-slate-800/90 rounded-xl p-3 flex flex-col justify-between space-y-4 font-mono shadow-sm">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 px-2 py-2 text-white font-bold text-xs tracking-tight border-b border-slate-800 mb-2">
-              <span className="text-teal-400">■</span>
-              <span>EKAGURU OBSERVE</span>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-1">
+              Navigation
             </div>
 
             {[
               { id: 'OVERVIEW', label: 'Overview', icon: '◉' },
               { id: 'LIVE_REQUESTS', label: 'Live Requests', icon: '⚡' },
+              { id: 'ERRORS', label: 'Errors', icon: '⚠️', count: errorCount },
               { id: 'TRACES', label: 'Traces', icon: '🔍' },
-              { id: 'ERRORS', label: 'Errors', icon: '⚠️', count: errorCount > 0 ? errorCount : 1 },
-              { id: 'M2_PIPELINE', label: 'M2 Pipeline', icon: '📚' },
               { id: 'DATABASE', label: 'Database', icon: '🗄️' },
-              { id: 'HEALTH', label: 'System Health', icon: '💓' },
-              { id: 'CERTIFICATES', label: 'Certificates', icon: '📜' },
-              { id: 'ALERTS', label: 'Alerts', icon: '⚠️' },
-              { id: 'SETTINGS', label: 'Settings', icon: '⚙️' },
+              { id: 'M2_PIPELINE', label: 'M2 Pipeline', icon: '📚' },
+              { id: 'SYSTEM_HEALTH', label: 'System Health', icon: '💓' },
             ].map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveNav(item.id as NavSection)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left font-mono ${
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all text-left ${
                   activeNav === item.id
-                    ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 font-semibold shadow-sm'
+                    ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 font-semibold'
                     : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
                 }`}
               >
@@ -231,106 +409,67 @@ export default function ObserveCockpitPage() {
             ))}
           </div>
 
-          {/* Bottom Safe Telemetry Badge */}
-          <div className="p-2.5 rounded-lg bg-[#070e1a] border border-slate-800/80 text-[10px] font-mono text-slate-400 space-y-1">
-            <div className="text-amber-400 font-bold flex items-center gap-1">
-              <span>🔒 Safe Telemetry</span>
-            </div>
-            <p>PII &amp; JWT secrets auto-redacted before buffer storage.</p>
+          <div className="p-2.5 rounded-lg bg-[#070e1a] border border-slate-800 text-[10px] text-slate-400 space-y-1">
+            <div className="text-teal-400 font-bold">🔒 Safe Telemetry</div>
+            <p>PII, JWT tokens, and private learner data are scrubbed before storage.</p>
           </div>
         </div>
 
-        {/* 2. Center Column: Top 5 KPI Cards + Live Request Stream (Col 7) */}
-        <div className="lg:col-span-7 space-y-4">
-          {/* Top 5 KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-            {/* Total Requests */}
-            <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-3 font-mono">
-              <span className="text-[10px] text-slate-400 block">Total Requests</span>
-              <div className="text-xl font-bold text-white mt-0.5">{totalCount}</div>
-              <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                ↑ 12% <span className="text-slate-500">vs last 5 min</span>
-              </span>
-            </div>
-
-            {/* Success Rate */}
-            <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-3 font-mono">
-              <span className="text-[10px] text-slate-400 block">Success Rate</span>
-              <div className="text-xl font-bold text-emerald-400 mt-0.5">{successRate}%</div>
-              <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                ↑ 2.3% <span className="text-slate-500">vs last 5 min</span>
-              </span>
-            </div>
-
-            {/* Failed Requests */}
-            <div className="bg-[#0c1524] border border-rose-900/60 rounded-xl p-3 font-mono bg-rose-950/20">
-              <span className="text-[10px] text-rose-300 block">Failed Requests</span>
-              <div className="text-xl font-bold text-rose-400 mt-0.5">{errorCount > 0 ? errorCount : 1}</div>
-              <span className="text-[10px] text-rose-400 flex items-center gap-0.5 mt-0.5">
-                ↑ 1 <span className="text-slate-500">vs last 5 min</span>
-              </span>
-            </div>
-
-            {/* Avg Duration (p95) */}
-            <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-3 font-mono">
-              <span className="text-[10px] text-slate-400 block">Avg Duration (p95)</span>
-              <div className="text-xl font-bold text-emerald-400 mt-0.5">{p95} ms</div>
-              <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                ↓ 120 ms <span className="text-slate-500">vs last 5 min</span>
-              </span>
-            </div>
-
-            {/* In Progress */}
-            <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-3 font-mono col-span-2 sm:col-span-1">
-              <span className="text-[10px] text-slate-400 block">In Progress</span>
-              <div className="text-xl font-bold text-indigo-400 mt-0.5">{inProgressCount}</div>
-              <span className="text-[10px] text-slate-400 mt-0.5 block">Right now</span>
-            </div>
-          </div>
-
-          {/* Live Request Stream Table */}
-          <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl overflow-hidden shadow-sm font-mono">
-            <div className="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between text-xs bg-[#09101b]">
+        {/* Center Request Stream (Col 10) */}
+        <div className="lg:col-span-10 space-y-4">
+          <div className="bg-[#0b1424] border border-slate-800/90 rounded-xl overflow-hidden shadow-sm font-mono">
+            <div className="px-4 py-2.5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-[#09101b]">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white">Live Request Stream ({traces.length || 100} recorded)</span>
+                <span className="font-bold text-white">Live Request Stream</span>
+                <span className="text-[10px] text-slate-500">({visibleTraces.length} recorded)</span>
               </div>
-              <button
-                onClick={() => setActiveNav('LIVE_REQUESTS')}
-                className="text-[11px] text-teal-400 hover:underline"
-              >
-                View All
-              </button>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search trace ID, route, method..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-[#070e1a] border border-slate-700 text-[11px] rounded px-2.5 py-1 text-slate-200 placeholder-slate-500 w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                />
+              </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider bg-[#070e1a]/60">
-                    <th className="py-2 px-3">TIME</th>
-                    <th className="py-2 px-2">METHOD</th>
-                    <th className="py-2 px-3">ROUTE</th>
-                    <th className="py-2 px-2 text-center">STATUS</th>
-                    <th className="py-2 px-2 text-right">DURATION</th>
-                    <th className="py-2 px-3 text-center hidden md:table-cell">CLIENT</th>
-                    <th className="py-2 px-3 text-right">TRACE ID</th>
+                    <th className="py-2 px-3">Time</th>
+                    <th className="py-2 px-2">Method</th>
+                    <th className="py-2 px-3">Route</th>
+                    <th className="py-2 px-2 text-center">Status</th>
+                    <th className="py-2 px-2 text-right">Duration</th>
+                    <th className="py-2 px-3 text-center hidden md:table-cell">Client</th>
+                    <th className="py-2 px-3 text-right">Trace ID</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {visibleTraces.length === 0 ? (
+                  {loading && traces.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500 text-xs">
+                      <td colSpan={7} className="p-6 text-center text-slate-500">
                         Loading live telemetry stream...
                       </td>
                     </tr>
+                  ) : visibleTraces.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-6 text-center text-slate-500 space-y-1">
+                        <div>No matching requests in telemetry buffer.</div>
+                      </td>
+                    </tr>
                   ) : (
-                    visibleTraces.slice(0, 8).map((trace, idx) => {
+                    visibleTraces.slice(0, 8).map((trace) => {
                       const isError = trace.status === 'ERROR' || (trace.httpStatus && trace.httpStatus >= 400);
                       const isSelected = selectedTrace?.traceId === trace.traceId;
                       const durationDisplay = (trace.durationMs || 0) >= 1000 ? `${((trace.durationMs || 0) / 1000).toFixed(2)} s` : `${trace.durationMs || 1} ms`;
 
                       return (
                         <tr
-                          key={trace.traceId || idx}
+                          key={trace.traceId}
                           onClick={() => setSelectedTrace(trace)}
                           className={`cursor-pointer transition-colors ${
                             isSelected
@@ -342,11 +481,11 @@ export default function ObserveCockpitPage() {
                             {new Date(trace.startTimeMs).toLocaleTimeString()}
                           </td>
                           <td className="py-2 px-2 font-bold whitespace-nowrap text-[11px]">
-                            <span className="text-teal-400 font-mono font-bold">
+                            <span className="text-teal-400 font-mono">
                               {trace.httpMethod}
                             </span>
                           </td>
-                          <td className="py-2 px-3 text-slate-200 font-semibold truncate max-w-[200px]">
+                          <td className="py-2 px-3 text-slate-200 font-semibold truncate max-w-[240px]">
                             {trace.httpUrl}
                           </td>
                           <td className="py-2 px-2 text-center whitespace-nowrap">
@@ -364,7 +503,7 @@ export default function ObserveCockpitPage() {
                             {durationDisplay}
                           </td>
                           <td className="py-2 px-3 text-center text-slate-400 text-[11px] hidden md:table-cell whitespace-nowrap">
-                            Chrome 124
+                            {trace.clientPlatform || 'browser'}
                           </td>
                           <td className="py-2 px-3 text-right font-mono text-[10px] text-slate-500 whitespace-nowrap">
                             {trace.traceId.length > 12 ? `${trace.traceId.slice(0, 10)}...` : trace.traceId}
@@ -378,387 +517,213 @@ export default function ObserveCockpitPage() {
             </div>
           </div>
         </div>
-
-        {/* 3. Right Column: System Health (Col 3) */}
-        <div className="lg:col-span-3 bg-[#0c1524] border border-slate-800/90 rounded-xl p-4 space-y-3 font-mono shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <span className="text-xs font-bold text-white">System Health</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              🟢 Healthy
-            </span>
-          </div>
-
-          <div className="space-y-3 text-xs">
-            {/* PostgreSQL */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-slate-300 flex items-center gap-1.5">🗄️ PostgreSQL</span>
-                <span className="text-emerald-400 text-[11px] font-bold">🟢 Healthy</span>
-              </div>
-            </div>
-
-            {/* Memory */}
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-400">💾 Memory</span>
-                <span className="text-amber-400 font-bold">{health?.memory.percentUsed || 97}%</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div style={{ width: `${health?.memory.percentUsed || 97}%` }} className="h-full bg-amber-400 rounded-full" />
-              </div>
-            </div>
-
-            {/* CPU */}
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-400">⚡ CPU</span>
-                <span className="text-teal-400 font-bold">38%</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div style={{ width: '38%' }} className="h-full bg-teal-400 rounded-full" />
-              </div>
-            </div>
-
-            {/* Storage */}
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-400">📁 Storage</span>
-                <span className="text-amber-400 font-bold">64%</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div style={{ width: '64%' }} className="h-full bg-amber-400 rounded-full" />
-              </div>
-            </div>
-
-            {/* Disk (Uploads) */}
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-400">💿 Disk (Uploads)</span>
-                <span className="text-amber-400 font-bold">78%</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div style={{ width: '78%' }} className="h-full bg-amber-400 rounded-full" />
-              </div>
-            </div>
-
-            {/* Redis */}
-            <div className="pt-2 border-t border-slate-800">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300 flex items-center gap-1.5">⚡ Redis Cache</span>
-                <span className="text-emerald-400 text-[11px] font-bold">🟢 Healthy</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Middle Section: REQUEST 360 – WATERFALL VIEW */}
+      {/* 4. REQUEST 360: Fresher-First Progressive Disclosure */}
       {selectedTrace && (
-        <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-4 sm:p-5 space-y-4 shadow-md font-mono">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-            <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
-              REQUEST 360 – WATERFALL VIEW ({selectedTrace.httpMethod} {selectedTrace.httpUrl.toUpperCase()})
-            </h2>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-slate-500">Live Request Inspection</span>
+        <div className="bg-[#0b1424] border border-slate-800/90 rounded-xl p-4 sm:p-5 space-y-4 shadow-md font-mono">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-2">
+            <div className="flex items-center gap-2.5">
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-bold border ${
+                  selectedTrace.status === 'ERROR' || (selectedTrace.httpStatus && selectedTrace.httpStatus >= 400)
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                }`}
+              >
+                {selectedTrace.httpStatus || 200}
+              </span>
+              <div>
+                <h2 className="text-xs sm:text-sm font-bold text-white">
+                  REQUEST 360: {selectedTrace.httpMethod} {selectedTrace.httpUrl}
+                </h2>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Trace ID: {selectedTrace.traceId} • Request ID: {selectedTrace.requestId} • Duration: {selectedTrace.durationMs || 1} ms
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                onClick={() => handleCopyEvidence(selectedTrace)}
+                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-teal-300 text-xs font-semibold border border-slate-700 transition-colors"
+              >
+                📋 Copy Diagnostic Evidence
+              </button>
+              <button
+                onClick={() => setSelectedTrace(null)}
+                className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs"
+              >
+                ✕
+              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            {/* Left Column: Trace Summary (Col 3) */}
-            <div className="lg:col-span-3 bg-[#080e18] rounded-lg p-3.5 border border-slate-800/80 space-y-3 text-xs">
-              <div className="text-slate-300 font-bold border-b border-slate-800 pb-1.5">
-                Trace Summary
+          {/* Level 1: Fresher-Friendly Diagnostic Summary Box */}
+          {diagnosis && (
+            <div className={`p-4 rounded-xl border text-xs space-y-2 ${
+              diagnosis.isError
+                ? 'bg-rose-950/30 border-rose-900/80 text-rose-200'
+                : 'bg-emerald-950/20 border-emerald-900/60 text-slate-200'
+            }`}>
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <span className="font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  {diagnosis.isError ? '🔴 Problem Diagnosis' : '🟢 Operational Status'}
+                </span>
+                <span className="text-[10px] text-slate-400">Where: {diagnosis.where}</span>
               </div>
 
-              <div className="space-y-2 text-[11px]">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Trace ID</span>
-                  <span className="text-slate-300 font-bold break-all">{selectedTrace.traceId}</span>
+                  <span className="text-slate-400 font-semibold block text-[10px] uppercase">What happened?</span>
+                  <p className="text-white font-medium mt-0.5">{diagnosis.what}</p>
                 </div>
-
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Request ID</span>
-                  <span className="text-slate-300 break-all">{selectedTrace.requestId}</span>
+                  <span className="text-slate-400 font-semibold block text-[10px] uppercase">Why?</span>
+                  <p className="mt-0.5">{diagnosis.why}</p>
                 </div>
-
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Method / Route</span>
-                  <span className="text-teal-400 font-bold">{selectedTrace.httpMethod} {selectedTrace.httpUrl}</span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[10px]">Status</span>
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold mt-0.5 ${
-                      isSelectedError
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                    }`}
-                  >
-                    {selectedTrace.httpStatus || 200} {isSelectedError ? 'Internal Server Error' : 'OK'}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[10px]">Total Duration</span>
-                  <span className="text-amber-400 font-bold text-sm">
-                    {((selectedTrace.durationMs || 0) / 1000).toFixed(2)} S
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[10px]">Client</span>
-                  <span className="text-slate-300">Chrome 124 on Windows</span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[10px]">Started At</span>
-                  <span className="text-slate-400">
-                    {new Date(selectedTrace.startTimeMs).toLocaleString()}
-                  </span>
+                  <span className="text-slate-400 font-semibold block text-[10px] uppercase">What should I do?</span>
+                  <p className="text-teal-300 font-medium mt-0.5">{diagnosis.action}</p>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Center Column: Waterfall Timeline (Col 6) */}
-            <div className="lg:col-span-6 space-y-3">
-              {/* Tabs */}
-              <div className="flex items-center gap-1 border-b border-slate-800 pb-2 text-xs">
-                {[
-                  { id: 'WATERFALL', label: 'Waterfall' },
-                  { id: 'SPANS', label: 'Spans' },
-                  { id: 'METADATA', label: 'Metadata' },
-                  { id: 'LOGS', label: 'Logs' },
-                  { id: 'REQUEST_RESPONSE', label: 'Request/Response' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as Request360Tab)}
-                    className={`px-3 py-1 rounded-t-lg transition-all ${
-                      activeTab === tab.id
-                        ? 'bg-teal-500/20 text-teal-300 border-b-2 border-teal-400 font-bold'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
+          {/* Level 2 & 3 Tabs */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-1 border-b border-slate-800 text-xs">
+              {[
+                { id: 'WATERFALL', label: 'Subsystem Waterfall' },
+                { id: 'SPANS', label: `Raw Spans (${selectedTrace.spans.length})` },
+                { id: 'METADATA', label: 'Metadata' },
+                { id: 'EVIDENCE_PACKAGE', label: 'Evidence Package' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as DetailsTab)}
+                  className={`px-3 py-1.5 rounded-t-lg transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-teal-500/20 text-teal-300 border-b-2 border-teal-400 font-bold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Subsystem Waterfall View (Real data only) */}
+            {activeTab === 'WATERFALL' && (
+              <div className="bg-[#080e18] p-4 rounded-xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800/80 pb-2">
+                  <span>Subsystem Execution Journey</span>
+                  <span>Total: {selectedTrace.durationMs || 1} ms</span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {selectedTrace.spans.map((span, idx) => {
+                    const isErr = span.status === 'ERROR';
+                    const dur = span.durationMs || 1;
+                    const totalDur = selectedTrace.durationMs || 1;
+                    const widthPct = Math.min(100, Math.max(8, (dur / totalDur) * 100));
+
+                    return (
+                      <div key={span.spanId || idx} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${isErr ? 'bg-rose-500' : 'bg-emerald-400'}`} />
+                            <span className="font-bold text-slate-200">{span.name}</span>
+                            <span className="text-[10px] text-slate-500 px-1.5 py-0.2 rounded bg-slate-900 border border-slate-800">
+                              {span.kind}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 font-mono">
+                            <span className={`${isErr ? 'text-rose-400 font-bold' : 'text-slate-300'}`}>
+                              {dur} ms
+                            </span>
+                            <span>{isErr ? '🔴' : '✓'}</span>
+                          </div>
+                        </div>
+
+                        <div className="w-full h-2 bg-[#050910] rounded-full overflow-hidden flex">
+                          <div
+                            style={{ width: `${widthPct}%` }}
+                            className={`h-full rounded-full ${
+                              isErr ? 'bg-rose-500 shadow-sm shadow-rose-500/50' : 'bg-teal-400 shadow-sm shadow-teal-400/40'
+                            }`}
+                          />
+                        </div>
+
+                        {span.errorMessage && (
+                          <div className="text-[11px] text-rose-400 pl-4 pt-0.5">
+                            Error: {span.errorMessage}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Raw Spans List */}
+            {activeTab === 'SPANS' && (
+              <div className="space-y-2">
+                {selectedTrace.spans.map((span) => (
+                  <div key={span.spanId} className="p-3 rounded-lg bg-[#080e18] border border-slate-800 text-xs flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-white flex items-center gap-2">
+                        <span>{span.name}</span>
+                        <span className="text-[10px] text-slate-500 bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">
+                          {span.kind}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">Span ID: {span.spanId}</span>
+                      {span.attributes && Object.keys(span.attributes).length > 0 && (
+                        <div className="text-[10px] text-slate-400 mt-1 font-mono">
+                          Attributes: {JSON.stringify(span.attributes)}
+                        </div>
+                      )}
+                      {span.errorMessage && (
+                        <span className="text-[10px] text-rose-400 block mt-0.5">Error: {span.errorMessage}</span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-slate-200 font-bold block">{span.durationMs || 1} ms</span>
+                      <span className={`text-[10px] font-bold ${span.status === 'ERROR' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        {span.status}
+                      </span>
+                    </div>
+                  </div>
                 ))}
               </div>
+            )}
 
-              {/* Waterfall Timeline Graphic */}
-              <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800/80 space-y-3 text-xs">
-                <div className="grid grid-cols-6 text-[10px] text-slate-500 border-b border-slate-800 pb-1">
-                  <span>0 ms</span>
-                  <span className="text-center">2,000 ms</span>
-                  <span className="text-center">4,000 ms</span>
-                  <span className="text-center">6,000 ms</span>
-                  <span className="text-center">8,000 ms</span>
-                  <span className="text-right">8,420 ms</span>
-                </div>
-
-                <div className="space-y-2 py-1">
-                  {waterfallSpans.map((span, idx) => (
-                    <div key={span.spanId || idx} className="space-y-0.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <div className="flex items-center gap-1.5 text-slate-300">
-                          <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
-                          <span className="font-semibold">{span.name}</span>
-                        </div>
-                        <span className="font-mono text-slate-400">{span.durationMs || 1} ms</span>
-                      </div>
-
-                      <div className="w-full h-2 bg-[#050910] rounded-full overflow-hidden flex">
-                        <div
-                          style={{ width: '100%' }}
-                          className="h-full rounded-full bg-teal-400 shadow-sm shadow-teal-400/50"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* Metadata Tab */}
+            {activeTab === 'METADATA' && (
+              <div className="p-4 bg-[#080e18] rounded-xl border border-slate-800 text-xs space-y-2 font-mono">
+                <div><span className="text-slate-500">Trace ID:</span> <span className="text-slate-200">{selectedTrace.traceId}</span></div>
+                <div><span className="text-slate-500">Request ID:</span> <span className="text-slate-200">{selectedTrace.requestId}</span></div>
+                <div><span className="text-slate-500">Client Platform:</span> <span className="text-slate-200">{selectedTrace.clientPlatform}</span></div>
+                <div><span className="text-slate-500">Client Route:</span> <span className="text-slate-200">{selectedTrace.clientRoute || '/'}</span></div>
+                <div><span className="text-slate-500">HTTP URL:</span> <span className="text-slate-200">{selectedTrace.httpUrl}</span></div>
+                <div><span className="text-slate-500">Start Time:</span> <span className="text-slate-200">{selectedTrace.startTimeIso}</span></div>
+                <div><span className="text-slate-500">Duration:</span> <span className="text-slate-200">{selectedTrace.durationMs} ms</span></div>
               </div>
-            </div>
+            )}
 
-            {/* Right Column: Root Cause Card (Col 3) */}
-            <div className="lg:col-span-3">
-              <div className="rounded-lg p-4 border border-rose-900/60 bg-[#0e111a] space-y-3">
-                <div className="flex items-center justify-between border-b border-rose-900/40 pb-2">
-                  <span className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
-                    ⚠️ Root Cause
-                  </span>
-                </div>
-
-                <div>
-                  <div className="text-xs font-bold text-white uppercase">
-                    {isSelectedError ? 'DATABASE QUERY TIMEOUT' : 'NOMINAL EXECUTION'}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    Confidence: {isSelectedError ? '92%' : '99%'}
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1">
-                    <div
-                      style={{ width: isSelectedError ? '92%' : '99%' }}
-                      className="h-full bg-teal-400 rounded-full"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
-                    SUMMARY
-                  </span>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    {isSelectedError
-                      ? 'A database query in ContentTopic insertion took too long and exceeded the configured timeout.'
-                      : 'Request completed successfully in 1ms with zero subsystem errors.'}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
-                    RECOMMENDED ACTION
-                  </span>
-                  <ul className="text-[11px] text-slate-300 space-y-1 list-disc list-inside">
-                    {isSelectedError ? (
-                      <>
-                        <li>Check slow queries</li>
-                        <li>Check indexes</li>
-                        <li>Check DB load / connections</li>
-                      </>
-                    ) : (
-                      <>
-                        <li>No action required</li>
-                        <li>Telemetry is recording nominal performance</li>
-                      </>
-                    )}
-                  </ul>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800 space-y-2">
-                  <div className="text-[10px] text-slate-400">
-                    <span className="font-bold block">Related Span</span>
-                    <span>Backend Controller • Duration: {selectedTrace.durationMs || 1}ms</span>
-                  </div>
-
-                  <button className="w-full py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-sm">
-                    View Logs
-                  </button>
-                </div>
+            {/* Evidence Package Tab */}
+            {activeTab === 'EVIDENCE_PACKAGE' && (
+              <div className="space-y-2">
+                <pre className="p-4 bg-black/60 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-300 overflow-x-auto max-h-72">
+                  {generateEvidencePackage(selectedTrace)}
+                </pre>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
-
-      {/* Bottom Section: SYSTEM HEALTH DETAIL + M2 PIPELINE OVERVIEW */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 font-mono text-xs">
-        {/* SYSTEM HEALTH DETAIL (Col 7) */}
-        <div className="lg:col-span-7 bg-[#0c1524] border border-slate-800/90 rounded-xl p-4 space-y-3">
-          <div className="text-xs font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2">
-            SYSTEM HEALTH DETAIL
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* PostgreSQL */}
-            <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800 space-y-1">
-              <span className="text-[10px] text-slate-400 block font-bold">PostgreSQL</span>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Connections</span>
-                <span className="font-bold text-white">8 / 20</span>
-              </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Query (p95)</span>
-                <span className="font-bold text-teal-400">124 ms</span>
-              </div>
-            </div>
-
-            {/* Memory */}
-            <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800 space-y-1">
-              <span className="text-[10px] text-slate-400 block font-bold">Memory</span>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Used / Total</span>
-                <span className="font-bold text-white">5.6 GB / 7.8 GB</span>
-              </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Usage</span>
-                <span className="font-bold text-amber-400">72%</span>
-              </div>
-            </div>
-
-            {/* CPU */}
-            <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800 space-y-1">
-              <span className="text-[10px] text-slate-400 block font-bold">CPU</span>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Usage / Load</span>
-                <span className="font-bold text-white">38% / 0.84</span>
-              </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Status</span>
-                <span className="font-bold text-emerald-400">Healthy</span>
-              </div>
-            </div>
-
-            {/* Storage */}
-            <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800 space-y-1">
-              <span className="text-[10px] text-slate-400 block font-bold">Storage (Uploads)</span>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Used / Total</span>
-                <span className="font-bold text-white">124 GB / 200 GB</span>
-              </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Usage</span>
-                <span className="font-bold text-amber-400">62%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* M2 PIPELINE OVERVIEW (LAST 10 MIN) (Col 5) */}
-        <div className="lg:col-span-5 bg-[#0c1524] border border-slate-800/90 rounded-xl p-4 space-y-3">
-          <div className="text-xs font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2">
-            M2 PIPELINE OVERVIEW (LAST 10 MIN)
-          </div>
-
-          <div className="grid grid-cols-6 gap-2 text-center">
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Uploads</span>
-              <span className="text-sm font-bold text-white block mt-0.5">12</span>
-              <span className="text-[9px] text-emerald-400">100%</span>
-            </div>
-
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Page Truth</span>
-              <span className="text-sm font-bold text-white block mt-0.5">12</span>
-              <span className="text-[9px] text-emerald-400">100%</span>
-            </div>
-
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Structure</span>
-              <span className="text-sm font-bold text-white block mt-0.5">12</span>
-              <span className="text-[9px] text-emerald-400">100%</span>
-            </div>
-
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Chunks</span>
-              <span className="text-sm font-bold text-white block mt-0.5">12</span>
-              <span className="text-[9px] text-emerald-400">100%</span>
-            </div>
-
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Canonical</span>
-              <span className="text-sm font-bold text-amber-400 block mt-0.5">10</span>
-              <span className="text-[9px] text-amber-400">83%</span>
-            </div>
-
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Relation</span>
-              <span className="text-sm font-bold text-amber-400 block mt-0.5">10</span>
-              <span className="text-[9px] text-amber-400">83%</span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
