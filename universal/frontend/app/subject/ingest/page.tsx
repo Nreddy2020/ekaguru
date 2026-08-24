@@ -75,7 +75,8 @@ function IngestPageContent() {
             const session = await api.createSession(course.learnerId, course.version, 30);
 
             // 3. Navigate into the V2 learning flow
-            router.push(`/student/welcome?sessionId=${session.id || session.data?.id || ''}`);
+            const sAny = session as any;
+            router.push(`/student/welcome?sessionId=${sAny?.id || sAny?.data?.id || ''}`);
         } catch (e: any) {
             console.error(e);
             alert("Failed to initialize learning session: " + e.message);
