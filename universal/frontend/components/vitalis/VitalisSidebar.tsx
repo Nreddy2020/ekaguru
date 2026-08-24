@@ -51,77 +51,70 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
 }) => {
   const navGroups: NavGroup[] = [
     {
-      groupName: 'COMMAND',
-      items: [{ id: 'COMMAND_CENTER', label: 'Command Center', icon: '◈' }],
+      groupName: 'Overview',
+      items: [{ id: 'COMMAND_CENTER', label: 'Command Center', icon: '◉' }],
     },
     {
-      groupName: 'REQUEST',
+      groupName: 'Observe',
       items: [
         { id: 'LIVE_REQUESTS', label: 'Live Requests', icon: '↗' },
-        { id: 'REQUEST_JOURNEYS', label: 'Journeys', icon: '◎' },
+        { id: 'REQUEST_JOURNEYS', label: 'Request Journeys', icon: '◎' },
       ],
     },
     {
-      groupName: 'ENVIRONMENT',
+      groupName: 'Environment',
       items: [
         { id: 'APP_INVENTORY', label: 'Application Inventory', icon: '▦' },
-        { id: 'TOPOLOGY', label: 'Topology', icon: '⌘' },
+        { id: 'TOPOLOGY', label: 'Topology Map', icon: '⌘' },
       ],
     },
     {
-      groupName: 'HEALTH',
+      groupName: 'Health & Impact',
       items: [
-        { id: 'PERFORMANCE', label: 'Performance', icon: '◉' },
-        { id: 'HEALTH', label: 'Health', icon: '♥' },
+        { id: 'PERFORMANCE', label: 'Performance', icon: '◒' },
+        { id: 'HEALTH', label: 'Subsystem Health', icon: '♥' },
+        { id: 'BUSINESS_IMPACT', label: 'Business Impact', icon: '◈' },
         { id: 'ERRORS', label: 'Errors & Anomalies', icon: '△', badge: activeIncidentsCount },
         { id: 'CAPACITY', label: 'Capacity', icon: '◌' },
       ],
     },
     {
-      groupName: 'IMPACT & CHANGE',
-      items: [
-        { id: 'BUSINESS_IMPACT', label: 'Business Impact', icon: '◈' },
-        { id: 'CHANGE_INTELLIGENCE', label: 'Change Intelligence', icon: '⇄' },
-        { id: 'COMPATIBILITY', label: 'Compatibility', icon: '◇' },
-        { id: 'SECURITY', label: 'Security & Safe Data', icon: '🔒' },
-      ],
-    },
-    {
-      groupName: 'INTELLIGENCE',
+      groupName: 'Intelligence',
       items: [
         { id: 'EVIDENCE_RCA', label: 'Evidence & RCA', icon: '⌕' },
+        { id: 'CHANGE_INTELLIGENCE', label: 'Change Timeline', icon: '⇄' },
         { id: 'PREDICTIVE_RISK', label: 'Predictive Risk', icon: '◇' },
         { id: 'WHAT_IF', label: 'What-If Simulation', icon: '✦' },
         { id: 'CONTINUOUS_LEARNING', label: 'Continuous Learning', icon: '∞' },
       ],
     },
     {
-      groupName: 'ACTION & REPORT',
+      groupName: 'Action',
       items: [
-        { id: 'CONDITIONS_ALERTS', label: 'Alerts', icon: '◇' },
-        { id: 'ACTIONS_RUNBOOKS', label: 'Runbooks', icon: '⚙' },
+        { id: 'CONDITIONS_ALERTS', label: 'Conditions & Alerts', icon: '◇' },
+        { id: 'ACTIONS_RUNBOOKS', label: 'Actions & Runbooks', icon: '⚙' },
         { id: 'EXECUTIVE_REPORTS', label: 'Executive Reports', icon: '▤' },
       ],
     },
   ];
 
   return (
-    <aside className="w-64 bg-[#08111D] border-r border-white/[0.06] p-4 flex flex-col justify-between h-full overflow-y-auto shrink-0 select-none">
+    <aside className="w-64 bg-[#08101D]/70 backdrop-blur-xl border-r border-white/[0.06] p-4 flex flex-col justify-between h-full overflow-y-auto shrink-0 select-none">
       <div className="space-y-6">
-        {/* Ingestion Hub Button */}
+        {/* Upload Hub Pill */}
         <button
           onClick={onOpenUpload}
-          className="w-full py-3 px-4 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold text-xs flex items-center justify-center gap-2.5 hover:bg-teal-500/25 transition-all shadow-sm"
+          className="w-full py-3 px-4 rounded-2xl bg-teal-500/10 border border-teal-500/25 text-teal-300 font-semibold text-xs flex items-center justify-center gap-2 hover:bg-teal-500/20 transition-all shadow-sm"
         >
           <span className="text-base font-bold">＋</span>
           <span className="tracking-wide">Upload Evidence</span>
         </button>
 
-        {/* Grouped Nav Items */}
+        {/* Navigation Groups */}
         <div className="space-y-5">
           {navGroups.map((group) => (
-            <div key={group.groupName} className="space-y-1.5">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3">
+            <div key={group.groupName} className="space-y-1">
+              <div className="text-[11px] font-semibold text-slate-400 px-3 tracking-tight">
                 {group.groupName}
               </div>
               <div className="space-y-0.5">
@@ -131,9 +124,9 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
                     <button
                       key={item.id}
                       onClick={() => onSelectNav(item.id)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all text-left ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all text-left ${
                         isActive
-                          ? 'bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40 shadow-sm'
+                          ? 'bg-teal-500/15 text-teal-300 font-semibold shadow-xs'
                           : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
                       }`}
                     >
@@ -144,7 +137,7 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
                         <span className="truncate">{item.label}</span>
                       </div>
                       {item.badge !== undefined && item.badge > 0 && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">
                           {item.badge}
                         </span>
                       )}
@@ -157,8 +150,8 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
         </div>
       </div>
 
-      {/* Trust & Safe Telemetry Tag */}
-      <div className="pt-4 border-t border-white/[0.06] text-xs text-slate-500 space-y-1">
+      {/* Footer Safe Telemetry Status */}
+      <div className="pt-4 border-t border-white/[0.06] text-xs text-slate-500 space-y-1 px-1">
         <div className="text-teal-400 font-semibold flex items-center gap-1.5 text-xs">
           <span>🔒</span>
           <span>Safe Observation</span>

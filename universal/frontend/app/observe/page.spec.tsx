@@ -94,8 +94,8 @@ describe('VITALIS OBSERVE: Phase 1 Canonical Architecture & Executive Cockpit', 
     expect(screen.getByText(/VITALIS OBSERVE/i)).toBeInTheDocument();
     expect(screen.getByText(/LAB LIVE/i)).toBeInTheDocument();
     expect(screen.getByText(/DEMO/i)).toBeInTheDocument();
-    expect((await screen.findAllByText(/Operational Health/i)).length).toBeGreaterThan(0);
-    expect(screen.getByText(/SLA Health/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/System Health/i)).length).toBeGreaterThan(0);
+    expect(await screen.findByText(/SLA Health/i)).toBeInTheDocument();
   });
 
   it('should switch to Application Inventory view and render registered assets', async () => {

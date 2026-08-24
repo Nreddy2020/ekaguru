@@ -8,7 +8,6 @@ import { UploadEvidenceModal } from '../../components/vitalis/UploadEvidenceModa
 import { Request360Drawer } from '../../components/vitalis/drawers/Request360Drawer';
 import { SubsystemDrawer } from '../../components/vitalis/drawers/SubsystemDrawer';
 import { VitalisContextHeader } from '../../components/vitalis/ui/VitalisContextHeader';
-import { VitalisCard } from '../../components/vitalis/ui/VitalisCard';
 import { VitalisStatusPill } from '../../components/vitalis/ui/VitalisBadge';
 import {
   TopologyView,
@@ -84,25 +83,21 @@ export default function VitalisObservePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050A12] text-[#F4F7FA] font-sans antialiased flex flex-col selection:bg-teal-500 selection:text-black">
-      {/* 1. Header Toolbar */}
-      <header className="h-16 bg-[#08111D] border-b border-white/[0.08] px-4 sm:px-6 flex items-center justify-between z-10 shrink-0">
+    <div className="min-h-screen bg-[#060A12] text-[#F4F7FA] font-sans antialiased flex flex-col selection:bg-teal-500 selection:text-black">
+      {/* 1. Master Top Bar */}
+      <header className="h-16 bg-[#08101D]/70 backdrop-blur-xl border-b border-white/[0.06] px-5 sm:px-8 flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xl text-[#18D8D0]">◈</span>
-            <div className="flex flex-col">
-              <span className="text-white font-extrabold text-sm tracking-wider font-mono">
-                VITALIS OBSERVE
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-                Universal Observability • Causal Intelligence
-              </span>
-            </div>
-          </div>
+          <span className="text-xl text-[#18D8D0]">◈</span>
+          <span className="text-white font-extrabold text-sm tracking-wider font-mono">
+            VITALIS OBSERVE
+          </span>
+          <span className="text-xs text-slate-400 font-normal hidden sm:inline pl-2 border-l border-white/[0.08]">
+            Universal Observability • Causal Intelligence
+          </span>
         </div>
 
         {/* Search */}
-        <div className="hidden md:flex items-center gap-2 bg-[#050A12] border border-white/[0.08] rounded-xl px-3.5 py-1.5 w-80 text-xs text-slate-400 focus-within:border-teal-500 transition-colors">
+        <div className="hidden md:flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 py-1.5 w-80 text-xs text-slate-400 focus-within:border-teal-500 transition-colors">
           <span className="text-slate-500">⌕</span>
           <input
             type="text"
@@ -111,13 +106,13 @@ export default function VitalisObservePage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-transparent text-slate-200 placeholder-slate-500 text-xs w-full focus:outline-none font-mono"
           />
-          <kbd className="text-[10px] font-mono text-slate-500 px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">
+          <kbd className="text-[10px] font-mono text-slate-500 px-1.5 py-0.5 rounded bg-white/[0.04]">
             ⌘K
           </kbd>
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setPresentationMode(!presentationMode)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
@@ -129,7 +124,7 @@ export default function VitalisObservePage() {
             📺 <span className="hidden lg:inline ml-1">Presentation</span>
           </button>
 
-          <div className="flex items-center rounded-xl bg-[#050A12] border border-white/[0.08] p-0.5 text-xs font-semibold">
+          <div className="flex items-center rounded-xl bg-white/[0.03] border border-white/[0.08] p-0.5 text-xs font-semibold">
             <button
               onClick={() => setEnvironment('LAB')}
               className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
@@ -167,7 +162,7 @@ export default function VitalisObservePage() {
 
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#050A12] border border-white/[0.08] text-xs font-medium text-emerald-400 hover:border-white/[0.16] transition-all shadow-sm"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-emerald-400 hover:border-white/[0.16] transition-all shadow-sm"
           >
             <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
             <span className="hidden sm:inline">LIVE (3s)</span>
@@ -175,7 +170,7 @@ export default function VitalisObservePage() {
         </div>
       </header>
 
-      {/* 2. Global Context Bar */}
+      {/* 2. Global Context Header */}
       <VitalisContextHeader
         environment={environment}
         servicesCount={inventory.length}
@@ -185,7 +180,7 @@ export default function VitalisObservePage() {
 
       {/* DEMO Mode Banner */}
       {environment === 'DEMO' && (
-        <div className="bg-amber-950/40 border-b border-amber-600/40 px-4 py-1.5 text-center text-xs text-amber-300 font-semibold flex items-center justify-center gap-2">
+        <div className="bg-amber-950/40 border-b border-amber-600/40 px-4 py-2 text-center text-xs text-amber-300 font-semibold flex items-center justify-center gap-2">
           <span>⚠️ DEMO MODE ACTIVE</span>
           <span className="font-normal text-amber-200/80">
             — Rendering simulated enterprise transaction journey (WebSphere ➔ MQ ➔ DB2 with lock contention RCA).
@@ -193,45 +188,45 @@ export default function VitalisObservePage() {
         </div>
       )}
 
-      {/* Presentation Mode Hero Layout */}
+      {/* Presentation Mode Editorial Storytelling */}
       {presentationMode ? (
-        <div className="flex-1 p-8 max-w-5xl mx-auto flex flex-col justify-center items-center text-center space-y-8 animate-in fade-in duration-300">
-          <div className="space-y-2">
+        <div className="flex-1 p-10 max-w-4xl mx-auto flex flex-col justify-center items-center text-center space-y-10 animate-in fade-in duration-300">
+          <div className="space-y-3">
             <span className="text-teal-400 font-mono text-xs font-bold uppercase tracking-widest">
-              VITALIS EXECUTIVE INTELLIGENCE BRIEFING
+              VITALIS CAUSAL STORY
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white">
-              {environment === 'DEMO' ? 'Payment Processing Incident Analysis' : 'Ekaguru Live Operational Baseline'}
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+              {environment === 'DEMO' ? 'Payment Processing Incident' : 'Operational System Status'}
             </h1>
           </div>
 
           <div className="grid grid-cols-3 gap-6 w-full">
-            <div className="p-6 rounded-3xl bg-[#0B1422] border border-white/[0.08] space-y-2">
+            <div className="p-8 rounded-3xl bg-[#0c1424]/80 backdrop-blur-xl border border-white/[0.08] space-y-2">
               <span className="text-xs text-slate-400 font-mono">OPERATIONAL HEALTH</span>
-              <span className="text-5xl font-extrabold text-white font-mono block">{overview?.operationalScore || 100}</span>
+              <span className="text-6xl font-extrabold text-white font-mono block">{overview?.operationalScore || 100}</span>
               <span className="text-xs text-emerald-400">Nominal Telemetry</span>
             </div>
-            <div className="p-6 rounded-3xl bg-[#0B1422] border border-white/[0.08] space-y-2">
+            <div className="p-8 rounded-3xl bg-[#0c1424]/80 backdrop-blur-xl border border-white/[0.08] space-y-2">
               <span className="text-xs text-slate-400 font-mono">SLA COMPLIANCE</span>
-              <span className="text-5xl font-extrabold text-teal-300 font-mono block">{overview?.slaPercent || 100}%</span>
+              <span className="text-6xl font-extrabold text-teal-300 font-mono block">{overview?.slaPercent || 100}%</span>
               <span className="text-xs text-teal-400">Target ≤ 2.0s</span>
             </div>
-            <div className="p-6 rounded-3xl bg-[#0B1422] border border-white/[0.08] space-y-2">
+            <div className="p-8 rounded-3xl bg-[#0c1424]/80 backdrop-blur-xl border border-white/[0.08] space-y-2">
               <span className="text-xs text-slate-400 font-mono">ACTIVE RISKS</span>
-              <span className="text-5xl font-extrabold text-emerald-400 font-mono block">0</span>
+              <span className="text-6xl font-extrabold text-emerald-400 font-mono block">0</span>
               <span className="text-xs text-slate-400">Protected Architecture</span>
             </div>
           </div>
 
           <button
             onClick={() => setPresentationMode(false)}
-            className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-lg transition-all"
+            className="px-6 py-2.5 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-lg transition-all"
           >
             Exit Presentation Mode
           </button>
         </div>
       ) : (
-        /* Standard Workspace Body */
+        /* Standard iPadOS Workspace Layout */
         <div className="flex flex-1 overflow-hidden">
           <VitalisSidebar
             activeNav={activeNav}
@@ -240,7 +235,7 @@ export default function VitalisObservePage() {
             onOpenUpload={() => setIsUploadOpen(true)}
           />
 
-          <main className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
+          <main className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-8">
             {activeNav === 'COMMAND_CENTER' && overview && (
               <CommandCenterView
                 overview={overview}
@@ -255,20 +250,20 @@ export default function VitalisObservePage() {
             )}
 
             {(activeNav === 'LIVE_REQUESTS' || activeNav === 'REQUEST_JOURNEYS') && (
-              <div className="space-y-4 max-w-7xl mx-auto">
-                <VitalisCard>
-                  <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 mb-4 text-xs font-mono">
+              <div className="space-y-4 max-w-6xl mx-auto">
+                <div className="p-7 rounded-3xl bg-[#0c1424]/80 backdrop-blur-xl border border-white/[0.08] shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 text-xs font-mono">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-white text-base">Canonical Request Stream</span>
                       <span className="text-slate-400">({requests.length} recorded)</span>
                     </div>
-                    <span className="text-teal-400 font-semibold">Click row to open Request 360 Drawer</span>
+                    <span className="text-teal-400 font-semibold">Click row to open Request 360 Sheet</span>
                   </div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="border-b border-white/[0.08] text-[11px] text-slate-400 font-medium bg-[#050A12]">
+                        <tr className="border-b border-white/[0.06] text-slate-400 font-medium">
                           <th className="py-3 px-4">Started At</th>
                           <th className="py-3 px-3">Transaction</th>
                           <th className="py-3 px-3 text-center">Status</th>
@@ -312,7 +307,7 @@ export default function VitalisObservePage() {
                                     e.stopPropagation();
                                     handleOpenRequest360(req);
                                   }}
-                                  className="px-3 py-1 rounded-lg bg-teal-500/15 text-teal-300 hover:bg-teal-500/25 text-[11px] font-bold border border-teal-500/30"
+                                  className="px-3 py-1 rounded-xl bg-teal-500/15 text-teal-300 hover:bg-teal-500/25 text-[11px] font-bold border border-teal-500/30"
                                 >
                                   360 →
                                 </button>
@@ -323,7 +318,7 @@ export default function VitalisObservePage() {
                       </tbody>
                     </table>
                   </div>
-                </VitalisCard>
+                </div>
               </div>
             )}
 
@@ -335,41 +330,11 @@ export default function VitalisObservePage() {
             {activeNav === 'PREDICTIVE_RISK' && <PredictiveRiskView />}
             {activeNav === 'WHAT_IF' && <WhatIfView />}
             {activeNav === 'CONTINUOUS_LEARNING' && <ContinuousLearningView />}
-
-            {/* Remaining Specialized Workspaces */}
-            {activeNav !== 'COMMAND_CENTER' &&
-              activeNav !== 'APP_INVENTORY' &&
-              activeNav !== 'LIVE_REQUESTS' &&
-              activeNav !== 'REQUEST_JOURNEYS' &&
-              activeNav !== 'TOPOLOGY' &&
-              activeNav !== 'PERFORMANCE' &&
-              activeNav !== 'BUSINESS_IMPACT' &&
-              activeNav !== 'CHANGE_INTELLIGENCE' &&
-              activeNav !== 'EVIDENCE_RCA' &&
-              activeNav !== 'PREDICTIVE_RISK' &&
-              activeNav !== 'WHAT_IF' &&
-              activeNav !== 'CONTINUOUS_LEARNING' && (
-                <VitalisCard className="text-center py-16 max-w-4xl mx-auto space-y-4">
-                  <div className="text-4xl text-teal-400">◈</div>
-                  <h3 className="text-xl font-bold text-white uppercase tracking-wider">
-                    VITALIS Workspace: {activeNav.replace('_', ' ')}
-                  </h3>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                    Canonical data model and contextual intelligence pipeline are active. Workspace view is connected to the {environment} telemetry provider.
-                  </p>
-                  <button
-                    onClick={() => setActiveNav('COMMAND_CENTER')}
-                    className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition-all"
-                  >
-                    Return to Command Center
-                  </button>
-                </VitalisCard>
-              )}
           </main>
         </div>
       )}
 
-      {/* Drawers */}
+      {/* Floating iPad Sheets / Drawers */}
       <Request360Drawer
         request={selectedRequest}
         isOpen={isRequestDrawerOpen}
@@ -382,7 +347,7 @@ export default function VitalisObservePage() {
         onClose={() => setIsSubsystemDrawerOpen(false)}
       />
 
-      {/* Global Ingestion Hub */}
+      {/* Global Ingestion Hub Modal */}
       <UploadEvidenceModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
