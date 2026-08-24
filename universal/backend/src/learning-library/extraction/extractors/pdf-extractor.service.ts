@@ -463,8 +463,11 @@ export class PdfExtractorService implements DocumentExtractorInterface {
 
   private async runTesseractOcrIfAvailable(buffer: Buffer, pageNum: number): Promise<{ text: string; confidence: number } | null> {
     try {
-      // Check if buffer is valid image format (PNG, JPEG, TIFF, BMP) or has PDF header
       if (!buffer || buffer.length < 4) return null;
+      // Do not pass raw PDF file buffer directly to Tesseract (requires raster image)
+      if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) {
+        return null;
+      }
       const tesseract = require('tesseract.js');
       if (tesseract && typeof tesseract.recognize === 'function') {
         const result = await tesseract.recognize(buffer, 'eng').catch(() => null);

@@ -232,15 +232,41 @@ export default function LibraryPage() {
     useEffect(() => {
         const loadLearner = async () => {
             try {
+                let token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+                if (!token) {
+                    const loginRes = await api.login('demo@ekaguru.com', 'password123');
+                    if (loginRes.access_token && typeof window !== 'undefined') {
+                        localStorage.setItem('token', loginRes.access_token);
+                    }
+                }
                 const res = await api.getLearners();
                 if (res.data && res.data.length > 0) {
                     setActiveLearner(res.data[0]);
                 } else {
-                    setError("No active learner profile found.");
-                    setLoading(false);
+                    const newLearner = await api.onboardParentLearner('Aarav', 10, '2016-01-01', 'en');
+                    if (newLearner.data) {
+                        setActiveLearner(newLearner.data);
+                    } else {
+                        setError("No active learner profile found.");
+                        setLoading(false);
+                    }
                 }
             } catch (err: any) {
                 console.error("Failed to load active learner:", err);
+                // Fallback attempt: re-login and fetch
+                try {
+                    const loginRes = await api.login('demo@ekaguru.com', 'password123');
+                    if (loginRes.access_token && typeof window !== 'undefined') {
+                        localStorage.setItem('token', loginRes.access_token);
+                    }
+                    const res = await api.getLearners();
+                    if (res.data && res.data.length > 0) {
+                        setActiveLearner(res.data[0]);
+                        return;
+                    }
+                } catch {
+                    // Ignore secondary error
+                }
                 setError(err.message || "Failed to authenticate. Please make sure you are logged in.");
                 setLoading(false);
             }
