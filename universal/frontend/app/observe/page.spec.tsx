@@ -150,4 +150,66 @@ describe('VITALIS OBSERVE: Phase 1 & 2 Canonical Architecture & Intelligence Coc
       expect(screen.getByText(/DEMO MODE ACTIVE/i)).toBeInTheDocument();
     });
   });
+
+  it('should open Telemetry Provenance audit drawer when clicking P95 latency info button', async () => {
+    render(<VitalisObservePage />);
+    const p95AuditTrigger = await screen.findByText(/P95 LATENCY ⓘ/i);
+    fireEvent.click(p95AuditTrigger);
+
+    await waitFor(() => {
+      expect(screen.getByText(/TELEMETRY PROVENANCE & CALCULATION AUDIT/i)).toBeInTheDocument();
+      expect(screen.getByText(/Sample Records Analyzed/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should switch to Topology view and inspect node', async () => {
+    render(<VitalisObservePage />);
+    const topologyButton = screen.getByText(/Topology Map/i);
+    fireEvent.click(topologyButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/VITALIS TOPOLOGY INTELLIGENCE/i)).toBeInTheDocument();
+      expect(screen.getByText(/IBM DB2 Enterprise Database/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should switch to Predictive Risk and render early-warning forecast cards', async () => {
+    render(<VitalisObservePage />);
+    const riskButton = screen.getByText(/Predictive Risk/i);
+    fireEvent.click(riskButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/VITALIS PREDICTIVE RISK ENGINE/i)).toBeInTheDocument();
+      expect(screen.getByText(/WebSphere Thread Pool Saturation Forecast/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should switch to What-If Simulation and execute safe parameter simulation', async () => {
+    render(<VitalisObservePage />);
+    const whatIfButton = screen.getByText(/What-If Simulation/i);
+    fireEvent.click(whatIfButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/VITALIS WHAT-IF SIMULATION ENGINE/i)).toBeInTheDocument();
+    });
+
+    const simulateBtn = screen.getByText(/SIMULATE IMPACT/i);
+    fireEvent.click(simulateBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Predicted Outcome/i)).toBeInTheDocument();
+      expect(screen.getByText(/Sandboxed simulation result only/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should switch to Continuous Learning view and render knowledge base', async () => {
+    render(<VitalisObservePage />);
+    const learningButton = screen.getByText(/Continuous Learning/i);
+    fireEvent.click(learningButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/VITALIS CONTINUOUS ORGANIZATIONAL LEARNING/i)).toBeInTheDocument();
+      expect(screen.getByText(/KA-DB2-LOCK-CONTENTION-001/i)).toBeInTheDocument();
+    });
+  });
 });

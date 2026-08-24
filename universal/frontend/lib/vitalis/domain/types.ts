@@ -1,15 +1,160 @@
 /**
- * VITALIS OBSERVE: Canonical Intelligence Domain Model (Milestone 2)
+ * VITALIS OBSERVE: Canonical Domain Model (Milestone 3 Autonomous Operational Intelligence)
  */
 
 export type VitalisEnvironment = 'LAB' | 'DEMO' | 'PRODUCTION';
 export type VitalisHealthStatus = 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN';
 export type VitalisProvenance = 'REAL_OBSERVED' | 'SIMULATED' | 'USER_PROVIDED';
 
-export interface VitalisProvenanceBadge {
-  type: VitalisProvenance;
-  label: string;
-  subLabel?: string;
+export type VitalisIntelligenceState =
+  | 'NOMINAL'
+  | 'OBSERVED'
+  | 'DEVIATING'
+  | 'ANALYZING'
+  | 'CORRELATED'
+  | 'EXPLAINED'
+  | 'PREDICTED'
+  | 'ACTIONABLE'
+  | 'REMEDIATING'
+  | 'VERIFIED'
+  | 'LEARNED';
+
+export interface VitalisTelemetryProvenance {
+  metricName: string;
+  value: string | number;
+  environment: VitalisEnvironment;
+  provenance: VitalisProvenance;
+  endpoint: string;
+  collectionWindow: string;
+  sampleCount: number;
+  calculationMethod: string;
+  capturedAt: string;
+  lastUpdatedSecAgo: number;
+  rawRecordsSnippet?: string;
+}
+
+export interface VitalisConfidenceBreakdown {
+  totalPercent: number;
+  rating: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
+  factors: {
+    name: string;
+    weightPoints: number;
+    description: string;
+  }[];
+}
+
+export interface VitalisWhyItem {
+  id: string;
+  title: string;
+  what: string;
+  where: string;
+  when: string;
+  why: string;
+  intelligenceState: VitalisIntelligenceState;
+  provenance: VitalisProvenance;
+  confidence: VitalisConfidenceBreakdown;
+  evidenceItems: {
+    title: string;
+    type: string;
+    snippet: string;
+    timestamp: string;
+  }[];
+  propagationChain: {
+    step: number;
+    node: string;
+    effect: string;
+  }[];
+  impact: {
+    service: string;
+    usersAffected?: number;
+    failedTxns?: number;
+    exposure?: string;
+  };
+  recommendedAction: {
+    title: string;
+    runbookId: string;
+    risk: 'LOW' | 'MEDIUM' | 'HIGH';
+    rollbackAvailable: boolean;
+    approvalRequired: boolean;
+  };
+}
+
+export interface VitalisPredictiveRisk {
+  id: string;
+  title: string;
+  category: 'THREAD_POOL' | 'CERTIFICATE' | 'CAPACITY' | 'MEMORY';
+  provenance: VitalisProvenance;
+  currentValue: string;
+  baselineValue: string;
+  trend: 'UP' | 'DOWN' | 'STABLE';
+  predictedBreachTime: string;
+  confidencePercent: number;
+  riskLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  businessService: string;
+  recommendedAction: string;
+  provenanceNote: string;
+  sampleCount?: number;
+  windowMinutes?: number;
+}
+
+export interface VitalisTopologyEdge {
+  id: string;
+  fromNodeId: string;
+  toNodeId: string;
+  latencyMs: number;
+  latencyContributionPercent: number;
+  correlationScore: number;
+  risk: 'NOMINAL' | 'DEGRADED' | 'CRITICAL';
+  status: 'HEALTHY' | 'DEGRADED' | 'CRITICAL';
+}
+
+export interface VitalisTopologyNode {
+  id: string;
+  name: string;
+  tier: 'CLIENT' | 'DNS' | 'NETWORK' | 'FIREWALL' | 'LOAD_BALANCER' | 'WEB_SERVER' | 'APP_SERVER' | 'MESSAGE_QUEUE' | 'DATABASE' | 'DOWNSTREAM' | 'STORAGE';
+  healthScore: number;
+  p95LatencyMs: number;
+  errorRatePercent: number;
+  connectionsSaturationPercent: number;
+  riskLevel: 'NOMINAL' | 'DEGRADED' | 'CRITICAL';
+  intelligenceState: VitalisIntelligenceState;
+  dependentServices: string[];
+  recentChange?: {
+    timestamp: string;
+    summary: string;
+    diffSnippet: string;
+  };
+  inboundEdges: string[];
+  outboundEdges: string[];
+}
+
+export interface VitalisWhatIfResult {
+  parameterName: string;
+  currentValue: string;
+  proposedValue: string;
+  blastRadius: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  predictedLockContentionDelta: string;
+  predictedLatencyDelta: string;
+  predictedThreadSaturation: string;
+  predictedQueueBacklog: string;
+  predictedFailuresCount: number;
+  predictedFinancialExposure: string;
+  safetyNote: string;
+}
+
+export interface VitalisKnowledgeArtifact {
+  id: string;
+  patternName: string;
+  category: string;
+  observedSymptom: string;
+  rootCauseSummary: string;
+  impactChain: string;
+  resolutionRunbook: string;
+  preventionGuardrail: string;
+  detectionRule: string;
+  confidencePercent: number;
+  historicalOccurrences: number;
+  createdAt: string;
 }
 
 export interface VitalisHealthExplanation {

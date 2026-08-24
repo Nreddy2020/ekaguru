@@ -9,6 +9,7 @@ import { Request360Drawer } from '../../components/vitalis/drawers/Request360Dra
 import { SubsystemDrawer } from '../../components/vitalis/drawers/SubsystemDrawer';
 import { SystemHealthDrawer } from '../../components/vitalis/drawers/SystemHealthDrawer';
 import { BusinessImpactDrawer } from '../../components/vitalis/drawers/BusinessImpactDrawer';
+import { TelemetryAuditDrawer } from '../../components/vitalis/drawers/TelemetryAuditDrawer';
 import { VitalisStatusPill } from '../../components/vitalis/ui/VitalisBadge';
 import {
   TopologyView,
@@ -26,6 +27,7 @@ import {
   VitalisCommandCenterOverview,
   VitalisRequest,
   VitalisInventoryItem,
+  VitalisTelemetryProvenance,
 } from '../../lib/vitalis/domain/types';
 
 export default function VitalisObservePage() {
@@ -36,10 +38,12 @@ export default function VitalisObservePage() {
   const [inventory, setInventory] = useState<VitalisInventoryItem[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<VitalisRequest | null>(null);
   const [selectedSubsystem, setSelectedSubsystem] = useState<{ name: string; tier: string; score: number; status: string } | null>(null);
+  const [selectedAudit, setSelectedAudit] = useState<VitalisTelemetryProvenance | null>(null);
   const [isRequestDrawerOpen, setIsRequestDrawerOpen] = useState(false);
   const [isSubsystemDrawerOpen, setIsSubsystemDrawerOpen] = useState(false);
   const [isHealthDrawerOpen, setIsHealthDrawerOpen] = useState(false);
   const [isImpactDrawerOpen, setIsImpactDrawerOpen] = useState(false);
+  const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [presentationMode, setPresentationMode] = useState(false);
@@ -82,6 +86,11 @@ export default function VitalisObservePage() {
   const handleSelectSubsystem = (sub: { name: string; tier: string; score: number; status: string }) => {
     setSelectedSubsystem(sub);
     setIsSubsystemDrawerOpen(true);
+  };
+
+  const handleOpenAudit = (prov: VitalisTelemetryProvenance) => {
+    setSelectedAudit(prov);
+    setIsAuditDrawerOpen(true);
   };
 
   return (
@@ -201,7 +210,7 @@ export default function VitalisObservePage() {
         </div>
 
         <div className="flex items-center gap-3 ml-auto">
-          <div className="flex items-center gap-1.5 bg-[#050A14] px-2.5 py-0.5 rounded border border-[#1a2942] text-[11px]">
+          <div className="flex items-center gap-1.5 bg-[#050A14] px-2.5 py-0.5 rounded border border-[#1a2d4c] text-[11px]">
             <span>⏱️ Last 15m</span>
           </div>
           <span className="text-emerald-400 font-semibold flex items-center gap-1 text-xs">
@@ -241,6 +250,7 @@ export default function VitalisObservePage() {
               onSelectSubsystem={handleSelectSubsystem}
               onOpenHealthDetail={() => setIsHealthDrawerOpen(true)}
               onOpenImpactDetail={() => setIsImpactDrawerOpen(true)}
+              onOpenTelemetryAudit={handleOpenAudit}
             />
           )}
 
@@ -357,6 +367,12 @@ export default function VitalisObservePage() {
         provenance={overview?.provenance || 'REAL_OBSERVED'}
         isOpen={isImpactDrawerOpen}
         onClose={() => setIsImpactDrawerOpen(false)}
+      />
+
+      <TelemetryAuditDrawer
+        provenance={selectedAudit}
+        isOpen={isAuditDrawerOpen}
+        onClose={() => setIsAuditDrawerOpen(false)}
       />
 
       {/* Global Ingestion Hub Modal */}

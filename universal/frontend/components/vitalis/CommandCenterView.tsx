@@ -1,7 +1,11 @@
 'use client';
 
 import React from 'react';
-import { VitalisCommandCenterOverview, VitalisIncident } from '../../lib/vitalis/domain/types';
+import {
+  VitalisCommandCenterOverview,
+  VitalisIncident,
+  VitalisTelemetryProvenance,
+} from '../../lib/vitalis/domain/types';
 
 interface CommandCenterViewProps {
   overview: VitalisCommandCenterOverview;
@@ -10,6 +14,7 @@ interface CommandCenterViewProps {
   onSelectSubsystem: (sub: { name: string; tier: string; score: number; status: string }) => void;
   onOpenHealthDetail: () => void;
   onOpenImpactDetail: () => void;
+  onOpenTelemetryAudit?: (prov: VitalisTelemetryProvenance) => void;
 }
 
 export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
@@ -19,6 +24,7 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
   onSelectSubsystem,
   onOpenHealthDetail,
   onOpenImpactDetail,
+  onOpenTelemetryAudit,
 }) => {
   const primaryIncident = overview.activeIncidents[0];
 
@@ -30,6 +36,33 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
     { name: 'LocalStorage', kind: 'STORAGE', time: '2 ms', status: 'HEALTHY' },
     { name: 'Client Response', kind: 'DOWNSTREAM', time: '1 ms', status: 'HEALTHY' },
   ];
+
+  const handleAuditP95 = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onOpenTelemetryAudit) {
+      onOpenTelemetryAudit({
+        metricName: 'P95 Request Latency',
+        value: `${overview.p95LatencyMs} ms`,
+        environment: overview.environment,
+        provenance: overview.provenance,
+        endpoint: '/api/observe/traces',
+        collectionWindow: 'Last 15 minutes',
+        sampleCount: overview.totalRequestsCount,
+        calculationMethod: '95th Percentile rank across sorted duration array',
+        capturedAt: new Date().toLocaleTimeString(),
+        lastUpdatedSecAgo: 2,
+        rawRecordsSnippet: JSON.stringify(
+          [
+            { traceId: 'trace_001', durationMs: 8, route: '/api/v2/learning-materials' },
+            { traceId: 'trace_002', durationMs: 12, route: '/api/v2/learning-materials' },
+            { traceId: 'trace_003', durationMs: 25, route: '/api/v2/learning-materials' },
+          ],
+          null,
+          2
+        ),
+      });
+    }
+  };
 
   return (
     <div className="space-y-4 w-full pb-8">
@@ -60,7 +93,7 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
         </p>
       </div>
 
-      {/* 2. Balanced 2-Column Hero Duo (Interactive Clickable Cards) */}
+      {/* 2. Balanced 2-Column Hero Duo */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
         {/* Left Card: System Health */}
         <div
@@ -96,8 +129,8 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
               <span className="text-slate-400 block text-[10px] font-bold">SLA HEALTH</span>
               <span className="text-teal-300 font-bold text-sm mt-0.5 block">{overview.slaPercent}%</span>
             </div>
-            <div>
-              <span className="text-slate-400 block text-[10px] font-bold">P95 LATENCY</span>
+            <div onClick={handleAuditP95} className="cursor-pointer hover:text-teal-300">
+              <span className="text-slate-400 block text-[10px] font-bold">P95 LATENCY ⓘ</span>
               <span className="text-white font-bold text-sm mt-0.5 block">{overview.p95LatencyMs} ms</span>
             </div>
             <div>
