@@ -36,7 +36,7 @@ export interface TraceSpan {
   endTimeMs?: number;
   durationMs?: number;
   status: TraceStatus;
-  attributes: Record<string, string | number | boolean | undefined>;
+  attributes: Record<string, any>;
   errorMessage?: string;
   errorStack?: string;
   errorCategory?: ErrorCategory;
