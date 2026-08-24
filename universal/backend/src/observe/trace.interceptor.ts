@@ -10,9 +10,10 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Request, Response } from 'express';
-import { TraceSpan, TraceIdGenerator, TraceContext, RequestTrace } from './trace-contract.types';
+import { TraceSpan, TraceIdGenerator, TraceContext, RequestTrace, ErrorCategory } from './trace-contract.types';
 import { TraceSanitizer } from './trace-sanitizer';
 import { TelemetryStoreService } from './telemetry-store.service';
+import { TraceStorage } from './trace-storage';
 
 declare global {
   namespace Express {
@@ -69,6 +70,8 @@ export class TraceInterceptor implements NestInterceptor {
           rootSpan.status = httpStatus >= 400 ? 'ERROR' : 'OK';
           rootSpan.attributes.httpStatus = httpStatus;
 
+          const childSpans = TraceStorage.getSpans();
+
           const requestTrace: RequestTrace = {
             traceId: traceCtx.traceId,
             requestId: traceCtx.requestId,
@@ -84,7 +87,7 @@ export class TraceInterceptor implements NestInterceptor {
             endTimeMs,
             durationMs,
             status: rootSpan.status,
-            spans: [rootSpan],
+            spans: [rootSpan, ...childSpans],
           };
 
           req.completedTrace = requestTrace;
@@ -100,17 +103,24 @@ export class TraceInterceptor implements NestInterceptor {
         try {
           const endTimeMs = Date.now();
           const durationMs = Math.max(1, endTimeMs - startTimeMs);
-          const httpStatus =
-            error instanceof HttpException
-              ? error.getStatus()
-              : error?.status || error?.statusCode || 500;
+          const httpStatus = error instanceof HttpException ? error.getStatus() : 500;
 
           rootSpan.endTimeMs = endTimeMs;
           rootSpan.durationMs = durationMs;
           rootSpan.status = 'ERROR';
-          rootSpan.errorMessage = error?.message || 'Unknown server error';
-          rootSpan.errorStack = error?.stack;
+          rootSpan.errorMessage = error?.message || 'Internal Server Error';
+          rootSpan.errorStack = error?.stack ? error.stack.split('\n').slice(0, 5).join('\n') : (error?.message || 'Error');
           rootSpan.attributes.httpStatus = httpStatus;
+          rootSpan.attributes.errorName = error?.name;
+
+          let errorCategory: ErrorCategory = 'APPLICATION';
+          if (httpStatus === 401 || httpStatus === 403) errorCategory = 'AUTH';
+          else if (httpStatus === 502 || httpStatus === 503 || httpStatus === 504) errorCategory = 'GATEWAY';
+          else if (rootSpan.errorMessage.toLowerCase().includes('database') || rootSpan.errorMessage.toLowerCase().includes('prisma')) errorCategory = 'DATABASE';
+          else if (rootSpan.errorMessage.toLowerCase().includes('m2') || req.path.includes('upload')) errorCategory = 'M2_ENGINE';
+          rootSpan.errorCategory = errorCategory;
+
+          const childSpans = TraceStorage.getSpans();
 
           const requestTrace: RequestTrace = {
             traceId: traceCtx.traceId,
@@ -127,7 +137,7 @@ export class TraceInterceptor implements NestInterceptor {
             endTimeMs,
             durationMs,
             status: 'ERROR',
-            spans: [rootSpan],
+            spans: [rootSpan, ...childSpans],
           };
 
           req.completedTrace = requestTrace;
@@ -136,8 +146,9 @@ export class TraceInterceptor implements NestInterceptor {
             this.telemetryStore.store(requestTrace);
           }
         } catch (err: any) {
-          this.logger.warn(`Fail-safe error span completion error: ${err?.message || err}`);
+          this.logger.warn(`Fail-safe catchError telemetry failure: ${err?.message || err}`);
         }
+
         return throwError(() => error);
       }),
     );

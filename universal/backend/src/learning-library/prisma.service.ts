@@ -1,9 +1,48 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { TraceStorage } from '../observe/trace-storage';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
+
+  constructor() {
+    super();
+    this.registerTraceMiddleware();
+  }
+
+  private registerTraceMiddleware() {
+    this.$use(async (params, next) => {
+      const model = params.model || 'Database';
+      const action = params.action || 'query';
+      const spanName = `Prisma ${model}.${action}`;
+      const span = TraceStorage.startSpan(spanName, 'DATABASE', {
+        model,
+        action,
+      });
+
+      const startTime = Date.now();
+      try {
+        const result = await next(params);
+        const duration = Date.now() - startTime;
+        if (span) {
+          span.end('OK', undefined, { model, action, durationMs: duration });
+        }
+        return result;
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        if (span) {
+          span.end('ERROR', error?.message || 'Prisma query failed', {
+            model,
+            action,
+            durationMs: duration,
+            errorCode: error?.code,
+          });
+        }
+        throw error;
+      }
+    });
+  }
 
   async onModuleInit() {
     this.logger.log('Connecting to database via Prisma Client...');

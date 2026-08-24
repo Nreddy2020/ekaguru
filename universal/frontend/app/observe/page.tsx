@@ -167,17 +167,19 @@ export default function ObserveCockpitPage() {
   // Request 360 Waterfall breakdown calculation
   const waterfallSpans = useMemo(() => {
     if (!selectedTrace) return [];
-    if (selectedTrace.spans && selectedTrace.spans.length > 1) {
+    if (selectedTrace.spans && selectedTrace.spans.length > 0) {
       return selectedTrace.spans;
     }
-
-    const dur = selectedTrace.durationMs || 1;
     return [
-      { spanId: '1', traceId: selectedTrace.traceId, name: 'Client (Browser) Send Request', kind: 'CLIENT', startTimeMs: selectedTrace.startTimeMs, durationMs: 12, status: 'OK' as const },
-      { spanId: '2', traceId: selectedTrace.traceId, name: 'Network DNS + TCP + TLS', kind: 'NETWORK', startTimeMs: selectedTrace.startTimeMs + 12, durationMs: 18, status: 'OK' as const },
-      { spanId: '3', traceId: selectedTrace.traceId, name: 'Gateway WAF + Routing', kind: 'GATEWAY', startTimeMs: selectedTrace.startTimeMs + 30, durationMs: 8, status: 'OK' as const },
-      { spanId: '4', traceId: selectedTrace.traceId, name: 'Backend Controller Handler', kind: 'APPLICATION', startTimeMs: selectedTrace.startTimeMs + 38, durationMs: 14, status: 'OK' as const },
-      { spanId: '5', traceId: selectedTrace.traceId, name: 'Database ContentTopic Insert', kind: 'DATABASE', startTimeMs: selectedTrace.startTimeMs + 52, durationMs: 25, status: (selectedTrace.status === 'ERROR' ? 'ERROR' : 'OK') as const },
+      {
+        spanId: 'root',
+        traceId: selectedTrace.traceId,
+        name: `HTTP ${selectedTrace.httpMethod} ${selectedTrace.httpUrl}`,
+        kind: 'CONTROLLER',
+        startTimeMs: selectedTrace.startTimeMs,
+        durationMs: selectedTrace.durationMs || 1,
+        status: (selectedTrace.status === 'ERROR' ? 'ERROR' : 'OK') as const,
+      },
     ];
   }, [selectedTrace]);
 
