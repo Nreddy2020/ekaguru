@@ -99,12 +99,12 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
   ];
 
   return (
-    <aside className="w-64 bg-[#08101D]/70 backdrop-blur-xl border-r border-white/[0.06] p-4 flex flex-col justify-between h-full overflow-y-auto shrink-0 select-none">
+    <aside className="w-64 bg-[#08101D]/90 backdrop-blur-2xl border-r border-white/[0.08] p-4 flex flex-col justify-between h-full overflow-y-auto shrink-0 select-none">
       <div className="space-y-6">
-        {/* Upload Hub Pill */}
+        {/* Upload Hub Button */}
         <button
           onClick={onOpenUpload}
-          className="w-full py-3 px-4 rounded-2xl bg-teal-500/10 border border-teal-500/25 text-teal-300 font-semibold text-xs flex items-center justify-center gap-2 hover:bg-teal-500/20 transition-all shadow-sm"
+          className="w-full py-3 px-4 rounded-2xl bg-teal-500/15 border border-teal-500/35 text-teal-300 font-bold text-xs flex items-center justify-center gap-2.5 hover:bg-teal-500/25 transition-all shadow-sm"
         >
           <span className="text-base font-bold">＋</span>
           <span className="tracking-wide">Upload Evidence</span>
@@ -114,7 +114,7 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
         <div className="space-y-5">
           {navGroups.map((group) => (
             <div key={group.groupName} className="space-y-1">
-              <div className="text-[11px] font-semibold text-slate-400 px-3 tracking-tight">
+              <div className="text-[11px] font-bold text-slate-400 px-3 uppercase tracking-wider">
                 {group.groupName}
               </div>
               <div className="space-y-0.5">
@@ -124,20 +124,20 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
                     <button
                       key={item.id}
                       onClick={() => onSelectNav(item.id)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all text-left ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-medium transition-all text-left ${
                         isActive
-                          ? 'bg-teal-500/15 text-teal-300 font-semibold shadow-xs'
-                          : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                          ? 'bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40 shadow-xs'
+                          : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className={`text-sm ${isActive ? 'text-teal-400' : 'text-slate-500'}`}>
+                        <span className={`text-sm ${isActive ? 'text-teal-400 font-bold' : 'text-slate-400'}`}>
                           {item.icon}
                         </span>
                         <span className="truncate">{item.label}</span>
                       </div>
                       {item.badge !== undefined && item.badge > 0 && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono">
                           {item.badge}
                         </span>
                       )}
@@ -150,9 +150,9 @@ export const VitalisSidebar: React.FC<VitalisSidebarProps> = ({
         </div>
       </div>
 
-      {/* Footer Safe Telemetry Status */}
-      <div className="pt-4 border-t border-white/[0.06] text-xs text-slate-500 space-y-1 px-1">
-        <div className="text-teal-400 font-semibold flex items-center gap-1.5 text-xs">
+      {/* Footer Trust Indicator */}
+      <div className="pt-4 border-t border-white/[0.08] text-xs text-slate-400 space-y-1 px-1">
+        <div className="text-teal-400 font-bold flex items-center gap-1.5 text-xs">
           <span>🔒</span>
           <span>Safe Observation</span>
         </div>
