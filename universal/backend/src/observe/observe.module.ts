@@ -1,4 +1,5 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ObserveController } from './observe.controller';
 import { TelemetryStoreService } from './telemetry-store.service';
 import { TraceInterceptor } from './trace.interceptor';
@@ -9,6 +10,10 @@ import { PrismaService } from '../learning-library/prisma.service';
   controllers: [ObserveController],
   providers: [
     TelemetryStoreService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TraceInterceptor,
+    },
     TraceInterceptor,
     TraceContextMiddleware,
     PrismaService,
