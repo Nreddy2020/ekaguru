@@ -1,8 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import ObserveDashboard from './page';
+import ObserveCockpitPage from './page';
 
-// Mock fetch API globally
 global.fetch = jest.fn().mockImplementation((url: string) => {
   if (url.includes('/health')) {
     return Promise.resolve({
@@ -26,54 +25,30 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
         Promise.resolve({
           data: [
             {
-              traceId: 'trc_1',
-              requestId: 'req_1',
+              traceId: '7f8e2d1a-4c9b-4b7a-9aab-2e1c918c6d11',
+              requestId: 'req_01J923K8Y2QW5X7V5B1GJ8K2M9',
               clientPlatform: 'browser',
               clientRoute: '/upload',
               httpMethod: 'POST',
-              httpUrl: '/upload/book',
-              httpStatus: 200,
-              startTimeIso: new Date().toISOString(),
-              startTimeMs: Date.now() - 150,
-              durationMs: 150,
-              status: 'OK',
-              spans: [],
-            },
-            {
-              traceId: 'trc_2',
-              requestId: 'req_2',
-              clientPlatform: 'browser',
-              clientRoute: '/upload',
-              httpMethod: 'POST',
-              httpUrl: '/upload/book',
+              httpUrl: '/upload',
               httpStatus: 500,
               startTimeIso: new Date().toISOString(),
-              startTimeMs: Date.now() - 8000,
-              durationMs: 8000,
+              startTimeMs: Date.now() - 8420,
+              durationMs: 8420,
               status: 'ERROR',
-              spans: [
-                {
-                  spanId: 'spn_2',
-                  traceId: 'trc_2',
-                  name: 'M2.Extract',
-                  kind: 'SERVICE',
-                  startTimeMs: Date.now() - 8000,
-                  durationMs: 8000,
-                  status: 'ERROR',
-                  errorMessage: 'Database connection timeout during extraction',
-                },
-              ],
+              errorMessage: 'Database query timeout in ContentTopic insertion',
+              spans: [],
             },
           ],
           statistics: {
-            totalRequests: 2,
-            successCount: 1,
-            errorCount: 1,
-            avgDurationMs: 4075,
-            p50DurationMs: 150,
-            p95DurationMs: 8000,
-            errorRatePercent: 50,
-            activeTracesCount: 2,
+            totalRequests: 1248,
+            successCount: 1180,
+            errorCount: 68,
+            avgDurationMs: 412,
+            p50DurationMs: 142,
+            p95DurationMs: 812,
+            errorRatePercent: 5.4,
+            activeTracesCount: 5,
           },
         }),
     });
@@ -82,17 +57,26 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
   return Promise.reject(new Error('Unknown URL'));
 }) as any;
 
-describe('OBS-001 Step 7: Observe Dashboard Shell', () => {
-  it('should render the EKAGURU OBSERVE header and System Healthy badge', async () => {
-    render(<ObserveDashboard />);
-    expect(screen.getByText(/EKAGURU OBSERVE/i)).toBeInTheDocument();
-    expect(screen.getByText(/Diagnostic Cockpit/i)).toBeInTheDocument();
+describe('OBS-001 Step 7B: Observe Cockpit Visual Blueprint', () => {
+  it('should render the top header and blueprint value propositions', () => {
+    render(<ObserveCockpitPage />);
+    expect(screen.getAllByText(/EKAGURU OBSERVE/i)[0]).toBeInTheDocument();
+    expect(screen.getByText(/No more F12 DevTools/i)).toBeInTheDocument();
+    expect(screen.getByText(/Find issues in seconds/i)).toBeInTheDocument();
   });
 
-  it('should render quick filters for requests', async () => {
-    render(<ObserveDashboard />);
-    expect(screen.getByText(/All Requests/i)).toBeInTheDocument();
-    expect(screen.getByText(/Uploads/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tutor/i)).toBeInTheDocument();
+  it('should render KPI cards and system health detail', async () => {
+    render(<ObserveCockpitPage />);
+    expect(screen.getByText(/Total Requests/i)).toBeInTheDocument();
+    expect(screen.getByText(/Success Rate/i)).toBeInTheDocument();
+    expect(screen.getByText(/Failed Requests/i)).toBeInTheDocument();
+    expect(screen.getByText(/Avg Duration \(p95\)/i)).toBeInTheDocument();
+  });
+
+  it('should render the Waterfall View and Root Cause Diagnosis when trace loads', async () => {
+    render(<ObserveCockpitPage />);
+    expect(await screen.findByText(/REQUEST 360 – WATERFALL VIEW/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Root Cause/i)).toBeInTheDocument();
+    expect(await screen.findByText(/DATABASE Query Timeout/i)).toBeInTheDocument();
   });
 });
