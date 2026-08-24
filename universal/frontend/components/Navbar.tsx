@@ -16,7 +16,8 @@ export default function Navbar() {
 
     if (
         pathname === '/home' || pathname.startsWith('/home/') ||
-        pathname === '/library' || pathname.startsWith('/library/')
+        pathname === '/library' || pathname.startsWith('/library/') ||
+        pathname === '/observe' || pathname.startsWith('/observe/')
     ) {
         return null;
     }
