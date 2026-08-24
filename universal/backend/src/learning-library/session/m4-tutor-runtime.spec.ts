@@ -192,6 +192,19 @@ describe('Milestone M4 — Runtime Conversational Tutoring & Closed-Loop Engine'
 
       expect(() => safetyGate.validateTutorTurn(turn, context)).toThrow(BadRequestException);
     });
+
+    it('should veto tutor turns exceeding 3-sentence pedagogical limit during conversational phase', () => {
+      const turn: any = {
+        sessionId: 'sess-1',
+        phase: 'INSTRUCTION',
+        tutorResponseText: 'Sentence one is here. Sentence two is here. Sentence three is here. Sentence four is too long for primary learners!',
+        sourceAnchors: [{ chunkId: 'c1', pageIndex: 1, snippet: 'text' }],
+        evaluationPolicy: {},
+      };
+      const context: any = { sourceSnippet: 'text' };
+
+      expect(() => safetyGate.validateTutorTurn(turn, context)).toThrow(BadRequestException);
+    });
   });
 
   // ── GATE 4: EVIDENCE GATE & DETERMINISM ────────────────────────────────────

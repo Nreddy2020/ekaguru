@@ -28,7 +28,14 @@ export class TutorSafetyGateService {
       throw new BadRequestException("SAFETY GATE VETO: Tutor turn has 0 verified M2 source anchors.");
     }
 
-    // 3. Cognitive Length Check (max 500 characters for conversational tutor turns)
+    // 3. Cognitive Sentence & Length Check (<= 3 sentences for conversational turns)
+    const sentenceCount = text.split(/[.!?]+/).filter((s) => s.trim().length > 0).length;
+    if (sentenceCount > 3 && turn.phase !== 'SYNTHESIS') {
+      throw new BadRequestException(
+        "SAFETY GATE VETO: Tutor turn exceeds 3-sentence pedagogical limit (found " + sentenceCount + " sentences).",
+      );
+    }
+
     if (text.length > 1000) {
       throw new BadRequestException("SAFETY GATE VETO: Tutor turn exceeds cognitive length limit (" + text.length + " chars).");
     }
