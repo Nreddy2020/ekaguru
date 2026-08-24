@@ -56,6 +56,11 @@ import { SessionController } from './session/session.controller';
 import { OutboxService } from './session/outbox.service';
 import { OutboxWorkerService } from './session/outbox-worker.service';
 import { DeterministicTutorProvider } from './session/deterministic-tutor-provider.service';
+import { PedagogicalContextAssemblerService } from './session/pedagogical-context-assembler.service';
+import { ConversationalStateMachineService } from './session/conversational-state-machine.service';
+import { QuestionGeneratorService } from './session/question-generator.service';
+import { ResponseEvaluatorService } from './session/response-evaluator.service';
+import { TutorSafetyGateService } from './session/tutor-safety-gate.service';
 import { TutorOrchestratorService } from './session/tutor-orchestrator.service';
 import { KnowledgeActivatorService } from './knowledge/knowledge-activator.service';
 import { MisconceptionClassifierService } from './mastery/misconception-classifier.service';
@@ -74,6 +79,11 @@ import { MisconceptionClassifierService } from './mastery/misconception-classifi
     SessionController,
   ],
   providers: [
+    PedagogicalContextAssemblerService,
+    ConversationalStateMachineService,
+    QuestionGeneratorService,
+    ResponseEvaluatorService,
+    TutorSafetyGateService,
     PrismaService,
     LearnerService,
     LearningMaterialService,
@@ -120,6 +130,11 @@ import { MisconceptionClassifierService } from './mastery/misconception-classifi
     MisconceptionClassifierService,
   ],
   exports: [
+    PedagogicalContextAssemblerService,
+    ConversationalStateMachineService,
+    QuestionGeneratorService,
+    ResponseEvaluatorService,
+    TutorSafetyGateService,
     PrismaService,
     LearnerService,
     LearningMaterialService,

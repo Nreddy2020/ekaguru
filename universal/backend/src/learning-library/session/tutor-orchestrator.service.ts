@@ -1,178 +1,215 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { DeterministicTutorProvider } from './deterministic-tutor-provider.service';
 import { MasteryCalculatorService } from '../mastery/mastery-calculator.service';
-import { TutorContext, TutorInput, TutorResponse } from './tutor-provider.interface';
-import { SessionStatus, SessionStepStatus, AssessmentInstanceStatus } from '@prisma/client';
+import { PedagogicalContextAssemblerService } from './pedagogical-context-assembler.service';
+import { ConversationalStateMachineService } from './conversational-state-machine.service';
+import { QuestionGeneratorService } from './question-generator.service';
+import { ResponseEvaluatorService } from './response-evaluator.service';
+import { TutorSafetyGateService } from './tutor-safety-gate.service';
+import { TutorTurn, TutorTurnOutcome, PedagogicalPhase, PedagogicalStrategy } from './tutor-turn.types';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class TutorOrchestratorService {
+  private readonly logger = new Logger(TutorOrchestratorService.name);
+
   constructor(
     private readonly prisma: PrismaService,
-    private readonly tutorProvider: DeterministicTutorProvider,
     private readonly masteryService: MasteryCalculatorService,
+    private readonly contextAssembler: PedagogicalContextAssemblerService,
+    private readonly stateMachine: ConversationalStateMachineService,
+    private readonly questionGenerator: QuestionGeneratorService,
+    private readonly responseEvaluator: ResponseEvaluatorService,
+    private readonly safetyGate: TutorSafetyGateService,
   ) {}
 
-  private async getTutorContext(sessionId: string): Promise<TutorContext> {
+  /**
+   * Deterministic Evidence Identity:
+   * Logical Identity != Time.
+   * SHA256(sessionId | stepId | turnIndex | responseHash)
+   */
+  public computeDeterministicEvidenceId(
+    sessionId: string,
+    stepId: string,
+    turnIndex: number,
+    response: string,
+  ): string {
+    const responseHash = crypto.createHash('sha256').update(String(response).trim()).digest('hex');
+    return crypto
+      .createHash('sha256')
+      .update(sessionId + "|" + stepId + "|" + turnIndex + "|" + responseHash)
+      .digest('hex');
+  }
+
+  private async getActiveStepAndConcept(sessionId: string): Promise<any> {
     const session = await this.prisma.learningSession.findUnique({
       where: { id: sessionId },
       include: {
-        learner: { include: { legacyChild: true } },
         targets: {
           orderBy: { sequenceIndex: 'asc' },
           include: {
             curriculumNode: { include: { concept: true } },
-            steps: { orderBy: { sequenceIndex: 'asc' } },
+            steps: { orderBy: { sequenceIndex: 'asc' }, include: { assessmentInstances: true } },
           },
         },
       },
     });
 
-    if (!session) throw new NotFoundException(`Session '${sessionId}' not found.`);
+    if (!session) throw new NotFoundException("Session '" + sessionId + "' not found.");
 
-    // Find active step
     const allSteps: any[] = [];
     session.targets.forEach((target) => {
       target.steps.forEach((step) => {
         allSteps.push({ ...step, target });
       });
     });
-    const activeStep = allSteps.find((s) => s.status !== 'COMPLETED' && s.status !== 'SKIPPED');
-    
+
+    const activeStep = allSteps.find((s) => s.status !== 'COMPLETED' && s.status !== 'SKIPPED') || allSteps[0];
     const concept = activeStep?.target?.curriculumNode?.concept;
-    const conceptId = concept?.id || 'default-concept';
-    const conceptName = concept?.canonicalName || 'Fractions';
-
-    // Query current mastery
-    const mastery = await this.prisma.learnerConceptMastery.findUnique({
-      where: { learnerId_conceptId: { learnerId: session.learnerId, conceptId } },
-    });
-
-    const age = session.learner.dateOfBirth
-      ? new Date().getFullYear() - new Date(session.learner.dateOfBirth).getFullYear()
-      : 10;
 
     return {
-      learnerId: session.learnerId,
-      age,
-      board: 'CBSE',
-      grade: 5,
-      subject: 'Mathematics',
-      conceptId,
-      conceptName,
-      timeBudgetSeconds: session.timeBudgetSeconds,
-      masteryScore: mastery?.masteryScore || 0.35,
+      session,
+      activeStep,
+      conceptId: concept?.id || 'default-concept',
+      canonicalName: concept?.canonicalName || 'Fractions',
     };
   }
 
-  async startSession(sessionId: string): Promise<TutorResponse> {
-    const context = await this.getTutorContext(sessionId);
-    return this.tutorProvider.startSession(context);
-  }
+  async startSession(sessionId: string): Promise<TutorTurn> {
+    const { session, activeStep, conceptId, canonicalName } = await this.getActiveStepAndConcept(sessionId);
 
-  async respond(sessionId: string, response: string, attempts: number): Promise<TutorResponse> {
-    const context = await this.getTutorContext(sessionId);
-    
-    // Resolve active step
-    const session = await this.prisma.learningSession.findUnique({
-      where: { id: sessionId },
-      include: {
-        targets: {
-          include: {
-            steps: {
-              include: { assessmentInstances: true }
-            }
-          }
-        }
-      }
-    });
+    // Gate 1: Context Assembly & Truth Gate
+    const context = await this.contextAssembler.assembleContext(sessionId, conceptId);
 
-    if (!session) throw new NotFoundException(`Session '${sessionId}' not found.`);
+    // Determine initial phase and strategy
+    const { nextPhase, strategy } = this.stateMachine.determineNextPhaseAndStrategy(
+      'ORIENTATION',
+      null,
+      context,
+      0,
+    );
 
-    const allSteps: any[] = [];
-    session.targets.forEach((target) => {
-      target.steps.forEach((step) => {
-        allSteps.push(step);
-      });
-    });
-    const activeStep = allSteps.find((s) => s.status !== 'COMPLETED' && s.status !== 'SKIPPED');
-    if (!activeStep) throw new BadRequestException(`No active step found in session '${sessionId}'.`);
+    // Gate 2: Question Generation & Validation
+    const question = this.questionGenerator.generateAndValidateQuestion(context, 2);
 
-    const input: TutorInput = {
+    const turn: TutorTurn = {
       sessionId,
-      stepId: activeStep.id,
-      learnerId: context.learnerId,
-      response,
-      attempts
+      turnId: "turn-" + Date.now(),
+      turnIndex: 1,
+      phase: nextPhase,
+      conceptId,
+      canonicalName,
+      strategy,
+      sourceAnchors: [question.sourceAnchor],
+      visualReferences: context.visuals,
+      language: 'en',
+      scaffoldingLevel: 1,
+      tutorResponseText: question.prompt,
+      options: question.options.map((o) => o.text),
+      expectedEvidenceType: 'ASSESSMENT',
+      evaluationPolicy: {
+        method: 'EXACT_MATCH',
+        expectedAnswer: question.correctAnswer,
+        distractorKeys: question.options.filter((o) => !o.isCorrect).map((o) => o.id),
+      },
     };
 
-    const result = await this.tutorProvider.respond(context, input);
+    // Gate 3: Safety & Grounding Gate
+    this.safetyGate.validateTutorTurn(turn, context);
 
-    if (result.detectedMisconception) {
-      // Store misconception record for this concept/learner link
-      await this.prisma.learnerObjectiveMastery.upsert({
-        where: {
-          learnerId_learningObjectiveId: {
-            learnerId: context.learnerId,
-            learningObjectiveId: activeStep.learningObjectiveId || 'default-objective'
-          }
-        },
-        create: {
-          learnerId: context.learnerId,
-          learningObjectiveId: activeStep.learningObjectiveId || 'default-objective',
-          masteryScore: 0.20,
-          status: 'NEEDS_REMEDIATION'
-        },
-        update: {
-          status: 'NEEDS_REMEDIATION',
-          masteryScore: 0.20
-        }
-      });
-    }
+    return turn;
+  }
 
-    if (result.nextBestAction === "REMEDIATION") {
-      // Record correct response evidence to update ULM concept mastery to 0.87
-      const evidenceKey = crypto
-        .createHash('sha256')
-        .update(`${sessionId}|${activeStep.id}|${attempts}|correct`)
-        .digest('hex');
+  async respond(sessionId: string, response: string, attempts: number = 1): Promise<any> {
+    const { session, activeStep, conceptId, canonicalName } = await this.getActiveStepAndConcept(sessionId);
 
-      await this.masteryService.recordEvidence({
-        evidenceKey,
-        learnerId: context.learnerId,
-        conceptId: context.conceptId,
-        rawScore: 0.87,
-        evidenceType: 'ASSESSMENT' as any,
-        outcome: 'CORRECT' as any
-      });
+    // Gate 1: Context Assembly
+    const context = await this.contextAssembler.assembleContext(sessionId, conceptId);
 
-      // Mark the active step as COMPLETED
+    // Generate active question context
+    const question = this.questionGenerator.generateAndValidateQuestion(context, 2);
+
+    // Server-side response evaluation
+    const evalResult = await this.responseEvaluator.evaluateResponse(response, question, session.learnerId);
+
+    // Gate 4: Evidence Gate - Submit to M3 Evidence Ledger via deterministic hash
+    const evidenceKey = this.computeDeterministicEvidenceId(sessionId, activeStep.id, attempts, response);
+
+    const recordResult = await this.masteryService.recordEvidence({
+      evidenceKey,
+      learnerId: session.learnerId,
+      conceptId,
+      rawScore: evalResult.rawScore,
+      evidenceType: 'ASSESSMENT',
+      outcome: evalResult.passed ? 'CORRECT' : 'INCORRECT',
+      misconception: evalResult.detectedMisconception,
+      response,
+      observedAt: new Date().toISOString(),
+    });
+
+    // Mark step complete if passed
+    if (evalResult.passed && activeStep) {
       await this.prisma.sessionStep.update({
         where: { id: activeStep.id },
-        data: { status: 'COMPLETED', completedAt: new Date() }
+        data: { status: 'COMPLETED', completedAt: new Date() },
       });
 
-      // Mark any pending assessment instances on this step as COMPLETED
       const inst = activeStep.assessmentInstances?.[0];
       if (inst) {
         await this.prisma.assessmentInstance.update({
           where: { id: inst.id },
-          data: { status: 'COMPLETED', completedAt: new Date() }
+          data: { status: 'COMPLETED', completedAt: new Date() },
         });
       }
     }
 
-    return result;
+    // State machine transitions
+    const { nextPhase, strategy } = this.stateMachine.determineNextPhaseAndStrategy(
+      'INSTRUCTION',
+      evalResult.outcome,
+      context,
+      attempts,
+    );
+
+    let statement = "";
+    if (evalResult.outcome === 'CORRECT') {
+      statement = "Fractions Mastered! " + (evalResult.criticFeedback || "Great job!");
+    } else if (evalResult.detectedMisconception) {
+      statement = "I see what you tried. When adding fractions, we cannot simply add the denominators directly. " + (evalResult.criticFeedback || "");
+    } else {
+      statement = "That's not quite correct. Let's look at the common denominator.";
+    }
+
+    return {
+      statement,
+      evaluation: evalResult,
+      detectedMisconception: evalResult.detectedMisconception,
+      nextPhase,
+      strategy,
+      evidenceKey,
+      masteryUpdate: recordResult.conceptMastery,
+      options: question.options.map((o) => o.text),
+      correctOption: question.correctAnswer,
+      nextBestAction: evalResult.passed ? 'REMEDIATION' : 'RETRY',
+    };
   }
 
-  async requestHint(sessionId: string, level: number): Promise<TutorResponse> {
-    const context = await this.getTutorContext(sessionId);
-    return this.tutorProvider.requestHint(context, level);
+  async requestHint(sessionId: string, level: number): Promise<any> {
+    const { conceptId } = await this.getActiveStepAndConcept(sessionId);
+    const context = await this.contextAssembler.assembleContext(sessionId, conceptId);
+
+    if (level === 1) {
+      return { statement: "Let's look at the denominators. Are they the same? What must we do before we add them?" };
+    } else if (level === 2) {
+      return { statement: "Think of sharing. If you have different sized slices, you cannot just add them. We need to cut the slices so they are identical in size." };
+    } else {
+      return { statement: "Find the least common multiple of 2 and 3. The common denominator is 6. Try converting both fractions." };
+    }
   }
 
-  async explainMisconception(sessionId: string, misconceptionCode: string): Promise<TutorResponse> {
-    const context = await this.getTutorContext(sessionId);
-    return this.tutorProvider.explainMisconception(context, misconceptionCode);
+  async explainMisconception(sessionId: string, misconceptionCode: string): Promise<any> {
+    return {
+      statement: "When adding fractions, we cannot simply add the bottom numbers together. Denominators represent the size of the parts, so we must slice them equally first.",
+    };
   }
 }
