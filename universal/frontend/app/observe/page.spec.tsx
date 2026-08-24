@@ -25,30 +25,29 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
         Promise.resolve({
           data: [
             {
-              traceId: '7f8e2d1a-4c9b-4b7a-9aab-2e1c918c6d11',
-              requestId: 'req_01J923K8Y2QW5X7V5B1GJ8K2M9',
+              traceId: 'trc_step7c_1',
+              requestId: 'req_step7c_1',
               clientPlatform: 'browser',
               clientRoute: '/upload',
               httpMethod: 'POST',
-              httpUrl: '/upload',
-              httpStatus: 500,
+              httpUrl: '/api/v2/learning-materials/upload',
+              httpStatus: 200,
               startTimeIso: new Date().toISOString(),
-              startTimeMs: Date.now() - 8420,
-              durationMs: 8420,
-              status: 'ERROR',
-              errorMessage: 'Database query timeout in ContentTopic insertion',
+              startTimeMs: Date.now() - 150,
+              durationMs: 150,
+              status: 'OK',
               spans: [],
             },
           ],
           statistics: {
-            totalRequests: 1248,
-            successCount: 1180,
-            errorCount: 68,
-            avgDurationMs: 412,
-            p50DurationMs: 142,
-            p95DurationMs: 812,
-            errorRatePercent: 5.4,
-            activeTracesCount: 5,
+            totalRequests: 1,
+            successCount: 1,
+            errorCount: 0,
+            avgDurationMs: 150,
+            p50DurationMs: 150,
+            p95DurationMs: 150,
+            errorRatePercent: 0,
+            activeTracesCount: 0,
           },
         }),
     });
@@ -57,26 +56,16 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
   return Promise.reject(new Error('Unknown URL'));
 }) as any;
 
-describe('OBS-001 Step 7B: Observe Cockpit Visual Blueprint', () => {
-  it('should render the top header and blueprint value propositions', () => {
+describe('OBS-001 Step 7C: Data-Driven Observe Diagnostic Center', () => {
+  it('should render the clean operational header without developer implementation steps', () => {
     render(<ObserveCockpitPage />);
-    expect(screen.getAllByText(/EKAGURU OBSERVE/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/No more F12 DevTools/i)).toBeInTheDocument();
-    expect(screen.getByText(/Find issues in seconds/i)).toBeInTheDocument();
+    expect(screen.getByText(/EKAGURU OBSERVE/i)).toBeInTheDocument();
+    expect(screen.getByText(/Application Diagnostic Center/i)).toBeInTheDocument();
   });
 
-  it('should render KPI cards and system health detail', async () => {
+  it('should render real telemetry statistics and live request stream', async () => {
     render(<ObserveCockpitPage />);
-    expect(screen.getByText(/Total Requests/i)).toBeInTheDocument();
-    expect(screen.getByText(/Success Rate/i)).toBeInTheDocument();
-    expect(screen.getByText(/Failed Requests/i)).toBeInTheDocument();
-    expect(screen.getByText(/Avg Duration \(p95\)/i)).toBeInTheDocument();
-  });
-
-  it('should render the Waterfall View and Root Cause Diagnosis when trace loads', async () => {
-    render(<ObserveCockpitPage />);
-    expect(await screen.findByText(/REQUEST 360 – WATERFALL VIEW/i)).toBeInTheDocument();
-    expect(await screen.findByText(/Root Cause/i)).toBeInTheDocument();
-    expect(await screen.findByText(/DATABASE Query Timeout/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Live Request Stream/i)).toBeInTheDocument();
+    expect(screen.getByText(/System Healthy/i)).toBeInTheDocument();
   });
 });
