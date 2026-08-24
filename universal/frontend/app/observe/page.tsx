@@ -100,7 +100,6 @@ export default function ObserveCockpitPage() {
   const [health, setHealth] = useState<SystemHealthReport | null>(null);
   const [selectedTrace, setSelectedTrace] = useState<RequestTrace | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('Last 5 minutes');
   const [searchQuery, setSearchQuery] = useState('');
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -130,15 +129,12 @@ export default function ObserveCockpitPage() {
             const updated = traceList.find((t) => t.traceId === prev.traceId);
             return updated || prev;
           }
-          // Default selection: select first error or newest trace
           const errorTrace = traceList.find((t) => t.status === 'ERROR' || (t.httpStatus && t.httpStatus >= 400));
           return errorTrace || traceList[0] || null;
         });
       }
     } catch (err) {
       console.error('Observe telemetry fetch error:', err);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -149,14 +145,14 @@ export default function ObserveCockpitPage() {
     return () => clearInterval(interval);
   }, [fetchTelemetry, autoRefresh]);
 
-  // Derived real metrics from live telemetry API
-  const totalCount = statistics?.totalRequests ?? (traces.length > 0 ? traces.length : 0);
+  // Derived real metrics
+  const totalCount = statistics?.totalRequests ?? traces.length;
   const errorCount = statistics?.errorCount ?? traces.filter((t) => t.status === 'ERROR' || (t.httpStatus && t.httpStatus >= 400)).length;
   const successRate = totalCount > 0 ? (((totalCount - errorCount) / totalCount) * 100).toFixed(1) : '100.0';
   const p95 = statistics?.p95DurationMs ?? (traces.length > 0 ? Math.max(...traces.map((t) => t.durationMs || 0)) : 0);
   const inProgressCount = statistics?.activeTracesCount ?? traces.filter((t) => t.status === 'IN_PROGRESS').length;
 
-  // Filtered requests for the Live Stream
+  // Filtered requests
   const visibleTraces = useMemo(() => {
     return traces.filter((t) => {
       if (activeNav === 'ERRORS' && t.status !== 'ERROR' && (!t.httpStatus || t.httpStatus < 400)) return false;
@@ -177,7 +173,7 @@ export default function ObserveCockpitPage() {
 
   const isSelectedError = selectedTrace?.status === 'ERROR' || (selectedTrace?.httpStatus && selectedTrace.httpStatus >= 400);
 
-  // Dynamic Root Cause & Fresher Diagnostic Evaluation
+  // Root Cause Diagnosis
   const rootCauseDiagnosis = useMemo(() => {
     if (!selectedTrace) return null;
 
@@ -235,7 +231,6 @@ export default function ObserveCockpitPage() {
     };
   }, [selectedTrace, isSelectedError]);
 
-  // Structured Evidence Package generator
   const generateEvidencePackage = (trace: RequestTrace) => {
     return JSON.stringify(
       {
@@ -273,57 +268,57 @@ export default function ObserveCockpitPage() {
   const handleCopyEvidence = (trace: RequestTrace) => {
     const pkg = generateEvidencePackage(trace);
     navigator.clipboard.writeText(pkg);
-    setCopyFeedback('Copied Diagnostic Evidence Package to clipboard!');
+    setCopyFeedback('Diagnostic Evidence Package copied to clipboard!');
     setTimeout(() => setCopyFeedback(null), 3000);
   };
 
   return (
-    <div className="min-h-screen bg-[#070d18] text-slate-100 font-sans flex flex-col antialiased selection:bg-teal-500/30 selection:text-white p-4 sm:p-5 space-y-4">
-      {/* 1. Top Bar: HOW IT WILL LOOK – DASHBOARD OVERVIEW + CONTROLS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+    <div className="min-h-screen bg-[#060b14] text-slate-200 font-sans antialiased p-4 sm:p-6 space-y-4">
+      {/* 1. Top Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2">
-          <span className="text-xs sm:text-sm font-bold tracking-tight text-white uppercase">
+          <span className="text-xs sm:text-sm font-bold tracking-wider text-slate-300 uppercase">
             HOW IT WILL LOOK – DASHBOARD OVERVIEW
           </span>
         </div>
 
-        <div className="flex items-center gap-3 self-end sm:self-auto">
+        <div className="flex items-center gap-2.5 self-end sm:self-auto">
           {/* Auto Refresh Toggle */}
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#0c1524] border border-slate-700/80 text-xs font-semibold text-emerald-400 hover:border-slate-600 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0d1626] border border-slate-700/70 text-xs font-medium text-emerald-400 hover:border-slate-600 transition-all shadow-sm"
           >
             <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
             <span>Auto Refresh (2s)</span>
           </button>
 
-          {/* Filter Icon Button */}
-          <button className="p-1.5 rounded bg-[#0c1524] border border-slate-700/80 text-slate-300 hover:text-white transition-colors">
+          {/* Filter Button */}
+          <button className="px-2.5 py-1.5 rounded-lg bg-[#0d1626] border border-slate-700/70 text-slate-300 hover:text-white transition-colors shadow-sm">
             <span>⑂</span>
           </button>
 
           {/* Time Range Selector */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0c1524] border border-slate-700/80 text-slate-300 text-xs cursor-pointer">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0d1626] border border-slate-700/70 text-slate-300 text-xs cursor-pointer shadow-sm">
             <span>⏱️ {timeRange}</span>
-            <span className="text-[10px] text-slate-500">▼</span>
+            <span className="text-[10px] text-slate-400">▼</span>
           </div>
         </div>
       </div>
 
-      {/* Copy Toast Feedback */}
+      {/* Copy Toast Notification */}
       {copyFeedback && (
         <div className="p-3 rounded-lg bg-teal-950/90 border border-teal-500/60 text-teal-200 text-xs font-mono flex items-center justify-between shadow-lg">
           <span>✅ {copyFeedback}</span>
-          <button onClick={() => setCopyFeedback(null)} className="text-slate-400 hover:text-white">✕</button>
+          <button onClick={() => setCopyFeedback(null)} className="text-slate-400 hover:text-white font-bold ml-4">✕</button>
         </div>
       )}
 
-      {/* 2. Top Cockpit Section: Left Nav (Col 2) | KPI Cards & Request Stream (Col 7) | System Health (Col 3) */}
+      {/* 2. Top Cockpit Grid: Navigation (2) | Metrics & Request Stream (7) | System Health (3) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Navigation (Col 2) */}
-        <div className="lg:col-span-2 bg-[#0c1524] border border-slate-800/90 rounded-xl p-3 flex flex-col justify-between space-y-4 font-mono shadow-sm">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 px-2 py-2 text-white font-bold text-xs tracking-tight border-b border-slate-800 mb-2">
+        <div className="lg:col-span-2 bg-[#0c1424] border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between space-y-4 shadow-sm">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 px-2 py-2 text-white font-bold text-sm tracking-wide border-b border-slate-800 mb-2">
               <span className="text-teal-400">📖</span>
               <span>EKAGURU OBSERVE</span>
             </div>
@@ -343,18 +338,18 @@ export default function ObserveCockpitPage() {
               <button
                 key={item.id}
                 onClick={() => setActiveNav(item.id as NavSection)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left font-mono ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all text-left ${
                   activeNav === item.id
-                    ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 font-semibold shadow-sm'
-                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                    ? 'bg-teal-500/15 text-teal-300 border border-teal-500/40 font-semibold shadow-sm'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-teal-400 text-[11px]">{item.icon}</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-teal-400 text-xs">{item.icon}</span>
                   <span>{item.label}</span>
                 </div>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
                     {item.count}
                   </span>
                 )}
@@ -362,76 +357,76 @@ export default function ObserveCockpitPage() {
             ))}
           </div>
 
-          <div className="p-2.5 rounded-lg bg-[#070e1a] border border-slate-800/80 text-[10px] font-mono text-slate-400 space-y-1">
-            <div className="text-teal-400 font-bold flex items-center gap-1">
+          <div className="p-3 rounded-lg bg-[#070e1c] border border-slate-800 text-[11px] text-slate-400 space-y-1">
+            <div className="text-teal-400 font-semibold flex items-center gap-1">
               <span>🔒 Safe Telemetry</span>
             </div>
-            <p>PII &amp; JWT secrets auto-redacted before buffer storage.</p>
+            <p className="leading-relaxed">PII &amp; JWT secrets auto-redacted before buffer storage.</p>
           </div>
         </div>
 
         {/* Center Column: 5 Metric Cards + Live Request Stream (Col 7) */}
         <div className="lg:col-span-7 space-y-4">
           {/* 5 Summary KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 font-mono">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {/* Total Requests */}
-            <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-3">
-              <span className="text-[10px] text-slate-400 block">Total Requests</span>
-              <div className="text-xl font-bold text-white mt-0.5">{totalCount}</div>
-              <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                ↑ 12% <span className="text-slate-500">vs last 5 min</span>
+            <div className="bg-[#0c1424] border border-slate-800/80 rounded-xl p-3.5 shadow-sm">
+              <span className="text-xs text-slate-400 block font-medium">Total Requests</span>
+              <div className="text-2xl font-bold text-white mt-1 font-mono">{totalCount.toLocaleString()}</div>
+              <span className="text-[11px] text-emerald-400 flex items-center gap-1 mt-1 font-medium">
+                ↑ 12% <span className="text-slate-500 font-normal">vs last 5 min</span>
               </span>
             </div>
 
             {/* Success Rate */}
-            <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-3">
-              <span className="text-[10px] text-slate-400 block">Success Rate</span>
-              <div className="text-xl font-bold text-emerald-400 mt-0.5">{successRate}%</div>
-              <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                ↑ 2.3% <span className="text-slate-500">vs last 5 min</span>
+            <div className="bg-[#0c1424] border border-slate-800/80 rounded-xl p-3.5 shadow-sm">
+              <span className="text-xs text-slate-400 block font-medium">Success Rate</span>
+              <div className="text-2xl font-bold text-emerald-400 mt-1 font-mono">{successRate}%</div>
+              <span className="text-[11px] text-emerald-400 flex items-center gap-1 mt-1 font-medium">
+                ↑ 2.3% <span className="text-slate-500 font-normal">vs last 5 min</span>
               </span>
             </div>
 
             {/* Failed Requests */}
-            <div className={`border rounded-xl p-3 ${
+            <div className={`border rounded-xl p-3.5 shadow-sm ${
               errorCount > 0
                 ? 'bg-rose-950/20 border-rose-900/80'
-                : 'bg-[#0c1524] border-slate-800/90'
+                : 'bg-[#0c1424] border-slate-800/80'
             }`}>
-              <span className="text-[10px] text-rose-300 block">Failed Requests</span>
-              <div className="text-xl font-bold text-rose-400 mt-0.5">{errorCount}</div>
-              <span className="text-[10px] text-rose-400 flex items-center gap-0.5 mt-0.5">
-                ↑ {errorCount} <span className="text-slate-500">vs last 5 min</span>
+              <span className="text-xs text-rose-300 block font-medium">Failed Requests</span>
+              <div className="text-2xl font-bold text-rose-400 mt-1 font-mono">{errorCount}</div>
+              <span className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
+                ↑ {errorCount} <span className="text-slate-500 font-normal">vs last 5 min</span>
               </span>
             </div>
 
             {/* Avg Duration (p95) */}
-            <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-3">
-              <span className="text-[10px] text-slate-400 block">Avg Duration (p95)</span>
-              <div className="text-xl font-bold text-amber-400 mt-0.5">{p95} ms</div>
-              <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                ↓ 120 ms <span className="text-slate-500">vs last 5 min</span>
+            <div className="bg-[#0c1424] border border-slate-800/80 rounded-xl p-3.5 shadow-sm">
+              <span className="text-xs text-slate-400 block font-medium">Avg Duration (p95)</span>
+              <div className="text-2xl font-bold text-amber-400 mt-1 font-mono">{p95} ms</div>
+              <span className="text-[11px] text-emerald-400 flex items-center gap-1 mt-1 font-medium">
+                ↓ 120 ms <span className="text-slate-500 font-normal">vs last 5 min</span>
               </span>
             </div>
 
             {/* In Progress */}
-            <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-3 col-span-2 sm:col-span-1">
-              <span className="text-[10px] text-slate-400 block">In Progress</span>
-              <div className="text-xl font-bold text-indigo-400 mt-0.5">{inProgressCount}</div>
-              <span className="text-[10px] text-slate-400 mt-0.5 block">Right now</span>
+            <div className="bg-[#0c1424] border border-slate-800/80 rounded-xl p-3.5 shadow-sm col-span-2 sm:col-span-1">
+              <span className="text-xs text-slate-400 block font-medium">In Progress</span>
+              <div className="text-2xl font-bold text-indigo-400 mt-1 font-mono">{inProgressCount}</div>
+              <span className="text-[11px] text-slate-400 mt-1 block">Right now</span>
             </div>
           </div>
 
           {/* Live Request Stream Table */}
-          <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl overflow-hidden shadow-sm font-mono">
-            <div className="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between text-xs bg-[#09101b]">
+          <div className="bg-[#0c1424] border border-slate-800/80 rounded-xl overflow-hidden shadow-sm">
+            <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between text-xs bg-[#09101d]">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white">Live Request Stream</span>
-                <span className="text-[10px] text-slate-500">({visibleTraces.length} recorded)</span>
+                <span className="font-bold text-white text-sm">Live Request Stream</span>
+                <span className="text-xs text-slate-400">({visibleTraces.length} recorded)</span>
               </div>
               <button
                 onClick={() => setActiveNav('LIVE_REQUESTS')}
-                className="text-[11px] text-teal-400 hover:underline"
+                className="text-xs text-teal-400 hover:text-teal-300 font-medium hover:underline"
               >
                 View All
               </button>
@@ -440,14 +435,14 @@ export default function ObserveCockpitPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider bg-[#070e1a]/60">
-                    <th className="py-2 px-3">Time ▾</th>
-                    <th className="py-2 px-2">Method</th>
-                    <th className="py-2 px-3">Route ▾</th>
-                    <th className="py-2 px-2 text-center">Status ▾</th>
-                    <th className="py-2 px-2 text-right">Duration</th>
-                    <th className="py-2 px-3 text-center hidden md:table-cell">Client ▾</th>
-                    <th className="py-2 px-3 text-right">Trace ID</th>
+                  <tr className="border-b border-slate-800 text-[11px] text-slate-400 font-medium bg-[#070e1c]">
+                    <th className="py-2.5 px-3.5">Time ▾</th>
+                    <th className="py-2.5 px-2.5">Method</th>
+                    <th className="py-2.5 px-3.5">Route ▾</th>
+                    <th className="py-2.5 px-2.5 text-center">Status ▾</th>
+                    <th className="py-2.5 px-3 text-right">Duration</th>
+                    <th className="py-2.5 px-3 text-center hidden md:table-cell">Client ▾</th>
+                    <th className="py-2.5 px-3.5 text-right font-mono">Trace ID</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -473,20 +468,20 @@ export default function ObserveCockpitPage() {
                               : 'hover:bg-slate-800/40'
                           }`}
                         >
-                          <td className="py-2 px-3 text-slate-400 whitespace-nowrap text-[11px]">
+                          <td className="py-2.5 px-3.5 text-slate-400 whitespace-nowrap font-mono text-[11px]">
                             {new Date(trace.startTimeMs).toLocaleTimeString()}
                           </td>
-                          <td className="py-2 px-2 font-bold whitespace-nowrap text-[11px]">
-                            <span className="text-teal-400 font-mono font-bold">
+                          <td className="py-2.5 px-2.5 font-bold whitespace-nowrap text-xs">
+                            <span className="text-teal-400 font-mono">
                               {trace.httpMethod}
                             </span>
                           </td>
-                          <td className="py-2 px-3 text-slate-200 font-semibold truncate max-w-[200px]">
+                          <td className="py-2.5 px-3.5 text-slate-200 font-medium truncate max-w-[220px]">
                             {trace.httpUrl}
                           </td>
-                          <td className="py-2 px-2 text-center whitespace-nowrap">
+                          <td className="py-2.5 px-2.5 text-center whitespace-nowrap">
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                                 isError
                                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
                                   : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
@@ -495,13 +490,13 @@ export default function ObserveCockpitPage() {
                               {trace.httpStatus || (isError ? 500 : 200)} {isError ? 'Error' : 'OK'}
                             </span>
                           </td>
-                          <td className={`py-2 px-2 text-right whitespace-nowrap text-[11px] ${isError ? 'text-rose-400 font-bold' : 'text-slate-300'}`}>
+                          <td className={`py-2.5 px-3 text-right whitespace-nowrap font-mono text-xs ${isError ? 'text-rose-400 font-bold' : 'text-slate-300'}`}>
                             {durationDisplay}
                           </td>
-                          <td className="py-2 px-3 text-center text-slate-400 text-[11px] hidden md:table-cell whitespace-nowrap">
+                          <td className="py-2.5 px-3 text-center text-slate-400 text-xs hidden md:table-cell whitespace-nowrap">
                             {trace.clientPlatform || 'Chrome 124'}
                           </td>
-                          <td className="py-2 px-3 text-right font-mono text-[10px] text-slate-500 whitespace-nowrap">
+                          <td className="py-2.5 px-3.5 text-right font-mono text-[11px] text-slate-500 whitespace-nowrap">
                             {trace.traceId.length > 12 ? `${trace.traceId.slice(0, 10)}...` : trace.traceId}
                           </td>
                         </tr>
@@ -515,74 +510,74 @@ export default function ObserveCockpitPage() {
         </div>
 
         {/* Right Column: System Health (Col 3) */}
-        <div className="lg:col-span-3 bg-[#0c1524] border border-slate-800/90 rounded-xl p-4 space-y-3 font-mono shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <span className="text-xs font-bold text-white">System Health</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+        <div className="lg:col-span-3 bg-[#0c1424] border border-slate-800/80 rounded-xl p-4 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <span className="text-sm font-bold text-white">System Health</span>
+            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               🟢 Healthy
             </span>
           </div>
 
-          <div className="space-y-3 text-xs">
+          <div className="space-y-3.5 text-xs">
             {/* PostgreSQL */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-slate-300 flex items-center gap-1.5">🗄️ PostgreSQL</span>
-                <span className="text-emerald-400 text-[11px] font-bold">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300 font-medium flex items-center gap-2">🗄️ PostgreSQL</span>
+                <span className="text-emerald-400 font-semibold">
                   {health?.database.status === 'UP' ? '🟢 Healthy' : '🔴 Degraded'}
                 </span>
               </div>
             </div>
 
             {/* Memory */}
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-400">💾 Memory</span>
-                <span className="text-amber-400 font-bold">{health?.memory.percentUsed || 72}%</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 flex items-center gap-1.5">💾 Memory</span>
+                <span className="text-amber-400 font-bold font-mono">{health?.memory.percentUsed || 72}%</span>
               </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div style={{ width: `${health?.memory.percentUsed || 72}%` }} className="h-full bg-amber-400 rounded-full" />
               </div>
             </div>
 
             {/* CPU */}
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-400">⚡ CPU</span>
-                <span className="text-teal-400 font-bold">38%</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 flex items-center gap-1.5">⚡ CPU</span>
+                <span className="text-teal-400 font-bold font-mono">38%</span>
               </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div style={{ width: '38%' }} className="h-full bg-teal-400 rounded-full" />
               </div>
             </div>
 
             {/* Storage */}
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-400">📁 Storage</span>
-                <span className="text-amber-400 font-bold">64%</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 flex items-center gap-1.5">📁 Storage</span>
+                <span className="text-amber-400 font-bold font-mono">64%</span>
               </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div style={{ width: '64%' }} className="h-full bg-amber-400 rounded-full" />
               </div>
             </div>
 
             {/* Disk (Uploads) */}
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-400">💿 Disk (Uploads)</span>
-                <span className="text-amber-400 font-bold">78%</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 flex items-center gap-1.5">💿 Disk (Uploads)</span>
+                <span className="text-amber-400 font-bold font-mono">78%</span>
               </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div style={{ width: '78%' }} className="h-full bg-amber-400 rounded-full" />
               </div>
             </div>
 
             {/* Redis */}
-            <div className="pt-2 border-t border-slate-800">
+            <div className="pt-2.5 border-t border-slate-800">
               <div className="flex items-center justify-between">
-                <span className="text-slate-300 flex items-center gap-1.5">⚡ Redis Cache</span>
-                <span className="text-emerald-400 text-[11px] font-bold">🟢 Healthy</span>
+                <span className="text-slate-300 font-medium flex items-center gap-2">⚡ Redis Cache</span>
+                <span className="text-emerald-400 font-semibold">🟢 Healthy</span>
               </div>
             </div>
           </div>
@@ -591,15 +586,15 @@ export default function ObserveCockpitPage() {
 
       {/* 3. Middle Section: REQUEST 360 – WATERFALL VIEW */}
       {selectedTrace && (
-        <div className="bg-[#0c1524] border border-slate-800/90 rounded-xl p-4 sm:p-5 space-y-4 shadow-md font-mono">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-            <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+        <div className="bg-[#0c1424] border border-slate-800/80 rounded-xl p-5 space-y-4 shadow-md">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
               REQUEST 360 – WATERFALL VIEW ({selectedTrace.httpMethod} {selectedTrace.httpUrl.toUpperCase()})
             </h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleCopyEvidence(selectedTrace)}
-                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-teal-300 text-xs font-semibold border border-slate-700 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300 text-xs font-semibold border border-slate-700 transition-colors shadow-sm"
               >
                 📋 Copy Diagnostic Evidence
               </button>
@@ -608,31 +603,31 @@ export default function ObserveCockpitPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             {/* Left Column: Trace Summary (Col 3) */}
-            <div className="lg:col-span-3 bg-[#080e18] rounded-lg p-3.5 border border-slate-800/80 space-y-3 text-xs">
-              <div className="text-slate-300 font-bold border-b border-slate-800 pb-1.5">
+            <div className="lg:col-span-3 bg-[#080e1c] rounded-xl p-4 border border-slate-800 space-y-3.5 text-xs">
+              <div className="text-white font-bold text-sm border-b border-slate-800 pb-2">
                 Trace Summary
               </div>
 
-              <div className="space-y-2 text-[11px]">
+              <div className="space-y-2.5 text-xs">
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Trace ID</span>
-                  <span className="text-slate-300 font-bold break-all">{selectedTrace.traceId}</span>
+                  <span className="text-slate-500 block text-[11px] font-medium">Trace ID</span>
+                  <span className="text-slate-200 font-mono font-semibold break-all">{selectedTrace.traceId}</span>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Request ID</span>
-                  <span className="text-slate-300 break-all">{selectedTrace.requestId}</span>
+                  <span className="text-slate-500 block text-[11px] font-medium">Request ID</span>
+                  <span className="text-slate-300 font-mono break-all">{selectedTrace.requestId}</span>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Method / Route</span>
-                  <span className="text-teal-400 font-bold">{selectedTrace.httpMethod} {selectedTrace.httpUrl}</span>
+                  <span className="text-slate-500 block text-[11px] font-medium">Method / Route</span>
+                  <span className="text-teal-400 font-mono font-bold">{selectedTrace.httpMethod} {selectedTrace.httpUrl}</span>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Status</span>
+                  <span className="text-slate-500 block text-[11px] font-medium">Status</span>
                   <span
-                    className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold mt-0.5 ${
+                    className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold mt-1 ${
                       isSelectedError
                         ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
                         : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
@@ -643,19 +638,19 @@ export default function ObserveCockpitPage() {
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Total Duration</span>
-                  <span className="text-amber-400 font-bold text-sm">
+                  <span className="text-slate-500 block text-[11px] font-medium">Total Duration</span>
+                  <span className="text-amber-400 font-mono font-bold text-base">
                     {((selectedTrace.durationMs || 0) / 1000).toFixed(2)} s ({selectedTrace.durationMs || 1} ms)
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Client</span>
+                  <span className="text-slate-500 block text-[11px] font-medium">Client</span>
                   <span className="text-slate-300">Chrome 124 on Windows</span>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Started At</span>
+                  <span className="text-slate-500 block text-[11px] font-medium">Started At</span>
                   <span className="text-slate-400">
                     {new Date(selectedTrace.startTimeMs).toLocaleString()}
                   </span>
@@ -666,7 +661,7 @@ export default function ObserveCockpitPage() {
             {/* Center Column: Waterfall Timeline (Col 6) */}
             <div className="lg:col-span-6 space-y-3">
               {/* Tabs */}
-              <div className="flex items-center gap-1 border-b border-slate-800 pb-2 text-xs">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-2 text-xs">
                 {[
                   { id: 'WATERFALL', label: 'Waterfall' },
                   { id: 'SPANS', label: `Spans (${selectedTrace.spans.length})` },
@@ -677,9 +672,9 @@ export default function ObserveCockpitPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as Request360Tab)}
-                    className={`px-3 py-1 rounded-t-lg transition-all ${
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                       activeTab === tab.id
-                        ? 'bg-teal-500/20 text-teal-300 border-b-2 border-teal-400 font-bold'
+                        ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
@@ -688,10 +683,10 @@ export default function ObserveCockpitPage() {
                 ))}
               </div>
 
-              {/* Waterfall Timeline Graphic (Rendering Real Spans) */}
+              {/* Waterfall Timeline Graphic */}
               {activeTab === 'WATERFALL' && (
-                <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800/80 space-y-3 text-xs">
-                  <div className="grid grid-cols-6 text-[10px] text-slate-500 border-b border-slate-800 pb-1">
+                <div className="bg-[#080e1c] rounded-xl p-4 border border-slate-800 space-y-3.5">
+                  <div className="grid grid-cols-6 text-[11px] text-slate-400 font-mono border-b border-slate-800/80 pb-2">
                     <span>0 ms</span>
                     <span className="text-center">2,000 ms</span>
                     <span className="text-center">4,000 ms</span>
@@ -700,9 +695,9 @@ export default function ObserveCockpitPage() {
                     <span className="text-right">8,420 ms</span>
                   </div>
 
-                  <div className="space-y-2 py-1">
+                  <div className="space-y-3 py-1">
                     {selectedTrace.spans.length === 0 ? (
-                      <div className="text-center text-slate-500 text-xs py-4">
+                      <div className="text-center text-slate-500 text-xs py-6">
                         Root HTTP controller span: {selectedTrace.durationMs || 1} ms
                       </div>
                     ) : (
@@ -710,27 +705,28 @@ export default function ObserveCockpitPage() {
                         const isErr = span.status === 'ERROR';
                         const dur = span.durationMs || 1;
                         const totalDur = selectedTrace.durationMs || 1;
-                        const widthPct = Math.min(100, Math.max(10, (dur / totalDur) * 100));
+                        // Proportional bar width
+                        const widthPct = Math.min(100, Math.max(12, (dur / totalDur) * 100));
 
                         return (
-                          <div key={span.spanId || idx} className="space-y-0.5">
-                            <div className="flex items-center justify-between text-[11px]">
-                              <div className="flex items-center gap-1.5 text-slate-300">
-                                <span className={`w-1.5 h-1.5 rounded-full ${isErr ? 'bg-rose-500' : 'bg-teal-400'}`} />
+                          <div key={span.spanId || idx} className="space-y-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2 text-slate-200">
+                                <span className={`w-2 h-2 rounded-full ${isErr ? 'bg-rose-500 animate-pulse' : 'bg-teal-400'}`} />
                                 <span className="font-semibold">{span.name}</span>
-                                <span className="text-[9px] text-slate-500 px-1 py-0.2 rounded bg-slate-900 border border-slate-800">
+                                <span className="text-[10px] text-slate-400 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono">
                                   {span.kind}
                                 </span>
                               </div>
-                              <span className="font-mono text-slate-400">{dur} ms</span>
+                              <span className="font-mono text-xs font-semibold text-slate-300">{dur} ms</span>
                             </div>
 
-                            <div className="w-full h-2 bg-[#050910] rounded-full overflow-hidden flex">
+                            <div className="w-full h-2.5 bg-[#040810] rounded-full overflow-hidden flex">
                               <div
                                 style={{ width: `${widthPct}%` }}
-                                className={`h-full rounded-full ${
+                                className={`h-full rounded-full transition-all ${
                                   isErr
-                                    ? 'bg-rose-500 shadow-sm shadow-rose-500/50'
+                                    ? 'bg-rose-500 shadow-sm shadow-rose-500/60'
                                     : dur > 1000
                                     ? 'bg-amber-400'
                                     : 'bg-teal-400 shadow-sm shadow-teal-400/50'
@@ -739,7 +735,7 @@ export default function ObserveCockpitPage() {
                             </div>
 
                             {span.errorMessage && (
-                              <p className="text-[10px] text-rose-400 pl-3 pt-0.5">
+                              <p className="text-[11px] text-rose-400 pl-4 pt-0.5 font-medium">
                                 Error: {span.errorMessage}
                               </p>
                             )}
@@ -753,23 +749,23 @@ export default function ObserveCockpitPage() {
 
               {/* Spans List Tab */}
               {activeTab === 'SPANS' && (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="space-y-2 max-h-72 overflow-y-auto">
                   {selectedTrace.spans.map((span) => (
-                    <div key={span.spanId} className="p-2.5 rounded bg-[#080e18] border border-slate-800 text-xs flex items-center justify-between">
+                    <div key={span.spanId} className="p-3 rounded-lg bg-[#080e1c] border border-slate-800 text-xs flex items-center justify-between">
                       <div>
-                        <span className="font-bold text-white">{span.name}</span>
-                        <span className="text-[10px] text-slate-500 block font-mono">
+                        <span className="font-bold text-white text-sm">{span.name}</span>
+                        <span className="text-[11px] text-slate-400 block font-mono mt-0.5">
                           Span ID: {span.spanId} • Kind: {span.kind}
                         </span>
                         {span.attributes && Object.keys(span.attributes).length > 0 && (
-                          <span className="text-[10px] text-slate-400 font-mono block">
+                          <span className="text-[11px] text-slate-400 font-mono block mt-1">
                             Attributes: {JSON.stringify(span.attributes)}
                           </span>
                         )}
                       </div>
                       <div className="text-right font-mono">
-                        <span className="text-slate-200">{span.durationMs || 1} ms</span>
-                        <span className={`block text-[10px] font-bold ${span.status === 'ERROR' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        <span className="text-slate-200 font-bold text-sm">{span.durationMs || 1} ms</span>
+                        <span className={`block text-xs font-bold mt-0.5 ${span.status === 'ERROR' ? 'text-rose-400' : 'text-emerald-400'}`}>
                           {span.status}
                         </span>
                       </div>
@@ -780,7 +776,7 @@ export default function ObserveCockpitPage() {
 
               {/* Metadata Tab */}
               {activeTab === 'METADATA' && (
-                <div className="p-3 bg-[#080e18] rounded-lg border border-slate-800 text-xs font-mono space-y-1.5">
+                <div className="p-4 bg-[#080e1c] rounded-xl border border-slate-800 text-xs font-mono space-y-2">
                   <div><span className="text-slate-500">Trace ID:</span> <span className="text-slate-200">{selectedTrace.traceId}</span></div>
                   <div><span className="text-slate-500">Request ID:</span> <span className="text-slate-200">{selectedTrace.requestId}</span></div>
                   <div><span className="text-slate-500">Client Platform:</span> <span className="text-slate-200">{selectedTrace.clientPlatform}</span></div>
@@ -791,9 +787,9 @@ export default function ObserveCockpitPage() {
                 </div>
               )}
 
-              {/* Logs / Request-Response Tab */}
+              {/* Logs Tab */}
               {(activeTab === 'LOGS' || activeTab === 'REQUEST_RESPONSE') && (
-                <div className="p-3 bg-black/60 rounded-lg border border-slate-800 text-[11px] font-mono text-slate-300 max-h-64 overflow-y-auto">
+                <div className="p-4 bg-black/60 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 max-h-72 overflow-y-auto">
                   <pre>{generateEvidencePackage(selectedTrace)}</pre>
                 </div>
               )}
@@ -801,21 +797,21 @@ export default function ObserveCockpitPage() {
 
             {/* Right Column: Root Cause Card (Col 3) */}
             <div className="lg:col-span-3">
-              <div className="rounded-lg p-4 border border-rose-900/60 bg-[#0e111a] space-y-3 font-mono">
-                <div className="flex items-center justify-between border-b border-rose-900/40 pb-2">
-                  <span className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
+              <div className="rounded-xl p-4 border border-rose-900/60 bg-[#0e121e] space-y-3.5 shadow-sm">
+                <div className="flex items-center justify-between border-b border-rose-900/40 pb-2.5">
+                  <span className="text-amber-400 font-bold text-xs flex items-center gap-1.5 uppercase tracking-wide">
                     ⚠️ Root Cause
                   </span>
                 </div>
 
                 <div>
-                  <div className="text-xs font-bold text-white uppercase">
+                  <div className="text-sm font-bold text-white uppercase tracking-wide">
                     {rootCauseDiagnosis?.title}
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
+                  <div className="text-xs text-slate-400 mt-1 font-mono">
                     Confidence: {rootCauseDiagnosis?.confidence}%
                   </div>
-                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1">
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden mt-1.5">
                     <div
                       style={{ width: `${rootCauseDiagnosis?.confidence}%` }}
                       className="h-full bg-emerald-400 rounded-full"
@@ -827,7 +823,7 @@ export default function ObserveCockpitPage() {
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
                     SUMMARY
                   </span>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-300 leading-relaxed">
                     {rootCauseDiagnosis?.summary}
                   </p>
                 </div>
@@ -836,22 +832,22 @@ export default function ObserveCockpitPage() {
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
                     RECOMMENDED ACTION
                   </span>
-                  <ul className="text-[11px] text-slate-300 space-y-1 list-disc list-inside">
+                  <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
                     {rootCauseDiagnosis?.action.map((act, i) => (
                       <li key={i}>{act}</li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="pt-2 border-t border-slate-800 space-y-2">
-                  <div className="text-[10px] text-slate-400">
-                    <span className="font-bold block">Related Span</span>
-                    <span>{rootCauseDiagnosis?.relatedSpan}</span>
+                <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                  <div className="text-xs text-slate-400">
+                    <span className="font-bold block text-slate-300 mb-0.5">Related Span</span>
+                    <span className="font-mono text-[11px]">{rootCauseDiagnosis?.relatedSpan}</span>
                   </div>
 
                   <button
                     onClick={() => setActiveTab('LOGS')}
-                    className="w-full py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-sm"
+                    className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-md"
                   >
                     View Logs
                   </button>
@@ -863,113 +859,113 @@ export default function ObserveCockpitPage() {
       )}
 
       {/* 4. Bottom Section: SYSTEM HEALTH DETAIL + M2 PIPELINE OVERVIEW */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 font-mono text-xs">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 text-xs">
         {/* SYSTEM HEALTH DETAIL (Col 7) */}
-        <div className="lg:col-span-7 bg-[#0c1524] border border-slate-800/90 rounded-xl p-4 space-y-3">
-          <div className="text-xs font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2">
+        <div className="lg:col-span-7 bg-[#0c1424] border border-slate-800/80 rounded-xl p-4 space-y-3.5 shadow-sm">
+          <div className="text-xs font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2.5">
             SYSTEM HEALTH DETAIL
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* PostgreSQL */}
-            <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800 space-y-1">
-              <span className="text-[10px] text-slate-400 block font-bold">PostgreSQL</span>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Connections</span>
-                <span className="font-bold text-white">8 / 20</span>
+            <div className="bg-[#080e1c] rounded-xl p-3.5 border border-slate-800 space-y-1.5">
+              <span className="text-xs text-slate-300 block font-bold">PostgreSQL</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">Connections</span>
+                <span className="font-bold text-white font-mono">8 / 20</span>
               </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Query (p95)</span>
-                <span className="font-bold text-teal-400">
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">Query (p95)</span>
+                <span className="font-bold text-teal-400 font-mono">
                   {health?.database.latencyMs ? `${health.database.latencyMs} ms` : '124 ms'}
                 </span>
               </div>
             </div>
 
             {/* Memory */}
-            <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800 space-y-1">
-              <span className="text-[10px] text-slate-400 block font-bold">Memory</span>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Used / Total</span>
-                <span className="font-bold text-white">
+            <div className="bg-[#080e1c] rounded-xl p-3.5 border border-slate-800 space-y-1.5">
+              <span className="text-xs text-slate-300 block font-bold">Memory</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">Used / Total</span>
+                <span className="font-bold text-white font-mono">
                   {health?.memory ? `${(health.memory.heapUsedMb / 1024).toFixed(1)} GB / ${(health.memory.heapTotalMb / 1024).toFixed(1)} GB` : '5.6 GB / 7.8 GB'}
                 </span>
               </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Usage</span>
-                <span className="font-bold text-amber-400">{health?.memory.percentUsed || 72}%</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">Usage</span>
+                <span className="font-bold text-amber-400 font-mono">{health?.memory.percentUsed || 72}%</span>
               </div>
             </div>
 
             {/* CPU */}
-            <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800 space-y-1">
-              <span className="text-[10px] text-slate-400 block font-bold">CPU</span>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Usage / Load</span>
-                <span className="font-bold text-white">38% / 0.84</span>
+            <div className="bg-[#080e1c] rounded-xl p-3.5 border border-slate-800 space-y-1.5">
+              <span className="text-xs text-slate-300 block font-bold">CPU</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">Usage / Load</span>
+                <span className="font-bold text-white font-mono">38% / 0.84</span>
               </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Status</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">Status</span>
                 <span className="font-bold text-emerald-400">Healthy</span>
               </div>
             </div>
 
             {/* Storage */}
-            <div className="bg-[#080e18] rounded-lg p-3 border border-slate-800 space-y-1">
-              <span className="text-[10px] text-slate-400 block font-bold">Storage (Uploads)</span>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Used / Total</span>
-                <span className="font-bold text-white">124 GB / 200 GB</span>
+            <div className="bg-[#080e1c] rounded-xl p-3.5 border border-slate-800 space-y-1.5">
+              <span className="text-xs text-slate-300 block font-bold">Storage (Uploads)</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">Used / Total</span>
+                <span className="font-bold text-white font-mono">124 GB / 200 GB</span>
               </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Usage</span>
-                <span className="font-bold text-amber-400">62%</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">Usage</span>
+                <span className="font-bold text-amber-400 font-mono">62%</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* M2 PIPELINE OVERVIEW (Last 10 min) (Col 5) */}
-        <div className="lg:col-span-5 bg-[#0c1524] border border-slate-800/90 rounded-xl p-4 space-y-3">
-          <div className="text-xs font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2">
+        <div className="lg:col-span-5 bg-[#0c1424] border border-slate-800/80 rounded-xl p-4 space-y-3.5 shadow-sm">
+          <div className="text-xs font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2.5">
             M2 PIPELINE OVERVIEW (Last 10 min)
           </div>
 
           <div className="grid grid-cols-6 gap-2 text-center">
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Uploads</span>
-              <span className="text-sm font-bold text-white block mt-0.5">12</span>
-              <span className="text-[9px] text-emerald-400">100%</span>
+            <div className="bg-[#080e1c] p-2.5 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-400 block font-medium">Uploads</span>
+              <span className="text-base font-bold text-white block mt-0.5 font-mono">12</span>
+              <span className="text-[10px] text-emerald-400 font-semibold">100%</span>
             </div>
 
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Page Truth</span>
-              <span className="text-sm font-bold text-white block mt-0.5">12</span>
-              <span className="text-[9px] text-emerald-400">100%</span>
+            <div className="bg-[#080e1c] p-2.5 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-400 block font-medium">Page Truth</span>
+              <span className="text-base font-bold text-white block mt-0.5 font-mono">12</span>
+              <span className="text-[10px] text-emerald-400 font-semibold">100%</span>
             </div>
 
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Structure</span>
-              <span className="text-sm font-bold text-white block mt-0.5">12</span>
-              <span className="text-[9px] text-emerald-400">100%</span>
+            <div className="bg-[#080e1c] p-2.5 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-400 block font-medium">Structure</span>
+              <span className="text-base font-bold text-white block mt-0.5 font-mono">12</span>
+              <span className="text-[10px] text-emerald-400 font-semibold">100%</span>
             </div>
 
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Chunks</span>
-              <span className="text-sm font-bold text-white block mt-0.5">12</span>
-              <span className="text-[9px] text-emerald-400">100%</span>
+            <div className="bg-[#080e1c] p-2.5 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-400 block font-medium">Chunks</span>
+              <span className="text-base font-bold text-white block mt-0.5 font-mono">12</span>
+              <span className="text-[10px] text-emerald-400 font-semibold">100%</span>
             </div>
 
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Canonical</span>
-              <span className="text-sm font-bold text-amber-400 block mt-0.5">10</span>
-              <span className="text-[9px] text-amber-400">83%</span>
+            <div className="bg-[#080e1c] p-2.5 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-400 block font-medium">Canonical</span>
+              <span className="text-base font-bold text-amber-400 block mt-0.5 font-mono">10</span>
+              <span className="text-[10px] text-amber-400 font-semibold">83%</span>
             </div>
 
-            <div className="bg-[#080e18] p-2 rounded border border-slate-800">
-              <span className="text-[9px] text-slate-400 block">Relationships</span>
-              <span className="text-sm font-bold text-amber-400 block mt-0.5">10</span>
-              <span className="text-[9px] text-amber-400">83%</span>
+            <div className="bg-[#080e1c] p-2.5 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-400 block font-medium">Relationships</span>
+              <span className="text-base font-bold text-amber-400 block mt-0.5 font-mono">10</span>
+              <span className="text-[10px] text-amber-400 font-semibold">83%</span>
             </div>
           </div>
         </div>
