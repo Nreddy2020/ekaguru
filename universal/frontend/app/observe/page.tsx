@@ -11,7 +11,6 @@ import {
   VitalisCommandCenterOverview,
   VitalisRequest,
   VitalisInventoryItem,
-  VitalisIncident,
 } from '../../lib/vitalis/domain/types';
 
 export default function VitalisObservePage() {
@@ -70,24 +69,26 @@ export default function VitalisObservePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060b14] text-slate-200 font-sans antialiased flex flex-col">
+    <div className="min-h-screen bg-[#050a14] text-slate-200 font-sans antialiased flex flex-col">
       {/* 1. Master Top Bar: Brand, Environment Switcher, Refresh Controls */}
-      <header className="h-14 bg-[#0c1424] border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between z-10 shrink-0">
+      <header className="h-14 bg-[#080e1a] border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🔭</span>
-            <span className="text-teal-400 font-black text-base tracking-wider font-mono">
-              VITALIS OBSERVE
-            </span>
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl text-teal-400">◈</span>
+            <div className="flex flex-col">
+              <span className="text-white font-extrabold text-sm tracking-wider font-mono">
+                VITALIS OBSERVE
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+                Universal Observability • Causal Intelligence
+              </span>
+            </div>
           </div>
-          <span className="text-slate-400 text-xs hidden md:inline border-l border-slate-700 pl-3 font-medium">
-            Universal Telemetry &amp; Root-Cause Intelligence
-          </span>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Environment Mode Switcher (LAB | DEMO | PRODUCTION) */}
-          <div className="flex items-center rounded-lg bg-[#070e1c] border border-slate-700 p-0.5 text-xs font-semibold">
+          <div className="flex items-center rounded-lg bg-[#050a14] border border-slate-700/80 p-0.5 text-xs font-semibold">
             <button
               onClick={() => setEnvironment('LAB')}
               className={`px-3 py-1 rounded transition-all flex items-center gap-1.5 ${
@@ -97,7 +98,7 @@ export default function VitalisObservePage() {
               }`}
             >
               <span>🧪</span>
-              <span>LAB (Ekaguru Live)</span>
+              <span>LAB LIVE</span>
             </button>
             <button
               onClick={() => setEnvironment('DEMO')}
@@ -108,7 +109,7 @@ export default function VitalisObservePage() {
               }`}
             >
               <span>🎭</span>
-              <span>DEMO (Enterprise Simulator)</span>
+              <span>DEMO</span>
             </button>
             <button
               onClick={() => setEnvironment('PRODUCTION')}
@@ -123,16 +124,34 @@ export default function VitalisObservePage() {
             </button>
           </div>
 
-          {/* Auto Refresh */}
+          {/* Live Auto Refresh Status Pill */}
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="flex items-center gap-2 px-3 py-1 rounded-lg bg-[#070e1c] border border-slate-700 text-xs font-medium text-emerald-400 hover:border-slate-600 transition-all shadow-sm"
+            className="flex items-center gap-2 px-3 py-1 rounded-lg bg-[#050a14] border border-slate-700/80 text-xs font-medium text-emerald-400 hover:border-slate-600 transition-all shadow-sm"
           >
             <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
-            <span className="hidden sm:inline">Auto Refresh (3s)</span>
+            <span className="hidden sm:inline">LIVE (3s)</span>
           </button>
         </div>
       </header>
+
+      {/* Global Context Bar */}
+      <div className="bg-[#070c17] border-b border-slate-800/80 px-4 sm:px-6 py-1.5 flex items-center justify-between text-[11px] font-mono text-slate-400 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="text-teal-400 font-semibold">
+            {environment === 'LAB' ? 'LAB · EKAGURU LIVE' : environment === 'DEMO' ? 'DEMO · ENTERPRISE SIMULATOR' : 'PROD · ENTERPRISE CLUSTERS'}
+          </span>
+          <span>•</span>
+          <span>Region: <strong>Local Node</strong></span>
+          <span>•</span>
+          <span>Services: <strong>{inventory.length}</strong></span>
+        </div>
+        <div className="hidden sm:flex items-center gap-3">
+          <span>Signals: <strong className="text-slate-300">1,842</strong></span>
+          <span>•</span>
+          <span>Last observation: <strong className="text-emerald-400">Nominal</strong></span>
+        </div>
+      </div>
 
       {/* Mode Banner Indicator if DEMO */}
       {environment === 'DEMO' && (
@@ -177,10 +196,10 @@ export default function VitalisObservePage() {
           )}
 
           {(activeNav === 'LIVE_REQUESTS' || activeNav === 'REQUEST_JOURNEYS' || activeNav === 'EVIDENCE_RCA') && (
-            <div className="space-y-4">
+            <div className="space-y-4 max-w-7xl mx-auto">
               {/* Requests Stream Table */}
-              <div className="bg-[#0c1424] border border-slate-800/80 rounded-xl overflow-hidden shadow-sm">
-                <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between text-xs bg-[#09101d]">
+              <div className="bg-[#0b1322] border border-slate-800/80 rounded-xl overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b border-slate-800/80 flex items-center justify-between text-xs bg-[#080e1c]">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-white text-sm">Canonical Request Stream</span>
                     <span className="text-xs text-slate-400 font-mono">({requests.length} recorded)</span>
@@ -190,7 +209,7 @@ export default function VitalisObservePage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-800 text-[11px] text-slate-400 font-medium bg-[#070e1c]">
+                      <tr className="border-b border-slate-800 text-[11px] text-slate-400 font-medium bg-[#050a14]">
                         <th className="py-2.5 px-3.5">Started At</th>
                         <th className="py-2.5 px-2.5">Transaction</th>
                         <th className="py-2.5 px-2.5 text-center">Status</th>
@@ -252,8 +271,8 @@ export default function VitalisObservePage() {
 
               {/* Hop-by-Hop Request Journey Visualization */}
               {selectedRequest && (
-                <div className="bg-[#0c1424] border border-slate-800/80 rounded-xl p-5 space-y-4 shadow-md">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="bg-[#0b1322] border border-slate-800/80 rounded-xl p-5 space-y-4 shadow-md">
+                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                     <div>
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">
                         REQUEST JOURNEY: {selectedRequest.transactionType}
@@ -276,7 +295,7 @@ export default function VitalisObservePage() {
                       const totalDur = Math.max(1, selectedRequest.durationMs);
                       const hopPct = Math.min(100, Math.max(4, Math.round((hop.latencyMs / totalDur) * 100)));
                       return (
-                        <div key={hop.nodeId || index} className="p-3.5 rounded-xl bg-[#080d1a] border border-slate-800 space-y-2">
+                        <div key={hop.nodeId || index} className="p-3.5 rounded-xl bg-[#080e1c] border border-slate-800 space-y-2">
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-slate-400 font-mono text-[10px]">Hop #{index + 1}</span>
                             <span className={`px-2 py-0.2 rounded text-[10px] font-bold ${
@@ -318,9 +337,9 @@ export default function VitalisObservePage() {
             </div>
           )}
 
-          {/* Placeholder for remaining screens */}
+          {/* Placeholder for remaining specialized views */}
           {activeNav !== 'COMMAND_CENTER' && activeNav !== 'APP_INVENTORY' && activeNav !== 'LIVE_REQUESTS' && activeNav !== 'REQUEST_JOURNEYS' && activeNav !== 'EVIDENCE_RCA' && (
-            <div className="bg-[#0c1424] border border-slate-800/80 rounded-xl p-8 text-center space-y-3 shadow-sm">
+            <div className="bg-[#0b1322] border border-slate-800/80 rounded-xl p-8 text-center space-y-3 shadow-sm max-w-7xl mx-auto">
               <div className="text-3xl">🏗️</div>
               <h3 className="text-base font-bold text-white">VITALIS Module: {activeNav}</h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">

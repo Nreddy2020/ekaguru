@@ -88,30 +88,30 @@ global.fetch = jest.fn().mockImplementation((url: string) => {
   return Promise.reject(new Error('Unknown URL'));
 }) as any;
 
-describe('VITALIS OBSERVE: Phase 1 Canonical Architecture & Cockpit', () => {
+describe('VITALIS OBSERVE: Phase 1 Canonical Architecture & Executive Cockpit', () => {
   it('should render the VITALIS header, mode switchers, and Command Center by default in LAB mode', async () => {
     render(<VitalisObservePage />);
     expect(screen.getByText(/VITALIS OBSERVE/i)).toBeInTheDocument();
-    expect(screen.getByText(/LAB \(Ekaguru Live\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/DEMO \(Enterprise Simulator\)/i)).toBeInTheDocument();
-    expect(await screen.findByText(/Operational Score/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/SLA Compliance/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/LAB LIVE/i)).toBeInTheDocument();
+    expect(screen.getByText(/DEMO/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Operational Health/i)).toBeInTheDocument();
+    expect(screen.getByText(/SLA Health/i)).toBeInTheDocument();
   });
 
-  it('should switch to Application Inventory view and render services catalog', async () => {
+  it('should switch to Application Inventory view and render registered assets', async () => {
     render(<VitalisObservePage />);
     const inventoryButton = screen.getByText(/Application Inventory/i);
     fireEvent.click(inventoryButton);
 
     await waitFor(() => {
       expect(screen.getByText(/universal-backend/i)).toBeInTheDocument();
-      expect(screen.getByText(/cognitive_memory \(PostgreSQL\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/cognitive_memory/i)).toBeInTheDocument();
     });
   });
 
   it('should switch to DEMO mode and show enterprise simulation banner and scenarios', async () => {
     render(<VitalisObservePage />);
-    const demoButton = screen.getByText(/DEMO \(Enterprise Simulator\)/i);
+    const demoButton = screen.getByText(/DEMO/i);
     fireEvent.click(demoButton);
 
     await waitFor(() => {
