@@ -11202,11 +11202,22 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
             onNextPage={handleNextSource}
           />
 
-          {/* MODULE 06: EKAGURU Explanations Companion */}
+          {/* MODULE 06: EKAGURU Knowledge Construction Companion */}
           <LearningExplanationPanel
+            sectionId={struct.sectionId || activeSourcePage?.sourceId}
             sectionTitle={activeSectionTitle}
             conceptName={cleanConceptName}
             description={activeSourcePage?.content || ''}
+            sourceAnchor={{
+              sourceId: activeSourcePage?.sourceId || 'src-0001',
+              sequenceIndex: safeSequenceIndex,
+              printedPage: activeSourcePage?.printed?.number || activeSourcePage?.printedPage || 1,
+              pdfPage: activeSourcePage?.physical?.pdfPage || 1,
+              side: activeSourcePage?.physical?.region || 'full',
+              viewport: activeSourcePage?.physical?.viewport,
+              snippetText: activeSourcePage?.content || '',
+              confidence: activeSourcePage?.forensic?.confidence || 0.98,
+            }}
           />
         </div>
       </LearningShell>
