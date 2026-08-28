@@ -3,98 +3,86 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { LearningExplanationPanel } from './LearningExplanationPanel';
 
-describe('Module 06: EKAGURU Pedagogical & Knowledge Construction Engine', () => {
+describe('Module 06.0: Pedagogical Runtime & Knowledge Intelligence Engine', () => {
   const sampleAnchor = {
-    sourceId: 'src-0004',
-    sequenceIndex: 4,
-    printedPage: 3,
-    pdfPage: 3,
-    side: 'right' as const,
-    snippetText: 'Plants, animals and human beings are living things...',
-    confidence: 0.99,
+    sourceId: 'src-0011',
+    sequenceIndex: 11,
+    printedPage: 10,
+    pdfPage: 6,
+    side: 'left' as const,
+    snippetText: 'The heart pumps blood to the whole body.',
+    confidence: 1.0,
   };
 
-  it('renders grounded concept with provenance badge and source anchor', () => {
+  it('renders grounded Knowledge Unit with Archetype and Deterministic Reason', () => {
     render(
       <LearningExplanationPanel
-        sectionId="sec-1-3"
-        sectionTitle="1.3 Living Things and How They Grow"
-        description="All living things breathe, need food, and grow."
+        sectionId="sec-2-10"
+        sectionTitle="2.10 Heart, Lungs, Stomach & Kidneys"
         sourceAnchor={sampleAnchor}
       />
     );
 
-    expect(screen.getByText('EKAGURU Knowledge Layer')).toBeInTheDocument();
-    expect(screen.getByText('Living Things and How They Grow')).toBeInTheDocument();
-    expect(screen.getByText('Source-Grounded')).toBeInTheDocument();
-    expect(screen.getByText('(p. 3)')).toBeInTheDocument();
+    expect(screen.getByText('EKAGURU Pedagogical Runtime')).toBeInTheDocument();
+    expect(screen.getByText('NORMAL_CHAPTER')).toBeInTheDocument();
+    expect(screen.getByText(/Circulatory System: The Heart as a Pump/i)).toBeInTheDocument();
+    expect(screen.getByText(/Why am I seeing this?/i)).toBeInTheDocument();
   });
 
-  it('switches between 3 levels of progressive depth (Understand, In Simple Words, Deep Dive)', () => {
+  it('triggers misconception remediation mode when choosing functional confusion trap', () => {
     render(
       <LearningExplanationPanel
-        sectionId="sec-1-3"
-        sectionTitle="1.3 Living Things and How They Grow"
-        description="All living things breathe, need food, and grow."
+        sectionId="sec-2-10"
+        sectionTitle="2.10 Heart, Lungs, Stomach & Kidneys"
         sourceAnchor={sampleAnchor}
       />
     );
 
-    // Initial level: Understand
-    expect(screen.getByText(/Understanding Living Things/i)).toBeInTheDocument();
+    // Initial state: Socratic Step WHAT
+    expect(screen.getByText(/Which internal organ is responsible for pumping blood/i)).toBeInTheDocument();
 
-    // Switch to Level 2: In Simple Words
-    const simpleWordsBtn = screen.getByRole('button', { name: /2. In Simple Words/i });
-    fireEvent.click(simpleWordsBtn);
-    expect(screen.getByText(/In Simple Everyday Words/i)).toBeInTheDocument();
-    expect(screen.getByText(/tiny seed drinks water/i)).toBeInTheDocument();
+    // Click Misconception Option: The Lungs
+    const lungsOption = screen.getByRole('button', { name: /The Lungs/i });
+    fireEvent.click(lungsOption);
 
-    // Switch to Level 3: Deep Dive
-    const deepDiveBtn = screen.getByRole('button', { name: /3. Deep Dive/i });
-    fireEvent.click(deepDiveBtn);
-    expect(screen.getByText(/Deep Dive: Cellular Energy & Life Cycles/i)).toBeInTheDocument();
-    expect(screen.getByText(/Mechanism:/i)).toBeInTheDocument();
+    // Should switch to Misconception Remediation Mode
+    expect(screen.getByText(/Targeted Misconception Remediation/i)).toBeInTheDocument();
+    expect(screen.getByText(/Remember: your lungs take in fresh air/i)).toBeInTheDocument();
+    expect(screen.getByText(/Verification Challenge:/i)).toBeInTheDocument();
   });
 
-  it('renders grounded real-world scenarios and cognitive skill practice with instant feedback', () => {
+  it('collects empirical hands-on observational evidence (pulse experiment)', () => {
     render(
       <LearningExplanationPanel
-        sectionId="sec-1-3"
-        sectionTitle="1.3 Living Things and How They Grow"
-        description="All living things breathe, need food, and grow."
+        sectionId="sec-2-10"
+        sectionTitle="2.10 Heart, Lungs, Stomach & Kidneys"
         sourceAnchor={sampleAnchor}
       />
     );
 
-    // Real-world examples
-    expect(screen.getByText('From Seed to Sprout on Your Windowsill')).toBeInTheDocument();
-    expect(screen.getByText('Why Your Last Year Shoes Feel Tight')).toBeInTheDocument();
+    expect(screen.getByText('Hands-on Pulse & Heart Rate Experiment')).toBeInTheDocument();
 
-    // Practice Question
-    const questionText = screen.getByText(/Rohan puts a wooden ruler and a potted bean plant/i);
-    expect(questionText).toBeInTheDocument();
+    const submitBtn = screen.getByRole('button', { name: /Submit Observational Evidence/i });
+    fireEvent.click(submitBtn);
 
-    // Click correct option
-    const correctOption = screen.getByText(/Only the bean plant will grow because it is a living organism/i);
-    fireEvent.click(correctOption);
-
-    // Check feedback
-    expect(screen.getByText(/✓ Well Done!/i)).toBeInTheDocument();
+    expect(screen.getByText(/✓ Excellent observational evidence!/i)).toBeInTheDocument();
   });
 
-  it('records event-based mastery transitions (seen -> understood -> verified)', () => {
+  it('displays mathematical mastery scores across Recall, Application, and Reasoning with zero fake verify buttons', () => {
     render(
       <LearningExplanationPanel
-        sectionId="sec-1-3"
-        sectionTitle="1.3 Living Things and How They Grow"
-        description="All living things breathe, need food, and grow."
+        sectionId="sec-2-10"
+        sectionTitle="2.10 Heart, Lungs, Stomach & Kidneys"
         sourceAnchor={sampleAnchor}
       />
     );
 
-    const verifyBtn = screen.getByRole('button', { name: /Verify Mastery/i });
-    fireEvent.click(verifyBtn);
+    expect(screen.getByText('Empirical Mastery Status')).toBeInTheDocument();
+    expect(screen.getByText('Recall (≥80%)')).toBeInTheDocument();
+    expect(screen.getByText('Application (≥70%)')).toBeInTheDocument();
+    expect(screen.getByText('Reasoning (≥70%)')).toBeInTheDocument();
 
-    expect(screen.getByText('verified')).toHaveClass('text-emerald-300');
+    // Verify there is NO fake "Verify Mastery" button
+    expect(screen.queryByRole('button', { name: /^Verify Mastery$/i })).not.toBeInTheDocument();
   });
 });
