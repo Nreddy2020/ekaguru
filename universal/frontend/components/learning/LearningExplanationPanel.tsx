@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   Sparkles,
-  Lightbulb,
   CheckCircle2,
   AlertTriangle,
   Brain,
@@ -12,7 +11,6 @@ import {
   Compass,
   ArrowRight,
   ShieldCheck,
-  Zap,
   HelpCircle,
 } from 'lucide-react';
 import { PedagogicalOrchestratorService } from '@/lib/learning/pedagogical-orchestrator.service';
@@ -36,8 +34,9 @@ export function LearningExplanationPanel({
   className = '',
 }: LearningExplanationPanelProps) {
   const orchestrator = useMemo(() => new PedagogicalOrchestratorService('learner-001'), []);
+  const [currentStepIdx, setCurrentStepIdx] = useState<number>(0);
   const [runtimeState, setRuntimeState] = useState(() =>
-    orchestrator.getRuntimeState(sectionId, sectionTitle)
+    orchestrator.getRuntimeState(sectionId, sectionTitle, 0)
   );
 
   // Form inputs for Observational Task
@@ -60,6 +59,13 @@ export function LearningExplanationPanel({
       optIdx,
       sectionTitle
     );
+    setCurrentStepIdx(res.state.activeSocraticStepIndex);
+    setRuntimeState(res.state);
+  };
+
+  const handleSelectRemediationOption = (optIdx: number) => {
+    const res = orchestrator.submitRemediationAnswer(sectionId, sectionId, optIdx, sectionTitle);
+    setCurrentStepIdx(res.state.activeSocraticStepIndex);
     setRuntimeState(res.state);
   };
 
@@ -137,28 +143,29 @@ export function LearningExplanationPanel({
       {/* 3. Main Workspace Container */}
       <div className="flex-1 p-5 flex flex-col gap-5 overflow-y-auto max-h-[750px]">
         {/* Misconception Alert & Socratic Contrast (if active) */}
-        {runtimeState.remediationMode && ku.misconceptions.length > 0 && (
+        {runtimeState.remediationMode && runtimeState.remediationStep && (
           <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/50 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
               <span>Targeted Misconception Remediation</span>
             </div>
             <p className="text-xs text-amber-200 leading-relaxed">
-              {ku.misconceptions[0].socraticRemediation}
+              {runtimeState.remediationStep.socraticExplanation}
             </p>
             <div className="p-3 rounded-lg bg-slate-950/60 border border-amber-500/30 flex flex-col gap-2">
               <span className="text-xs font-semibold text-white">
-                Verification Challenge: {ku.misconceptions[0].independentVerificationChallenge.question}
+                Verification Challenge: {runtimeState.remediationStep.challengeQuestion.text}
               </span>
               <div className="flex flex-col gap-1.5">
-                {ku.misconceptions[0].independentVerificationChallenge.options.map((opt, optIdx) => (
+                {runtimeState.remediationStep.challengeQuestion.options.map((opt, optIdx) => (
                   <button
                     key={optIdx}
                     type="button"
-                    onClick={() => handleSelectOption(optIdx)}
-                    className="w-full text-left p-2 rounded-lg text-xs bg-slate-900/80 hover:bg-indigo-950/60 text-slate-200 border border-slate-800 transition-all"
+                    onClick={() => handleSelectRemediationOption(optIdx)}
+                    className="w-full text-left p-2.5 rounded-lg text-xs bg-slate-900/80 hover:bg-indigo-950/60 text-slate-200 border border-slate-800 transition-all flex items-center justify-between"
                   >
-                    {opt}
+                    <span>{opt}</span>
+                    <ArrowRight className="w-3 h-3 text-slate-500" />
                   </button>
                 ))}
               </div>
@@ -166,8 +173,22 @@ export function LearningExplanationPanel({
           </div>
         )}
 
+        {/* Feedback message (if any) */}
+        {runtimeState.lastFeedback && (
+          <div
+            className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
+              runtimeState.lastFeedback.isCorrect
+                ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                : 'bg-red-950/40 border-red-500/40 text-red-200'
+            }`}
+          >
+            <span>{runtimeState.lastFeedback.message}</span>
+            <span className="text-[11px] opacity-80">{runtimeState.lastFeedback.explanation}</span>
+          </div>
+        )}
+
         {/* Active Socratic Step */}
-        {!runtimeState.remediationMode && (
+        {!runtimeState.remediationMode && activeStep && (
           <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 flex flex-col gap-3.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
@@ -175,11 +196,12 @@ export function LearningExplanationPanel({
                 Socratic Step: {activeStep.stepType}
               </span>
               <span className="text-[10px] font-mono text-slate-500">
-                Step {runtimeState.activeSocraticStepIndex + 1} of {ku.socraticSteps.length}
+                Step {runtimeState.activeSocraticStepIndex + 1} of {runtimeState.totalSocraticSteps}
               </span>
             </div>
 
-            <p className="text-xs text-slate-300 font-medium">{activeStep.prompt}</p>
+            <h3 className="text-xs font-bold text-slate-200">{activeStep.title}</h3>
+            <p className="text-xs text-slate-400 font-medium">{activeStep.prompt}</p>
 
             <div className="p-3.5 rounded-lg bg-indigo-950/30 border border-indigo-500/30 text-sm text-slate-100 leading-relaxed">
               {activeStep.groundedExplanation}

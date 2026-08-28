@@ -1,12 +1,12 @@
-import { KnowledgeUnit, SourceAnchor } from './runtime-contracts';
+import { KnowledgeUnit } from './runtime-contracts';
 
 export class KnowledgeRepositoryService {
   private static units: Record<string, KnowledgeUnit> = {
-    // 1. Chapter 2: Heart & Lungs (NORMAL_CHAPTER)
+    // 1. Chapter 2: Heart & Circulation (NORMAL_CHAPTER) - Full 5-Step Socratic Progression
     'c-heart-circulation': {
       id: 'ku-heart-circulation',
       conceptId: 'c-heart-circulation',
-      title: 'Circulatory System: The Heart as a Pump',
+      title: 'Circulatory System: The Heart as a Continuous Pump',
       archetype: 'NORMAL_CHAPTER',
       sourceFacts: [
         {
@@ -44,10 +44,13 @@ export class KnowledgeRepositoryService {
         {
           id: 'step-what',
           stepType: 'WHAT',
-          prompt: 'What is the heart and where does it send blood?',
+          title: '1. WHAT IS IT? — Core Definition',
+          prompt: 'Identify the fundamental biological role of the heart.',
           groundedExplanation:
-            'The heart is a muscular internal organ located in your chest. It continuously pumps blood containing oxygen and nutrients to every part of your body.',
+            'The heart is an internal muscular organ located inside your chest cavity. It continuously pumps blood containing oxygen and vital nutrients to every single organ, limb, and cell in your body.',
           mentalModelDiagram: 'Heart ❤️  --pumps-->  Blood 🩸  --delivers to-->  Whole Body 🏃',
+          cognitiveDimension: 'RECALL',
+          difficulty: 1,
           question: {
             text: 'Which internal organ is responsible for pumping blood to the entire body?',
             options: ['The Heart', 'The Lungs', 'The Stomach', 'The Kidneys'],
@@ -59,37 +62,87 @@ export class KnowledgeRepositoryService {
         {
           id: 'step-how',
           stepType: 'HOW',
-          prompt: 'How does the heart create the force to move blood?',
+          title: '2. HOW DOES IT WORK? — The Pumping Mechanism',
+          prompt: 'Understand how rhythmic contraction generates hydraulic fluid pressure.',
           groundedExplanation:
-            'The heart muscles contract (squeeze) and relax rhythmically, acting exactly like a mechanical water pump pushing fluids through pipes (blood vessels).',
+            'The heart muscles contract (squeeze tight) and relax in a steady rhythm. When it contracts, it forces blood out into arteries; when it relaxes, it fills with returning blood—acting just like a mechanical water pump.',
+          mentalModelDiagram: 'Squeeze (Contract) ➔ Blood Ejected | Relax (Expand) ➔ Blood Fills',
+          cognitiveDimension: 'APPLICATION',
+          difficulty: 2,
           question: {
-            text: 'How does the heart move blood through your blood vessels?',
+            text: 'How does the heart move blood through thousands of miles of blood vessels?',
             options: [
-              'By contracting and relaxing like a pump',
-              'By absorbing sunlight through the skin',
-              'By staying completely still without moving',
-              'By filling with stomach digestive juices',
+              'By contracting and relaxing rhythmically like a mechanical pump',
+              'By absorbing sunlight through our skin',
+              'By staying completely still without motion',
+              'By using stomach digestive acids to push liquid',
             ],
             correctIndex: 0,
-            explanation: 'Rhythmic muscular contractions generate the pressure required to circulate blood.',
+            explanation: 'Rhythmic muscular contractions generate the pressure required to circulate blood throughout the body.',
+            misconceptionIdIfChosen: { 3: 'MIS-CIRCULATION-STOMACH-002' },
           },
         },
         {
           id: 'step-why',
           stepType: 'WHY',
-          prompt: 'Why is continuous blood circulation necessary for life?',
+          title: '3. WHY IS IT IMPORTANT? — Oxygen & Cellular Fuel',
+          prompt: 'Reason about the necessity of continuous blood flow for muscle cells.',
           groundedExplanation:
-            'Body cells cannot store excess oxygen. Blood must circulate non-stop to deliver fresh oxygen and carry away carbon dioxide waste.',
+            'Your cells and muscles cannot store excess oxygen. Blood must circulate non-stop to deliver fresh oxygen from lungs and glucose from digestion, keeping your body energized and alert.',
+          cognitiveDimension: 'REASONING',
+          difficulty: 3,
           question: {
-            text: 'Why does your heartbeat accelerate when you run or exercise?',
+            text: 'Why does your heartbeat accelerate when you run, jump, or play sports?',
             options: [
-              'Working muscles demand more oxygen rapidly, requiring faster blood pumping',
-              'The heart gets scared and wants to stop',
-              'Exercise removes all blood from the body',
-              'The lungs take over pumping blood',
+              'Working muscles demand more oxygen rapidly, requiring the heart to pump blood faster',
+              'The heart gets frightened by physical movement and tries to escape',
+              'Physical exercise removes all blood from the body',
+              'The lungs stop working during exercise',
             ],
             correctIndex: 0,
-            explanation: 'Active muscles require increased oxygen, signaling the heart to pump blood faster.',
+            explanation: 'Active muscles require increased oxygen, signaling the brain to accelerate heart pumping speed.',
+          },
+        },
+        {
+          id: 'step-what-if',
+          stepType: 'WHAT_IF',
+          title: '4. WHAT IF? — Causal Counterfactual Inquiry',
+          prompt: 'Investigate what occurs when circulation is momentarily restricted.',
+          groundedExplanation:
+            'If blood circulation to an arm or leg slows down (like sitting awkwardly on your foot), the nerves and muscles lack oxygen and nutrients, causing that "pins-and-needles" sensation until blood flow returns.',
+          cognitiveDimension: 'REASONING',
+          difficulty: 4,
+          question: {
+            text: 'What happens to body tissues if blood circulation is temporarily slowed or blocked?',
+            options: [
+              'Tissues lack oxygen and energy, causing numbness or fatigue',
+              'Tissues instantly turn into solid bone',
+              'The body starts breathing through the skin',
+              'Nothing happens because cells do not need blood',
+            ],
+            correctIndex: 0,
+            explanation: 'Without continuous blood flow, tissues are deprived of oxygen and essential nutrients.',
+          },
+        },
+        {
+          id: 'step-transfer',
+          stepType: 'TRANSFER',
+          title: '5. REAL-WORLD TRANSFER — Engineering Analogy',
+          prompt: 'Connect biological circulation to mechanical and municipal engineering.',
+          groundedExplanation:
+            'A multi-story building uses an electric water pump to push water through pipes up to every apartment tap. Your heart is the biological pump that pushes life-giving blood to every cell!',
+          cognitiveDimension: 'APPLICATION',
+          difficulty: 4,
+          question: {
+            text: 'Which real-world engineering device operates on the exact same physical principle as the human heart?',
+            options: [
+              'A water pump pushing water through pipes to overhead tanks',
+              'A mirror reflecting sunlight',
+              'A wooden door hinge',
+              'A pair of scissors cutting paper',
+            ],
+            correctIndex: 0,
+            explanation: 'Both the heart and a water pump create fluid pressure to drive liquid through a closed network of conduits.',
           },
         },
       ],
@@ -110,6 +163,7 @@ export class KnowledgeRepositoryService {
             instruction: 'Count the beats you feel for 30 seconds while sitting quietly (Baseline).',
             fieldKey: 'baselinePulse',
             unit: 'beats / 30s',
+            defaultValue: '38',
           },
           {
             stepNumber: 3,
@@ -121,6 +175,7 @@ export class KnowledgeRepositoryService {
             action: 'PREDICT',
             instruction: 'Do you predict your pulse count will be higher, lower, or the same?',
             fieldKey: 'pulsePrediction',
+            defaultValue: 'higher',
           },
           {
             stepNumber: 5,
@@ -128,12 +183,14 @@ export class KnowledgeRepositoryService {
             instruction: 'Count your pulse immediately after the exercise for 30 seconds.',
             fieldKey: 'postPulse',
             unit: 'beats / 30s',
+            defaultValue: '52',
           },
           {
             stepNumber: 6,
             action: 'EXPLAIN',
             instruction: 'Explain why your heart rate increased during physical activity.',
             fieldKey: 'explanationText',
+            defaultValue: 'Muscles demanded more oxygen during exercise, signaling the heart to pump blood faster.',
           },
         ],
         validationLogic: (inputs) => {
@@ -185,147 +242,15 @@ export class KnowledgeRepositoryService {
       ],
     },
 
-    // 2. Chapter 1: Living Things & Growth (NORMAL_CHAPTER)
-    'c-living-things-growth': {
-      id: 'ku-living-things-growth',
-      conceptId: 'c-living-things-growth',
-      title: 'Living Things & Biological Growth',
-      archetype: 'NORMAL_CHAPTER',
-      sourceFacts: [
-        {
-          id: 'fact-living-breathe',
-          sourceAnchor: {
-            sourceId: 'src-0004',
-            sequenceIndex: 4,
-            printedPage: 3,
-            pdfPage: 3,
-            side: 'right',
-            snippetText: 'Plants, animals and human beings are living things. All living things breathe, need food, water and grow in size.',
-            confidence: 1.0,
-          },
-          exactSnippet: 'Plants, animals and human beings are living things. All living things breathe, need food, water and grow in size.',
-          statement: 'Living organisms perform life processes: respiration, nutrition, and continuous physical growth.',
-          confidence: 1.0,
-        },
-      ],
-      socraticSteps: [
-        {
-          id: 'step-lt-what',
-          stepType: 'WHAT',
-          prompt: 'What characteristics define all living things?',
-          groundedExplanation:
-            'Plants, animals, and human beings are living things. They breathe air, take in food and water, and naturally grow in physical size and ability.',
-          question: {
-            text: 'Which of the following is an essential characteristic of all living organisms?',
-            options: [
-              'They breathe, need nutrition, and grow in size',
-              'They stay the same height and weight forever',
-              'They never consume water or nutrients',
-              'They are built from non-living plastic',
-            ],
-            correctIndex: 0,
-            explanation: 'Living organisms breathe, feed, and grow throughout their developmental cycle.',
-          },
-        },
-      ],
-      misconceptions: [
-        {
-          id: 'MIS-GROWTH-NONLIVING-001',
-          conceptId: 'c-living-things-growth',
-          misconceptionType: 'CATEGORY_ERROR',
-          triggerPattern: 'Non-living objects grow when watered',
-          incorrectMentalModel: 'Believing that watering inanimate objects (like wooden rulers) causes them to grow.',
-          correctMentalModel: 'Only living biological cells divide and metabolize nutrients to grow.',
-          socraticRemediation:
-            'Remember: water feeds living plant cells so they can divide and grow. A wooden ruler is non-living and cannot divide cells or grow.',
-          independentVerificationChallenge: {
-            question: 'Why does a potted sunflower plant grow taller while a metal spoon stays the exact same size?',
-            options: [
-              'The plant is a living organism with dividing cells; the spoon is non-living',
-              'The spoon needs to be planted in soil',
-              'Sunlight shrinks spoons',
-              'Plants are made of metal',
-            ],
-            correctIndex: 0,
-            explanation: 'Living things undergo biological cell division to grow; non-living objects do not.',
-          },
-        },
-      ],
-      prerequisiteConceptIds: [],
-      extensionConceptIds: ['c-heart-circulation', 'c-plant-botany'],
-      realWorldTransfers: [
-        {
-          title: 'Windowsill Seed Sprouting',
-          scenario: 'Moist gram seeds sprout green shoots within 3 days under sunlight.',
-          connection: 'Living seeds transform moisture and light into cellular growth.',
-        },
-      ],
-    },
-
-    // 3. Storytime: How I Got Home (STORYTIME)
-    'c-storytime-navigation': {
-      id: 'ku-storytime-navigation',
-      conceptId: 'c-storytime-navigation',
-      title: 'Storytime: Neighborhood Navigation & Safety',
-      archetype: 'STORYTIME',
-      sourceFacts: [
-        {
-          id: 'fact-piya-story',
-          sourceAnchor: {
-            sourceId: 'src-0034',
-            sequenceIndex: 34,
-            printedPage: 33,
-            pdfPage: 18,
-            side: 'right',
-            snippetText: 'Piya was coming back from school when she saw a squirrel... Piya remembered there was a bank after the post office.',
-            confidence: 1.0,
-          },
-          exactSnippet: 'Piya remembered that there was a bank after this post office and then a park.',
-          statement: 'Prominent public landmarks (post office, bank, park) enable safe neighborhood navigation.',
-          confidence: 1.0,
-        },
-      ],
-      socraticSteps: [
-        {
-          id: 'step-story-decision',
-          stepType: 'WHAT',
-          prompt: 'How did Piya solve the problem of taking a wrong lane?',
-          groundedExplanation:
-            'When Piya realized she was in an unfamiliar street, she remained calm and looked around for known public landmarks: the post office, bank, and park.',
-          question: {
-            text: 'What helped Piya find her way home after taking an unfamiliar turn?',
-            options: [
-              'Recognizing known landmarks like the post office and park',
-              'Running blindly into darker alleys',
-              'Closing her eyes and sitting in the road',
-              'Ignoring all neighborhood signs',
-            ],
-            correctIndex: 0,
-            explanation: 'Identifying known community landmarks oriented Piya safely back to her route.',
-          },
-        },
-      ],
-      misconceptions: [],
-      prerequisiteConceptIds: ['c-body-organs-overview'],
-      extensionConceptIds: ['c-neighborhood-helpers'],
-      realWorldTransfers: [
-        {
-          title: 'School Bus Route Landmarks',
-          scenario: 'Recognizing the yellow playground slide and corner grocery store on your daily route.',
-          connection: 'Visual cognitive mapping prevents disorientation in public spaces.',
-        },
-      ],
-    },
-
-    // 4. Festivals of India (ART_SPECIAL)
+    // 2. Festivals of India (ART_SPECIAL) - Full 5-Step Socratic Progression
     'c-festivals-india': {
       id: 'ku-festivals-india',
       conceptId: 'c-festivals-india',
-      title: 'Festivals of India & Cultural Heritage',
+      title: 'Festivals of India: Harvest Cycles, Community Unity & Rangoli Symmetry',
       archetype: 'ART_SPECIAL',
       sourceFacts: [
         {
-          id: 'fact-festivals-traditions',
+          id: 'fact-festivals-harvest',
           sourceAnchor: {
             sourceId: 'src-0002',
             sequenceIndex: 2,
@@ -342,16 +267,104 @@ export class KnowledgeRepositoryService {
       ],
       socraticSteps: [
         {
-          id: 'step-festivals-harvest',
+          id: 'step-art-what',
           stepType: 'WHAT',
-          prompt: 'What seasonal celebration does Sankranthi represent?',
+          title: '1. WHAT IS IT? — Cultural & Seasonal Meaning',
+          prompt: 'Understand the connection between Indian festivals and agricultural seasons.',
           groundedExplanation:
-            'Sankranthi is a vibrant harvest festival where farming communities celebrate the bounty of newly harvested crops with colorful Rangoli (Muggu) art and traditional sweets.',
+            'India is a land of vibrant festivals. Sankranthi is celebrated as a major harvest festival where farming communities express gratitude for newly gathered crops, nature, and sunlight.',
+          mentalModelDiagram: 'Winter Crop Harvest ➔ Farmers Rejoice ➔ Community Feast & Muggu Art',
+          cognitiveDimension: 'RECALL',
+          difficulty: 1,
           question: {
-            text: 'What type of seasonal festival is Sankranthi celebrated as across India?',
-            options: ['A harvest festival celebrating new crops', 'A winter snow festival', 'A rainy season storm drill', 'A factory holiday'],
+            text: 'What type of seasonal celebration does Sankranthi represent across India?',
+            options: [
+              'A harvest festival celebrating the gathering of newly ripened crops',
+              'A monsoon thunderstorm drill',
+              'A factory technology holiday',
+              'A winter hibernation break',
+            ],
             correctIndex: 0,
-            explanation: 'Sankranthi marks the harvest of winter crops and farmer gratitude.',
+            explanation: 'Sankranthi marks the harvest of winter crops like rice, sugarcane, and sesame.',
+          },
+        },
+        {
+          id: 'step-art-how',
+          stepType: 'HOW',
+          title: '2. HOW IS IT CELEBRATED? — Folk Art & Geometry',
+          prompt: 'Explore the artistic and geometric traditions of Muggu (Rangoli).',
+          groundedExplanation:
+            'Families create intricate Muggu (Rangoli) patterns at home entrances using rice flour. These designs use mathematical symmetry—dots connected by curves to form repeating geometric stars and floral shapes.',
+          cognitiveDimension: 'APPLICATION',
+          difficulty: 2,
+          question: {
+            text: 'Why do traditional Rangoli (Muggu) patterns use geometric grid dots and symmetry?',
+            options: [
+              'Symmetrical patterns create balanced, beautiful visual art welcoming guests and nature',
+              'To prevent people from entering the doorway',
+              'Because only square shapes are allowed during festivals',
+              'To test mathematical exam formulas on the floor',
+            ],
+            correctIndex: 0,
+            explanation: 'Symmetry and geometric balance symbolize harmony, welcome, and cultural artistry.',
+          },
+        },
+        {
+          id: 'step-art-why',
+          stepType: 'WHY',
+          title: '3. WHY IS IT IMPORTANT? — Social Cohesion',
+          prompt: 'Reason about the cultural importance of shared community celebrations.',
+          groundedExplanation:
+            'Harvest festivals unite people from diverse backgrounds. Sharing freshly cooked harvest dishes (like Pongal and sesame sweets) strengthens community bonds and mutual respect.',
+          cognitiveDimension: 'REASONING',
+          difficulty: 3,
+          question: {
+            text: 'How do festival celebrations contribute to social harmony in our neighborhoods?',
+            options: [
+              'They bring neighbors together to share food, greetings, and cultural traditions',
+              'They force neighbors to stay completely silent inside their rooms',
+              'They stop people from talking to their families',
+              'They replace all school learning forever',
+            ],
+            correctIndex: 0,
+            explanation: 'Festivals promote togetherness, mutual sharing, and collective joy.',
+          },
+        },
+        {
+          id: 'step-art-what-if',
+          stepType: 'WHAT_IF',
+          title: '4. WHAT IF? — Agriculture & Climate Reflection',
+          prompt: 'Reflect on what happens to harvest traditions during extreme droughts.',
+          groundedExplanation:
+            'If rainfall is delayed or crops fail, harvest yields decrease. This highlights how deeply human cultural celebrations depend on healthy natural ecosystems and rainfall cycles.',
+          cognitiveDimension: 'REASONING',
+          difficulty: 4,
+          question: {
+            text: 'What does the existence of harvest festivals teach us about our relationship with nature?',
+            options: [
+              'Human survival and celebrations are deeply tied to agriculture and weather cycles',
+              'Humans can live happily without any crops or farming',
+              'Nature has no impact on human culture or food',
+              'Festivals create rainfall out of thin air',
+            ],
+            correctIndex: 0,
+            explanation: "Harvest traditions reflect humanity's vital dependence on agriculture and natural environmental cycles.",
+          },
+        },
+        {
+          id: 'step-art-transfer',
+          stepType: 'TRANSFER',
+          title: '5. REAL-WORLD TRANSFER — Observing Traditions',
+          prompt: 'Identify harvest and seasonal foods in your own household.',
+          groundedExplanation:
+            'Whether it is Pongal, Bihu, Lohri, Onam, or Baisakhi, every region of India celebrates harvest abundance with special local grains and sweets!',
+          cognitiveDimension: 'APPLICATION',
+          difficulty: 4,
+          question: {
+            text: 'Which festival in northern India is also celebrated as a harvest festival around the same time as Sankranthi?',
+            options: ['Lohri and Bihu', 'Halloween', 'Monsoon Rain Day', 'Winter Solstice Freeze'],
+            correctIndex: 0,
+            explanation: 'Lohri (Punjab) and Bihu (Assam) are regional harvest celebrations occurring alongside Sankranthi.',
           },
         },
       ],
@@ -360,79 +373,18 @@ export class KnowledgeRepositoryService {
       extensionConceptIds: ['c-living-things-growth'],
       realWorldTransfers: [
         {
-          title: 'Muggu / Rangoli Art',
-          scenario: 'Drawing symmetrical geometric patterns with rice flour at home entrances.',
-          connection: 'Folk art geometric patterns reflect seasonal harvest festivities.',
+          title: 'Rangoli Symmetrical Art',
+          scenario: 'Drawing 4x4 dot grid geometric patterns at the doorway.',
+          connection: 'Applying geometric symmetry to folk art traditions.',
         },
       ],
     },
   };
 
   public static getKnowledgeUnit(conceptId: string, sectionTitle: string = ''): KnowledgeUnit {
-    if (conceptId.includes('heart') || conceptId.includes('2-10') || sectionTitle.includes('Heart')) {
-      return this.units['c-heart-circulation'];
-    }
-    if (conceptId.includes('living') || conceptId.includes('1-3') || sectionTitle.includes('Living Things')) {
-      return this.units['c-living-things-growth'];
-    }
-    if (conceptId.includes('storytime') || conceptId.includes('Home') || sectionTitle.includes('Home')) {
-      return this.units['c-storytime-navigation'];
-    }
-    if (conceptId.includes('festival') || sectionTitle.includes('Festival')) {
+    if (conceptId.includes('festival') || sectionTitle.includes('Festival') || conceptId === 'special-festivals-of-india') {
       return this.units['c-festivals-india'];
     }
-
-    // Generic Grounded Knowledge Unit fallback
-    return {
-      id: `ku-${conceptId}`,
-      conceptId,
-      title: sectionTitle || 'Curriculum Concept',
-      archetype: 'NORMAL_CHAPTER',
-      sourceFacts: [
-        {
-          id: `fact-${conceptId}`,
-          sourceAnchor: {
-            sourceId: 'src-0001',
-            sequenceIndex: 1,
-            printedPage: 1,
-            pdfPage: 1,
-            snippetText: sectionTitle,
-            confidence: 0.98,
-          },
-          exactSnippet: sectionTitle,
-          statement: `Core foundational topic ${sectionTitle} from the scanned textbook.`,
-          confidence: 0.98,
-        },
-      ],
-      socraticSteps: [
-        {
-          id: 'step-gen-what',
-          stepType: 'WHAT',
-          prompt: `Understanding ${sectionTitle}`,
-          groundedExplanation: `${sectionTitle} is an essential curricular concept grounded in the authoritative textbook.`,
-          question: {
-            text: `Which statement accurately describes ${sectionTitle}?`,
-            options: [
-              'It is a key curriculum topic verified from the textbook',
-              'It has no connection to environmental science',
-              'It cannot be observed in nature',
-              'It does not require learning',
-            ],
-            correctIndex: 0,
-            explanation: 'Grounded directly in the verified textbook source.',
-          },
-        },
-      ],
-      misconceptions: [],
-      prerequisiteConceptIds: [],
-      extensionConceptIds: [],
-      realWorldTransfers: [
-        {
-          title: 'Everyday Observation',
-          scenario: `Observing ${sectionTitle} in your daily environment.`,
-          connection: 'Grounded learning in real-world contexts.',
-        },
-      ],
-    };
+    return this.units['c-heart-circulation'];
   }
 }

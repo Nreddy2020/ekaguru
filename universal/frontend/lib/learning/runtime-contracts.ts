@@ -1,5 +1,5 @@
 /**
- * EKAGURU Module 06: Pedagogical Runtime Contracts
+ * EKAGURU Module 06: Pedagogical Runtime Contracts (Behavioral Engine)
  */
 
 export interface SourceAnchor {
@@ -31,10 +31,13 @@ export type CognitiveDimension = 'RECALL' | 'APPLICATION' | 'REASONING' | 'OBSER
 
 export interface SocraticStep {
   id: string;
-  stepType: 'WHAT' | 'HOW' | 'WHY' | 'WHAT_IF' | 'SIMPLE_WORDS';
+  stepType: 'WHAT' | 'HOW' | 'WHY' | 'WHAT_IF' | 'TRANSFER';
+  title: string;
   prompt: string;
   groundedExplanation: string;
   mentalModelDiagram?: string;
+  cognitiveDimension: CognitiveDimension;
+  difficulty: 1 | 2 | 3 | 4 | 5;
   question: {
     text: string;
     options: string[];
@@ -46,6 +49,7 @@ export interface SocraticStep {
 
 export interface ObservationalTask {
   id: string;
+  conceptId: string;
   title: string;
   objective: string;
   steps: {
@@ -54,6 +58,7 @@ export interface ObservationalTask {
     instruction: string;
     fieldKey?: string;
     unit?: string;
+    defaultValue?: string;
   }[];
   validationLogic: (inputs: Record<string, string | number>) => {
     valid: boolean;
@@ -85,12 +90,11 @@ export interface KnowledgeUnit {
   archetype: PedagogicalArchetype;
   sourceFacts: SourceFact[];
   
-  // Teaching & Active Loop
+  // Full 5-Step Socratic Dialogue Sequence
   socraticSteps: SocraticStep[];
   observationalTask?: ObservationalTask;
   misconceptions: MisconceptionPattern[];
   
-  // Cross-Graph
   prerequisiteConceptIds: string[];
   extensionConceptIds: string[];
   realWorldTransfers: {

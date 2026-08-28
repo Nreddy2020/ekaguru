@@ -25,7 +25,7 @@ describe('Module 06.0: Pedagogical Runtime & Knowledge Intelligence Engine', () 
 
     expect(screen.getByText('EKAGURU Pedagogical Runtime')).toBeInTheDocument();
     expect(screen.getByText('NORMAL_CHAPTER')).toBeInTheDocument();
-    expect(screen.getByText(/Circulatory System: The Heart as a Pump/i)).toBeInTheDocument();
+    expect(screen.getByText(/Circulatory System: The Heart/i)).toBeInTheDocument();
     expect(screen.getByText(/Why am I seeing this?/i)).toBeInTheDocument();
   });
 
