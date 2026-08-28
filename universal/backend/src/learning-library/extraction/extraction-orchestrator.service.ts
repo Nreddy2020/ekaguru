@@ -1,3 +1,4 @@
+import { TraceStorage } from '../../observe/trace-storage';
 import {
   Injectable,
   Logger,
@@ -136,6 +137,7 @@ export class ExtractionOrchestratorService {
         material.originalFileName || 'document.pdf',
       );
 
+      const pageTruthSpan = TraceStorage.startSpan('M2.PageTruth.Extract', 'SERVICE', { mimeType: material.mimeType });
       const extractedDoc = await extractor.extract(
         fullFilePath,
         material.originalFileName || 'document.pdf',
@@ -147,7 +149,9 @@ export class ExtractionOrchestratorService {
         data: { processingStatus: ProcessingStatus.STRUCTURING },
       });
 
+      const structureSpan = TraceStorage.startSpan('M2.Structure.Detect', 'SERVICE');
       const structureResult = this.structureDetector.processStructure(extractedDoc);
+      structureSpan?.end('OK', undefined, { chapterCount: structureResult.chapters.length });
 
       // 8. STAGE 3: CONCEPT MAPPING & VALIDATION CRITIC (75% progress)
       await this.prisma.learningMaterial.update({
@@ -155,6 +159,7 @@ export class ExtractionOrchestratorService {
         data: { processingStatus: ProcessingStatus.CONCEPT_MAPPING },
       });
 
+      const knowledgeSpan = TraceStorage.startSpan('M2.Knowledge.Construct', 'SERVICE');
       const knowledgeResult = await this.knowledgeConstructor.constructKnowledge(
         docRecord.id,
         extractedDoc.pages,
@@ -162,6 +167,7 @@ export class ExtractionOrchestratorService {
       );
 
       // 9. STAGE 4: RELATIONSHIPS & PREREQUISITES
+      const relSpan = TraceStorage.startSpan('M2.Relationships.Infer', 'SERVICE');
       const relationships = this.relationshipEngine.inferRelationships(
         knowledgeResult.concepts,
         extractedDoc.pages,
@@ -173,6 +179,7 @@ export class ExtractionOrchestratorService {
         data: { processingStatus: ProcessingStatus.INDEXING },
       });
 
+      const canonicalSpan = TraceStorage.startSpan('M2.CanonicalModel.Build', 'SERVICE');
       const canonicalModelData = this.canonicalModel.buildCanonicalModel(
         docRecord.id,
         knowledgeResult.concepts,
@@ -186,7 +193,9 @@ export class ExtractionOrchestratorService {
       );
 
       // 11. BATCHED IDEMPOTENT PERSISTENCE
-      await this.prisma.$transaction(async (tx) => {
+      const dbPersistSpan = TraceStorage.startSpan('Prisma.Transaction.Persist', 'DATABASE');
+      try {
+        await this.prisma.$transaction(async (tx) => {
         // Clean previous partial records for clean rerun
         await tx.conceptRelationship.deleteMany({ where: { source: { sourceChunks: { some: { chunk: { documentId: docRecord!.id } } } } } });
         await tx.conceptChunk.deleteMany({ where: { chunk: { documentId: docRecord!.id } } });

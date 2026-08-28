@@ -1,3 +1,4 @@
+import { TraceStorage } from '../../observe/trace-storage';
 import { Injectable, Logger } from '@nestjs/common';
 import { LocalStorageService } from './local-storage.service';
 import { StorageProviderInterface, StorageResult } from './storage-provider.interface';

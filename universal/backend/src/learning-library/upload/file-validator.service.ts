@@ -1,3 +1,4 @@
+import { TraceStorage } from '../../observe/trace-storage';
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -42,70 +43,78 @@ export class FileValidatorService {
     originalFilename: string,
     declaredMime: string,
   ): FileValidationResult {
+    const span = TraceStorage.startSpan('FileValidation', 'SERVICE', { originalFilename, declaredMime });
     let buffer: Buffer;
     let fileSizeBytes: number;
 
-    if (typeof bufferOrTempPath === 'string') {
-      if (!fs.existsSync(bufferOrTempPath)) {
-        throw new BadRequestException('Temporary file does not exist.');
+    try {
+      if (typeof bufferOrTempPath === 'string') {
+        if (!fs.existsSync(bufferOrTempPath)) {
+          throw new BadRequestException('Temporary file does not exist.');
+        }
+        const stat = fs.statSync(bufferOrTempPath);
+        fileSizeBytes = stat.size;
+
+        // Read only the first 512 bytes for header magic byte inspection
+        const fd = fs.openSync(bufferOrTempPath, 'r');
+        const headerBuffer = Buffer.alloc(Math.min(512, fileSizeBytes));
+        fs.readSync(fd, headerBuffer, 0, headerBuffer.length, 0);
+        fs.closeSync(fd);
+        buffer = headerBuffer;
+      } else {
+        buffer = bufferOrTempPath;
+        fileSizeBytes = buffer.length;
       }
-      const stat = fs.statSync(bufferOrTempPath);
-      fileSizeBytes = stat.size;
 
-      // Read only the first 512 bytes for header magic byte inspection
-      const fd = fs.openSync(bufferOrTempPath, 'r');
-      const headerBuffer = Buffer.alloc(Math.min(512, fileSizeBytes));
-      fs.readSync(fd, headerBuffer, 0, headerBuffer.length, 0);
-      fs.closeSync(fd);
-      buffer = headerBuffer;
-    } else {
-      buffer = bufferOrTempPath;
-      fileSizeBytes = buffer.length;
-    }
+      // 1. File Size Validation
+      if (fileSizeBytes <= 0) {
+        throw new BadRequestException('File is empty.');
+      }
+      if (fileSizeBytes > this.maxFileSizeBytes) {
+        throw new BadRequestException(
+          `File size (${(fileSizeBytes / (1024 * 1024)).toFixed(2)}MB) exceeds maximum limit of ${(
+            this.maxFileSizeBytes /
+            (1024 * 1024)
+          ).toFixed(2)}MB.`,
+        );
+      }
 
-    // 1. File Size Validation
-    if (fileSizeBytes <= 0) {
-      throw new BadRequestException('File is empty.');
-    }
-    if (fileSizeBytes > this.maxFileSizeBytes) {
-      throw new BadRequestException(
-        `File size (${(fileSizeBytes / (1024 * 1024)).toFixed(2)}MB) exceeds maximum limit of ${(
-          this.maxFileSizeBytes /
-          (1024 * 1024)
-        ).toFixed(2)}MB.`,
-      );
-    }
+      // 2. Extension Validation
+      const ext = path.extname(originalFilename).toLowerCase();
+      if (!this.allowedExtensions.has(ext)) {
+        throw new BadRequestException(
+          `File extension '${ext}' is not permitted. Allowed extensions: ${Array.from(this.allowedExtensions).join(', ')}`,
+        );
+      }
 
-    // 2. Extension Validation
-    const ext = path.extname(originalFilename).toLowerCase();
-    if (!this.allowedExtensions.has(ext)) {
-      throw new BadRequestException(
-        `File extension '${ext}' is not permitted. Allowed extensions: ${Array.from(this.allowedExtensions).join(', ')}`,
-      );
-    }
+      // 3. Declared MIME Validation
+      if (!this.allowedMimes.has(declaredMime.toLowerCase())) {
+        throw new BadRequestException(
+          `Declared MIME type '${declaredMime}' is not permitted. Allowed MIME types: ${Array.from(this.allowedMimes).join(', ')}`,
+        );
+      }
 
-    // 3. Declared MIME Validation
-    if (!this.allowedMimes.has(declaredMime.toLowerCase())) {
-      throw new BadRequestException(
-        `Declared MIME type '${declaredMime}' is not permitted. Allowed MIME types: ${Array.from(this.allowedMimes).join(', ')}`,
-      );
-    }
+      // 4. Deep Magic Byte Header Verification
+      const detectedMime = this.detectMagicBytes(buffer, ext, declaredMime);
+      if (!detectedMime) {
+        throw new BadRequestException(
+          `Security violation: File header magic bytes do not match declared extension '${ext}' or MIME type '${declaredMime}'.`,
+        );
+      }
 
-    // 4. Deep Magic Byte Header Verification
-    const detectedMime = this.detectMagicBytes(buffer, ext, declaredMime);
-    if (!detectedMime) {
-      throw new BadRequestException(
-        `Security violation: File header magic bytes do not match declared extension '${ext}' or MIME type '${declaredMime}'.`,
-      );
-    }
+      this.logger.log(`Validated file '${originalFilename}' (${fileSizeBytes} bytes, MIME: ${detectedMime})`);
+      span?.end('OK', undefined, { detectedMime, extension: ext, fileSizeBytes });
 
-    this.logger.log(`Validated file '${originalFilename}' (${fileSizeBytes} bytes, MIME: ${detectedMime})`);
-    return {
-      valid: true,
-      detectedMime,
-      extension: ext,
-      fileSizeBytes,
-    };
+      return {
+        valid: true,
+        detectedMime,
+        extension: ext,
+        fileSizeBytes,
+      };
+    } catch (err: any) {
+      span?.end('ERROR', err?.message || 'File validation failed');
+      throw err;
+    }
   }
 
   private detectMagicBytes(buffer: Buffer, ext: string, declaredMime: string): string | null {

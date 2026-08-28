@@ -11,17 +11,17 @@ export class AgentDiagnosticController {
 
   @Get('summary')
   getSummary() {
-    return this.telemetryStore.getSummary();
+    return this.telemetryStore.getStatistics();
   }
 
   @Get('requests')
   getLiveRequests() {
-    return this.telemetryStore.getTraces({ limit: 50 });
+    return this.telemetryStore.getRecent(50);
   }
 
   @Get('traces/:traceId')
   getTraceById(@Param('traceId') traceId: string) {
-    const trace = this.telemetryStore.getTraceById(traceId);
+    const trace = this.telemetryStore.getByTraceId(traceId);
     if (!trace) {
       throw new NotFoundException(`Trace ${traceId} not found in live or persistent store`);
     }
