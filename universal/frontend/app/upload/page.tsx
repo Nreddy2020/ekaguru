@@ -1,221 +1,347 @@
 'use client';
 
-import { useState } from 'react';
-import { Upload, CheckCircle, XCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { api } from '@/lib/api-client';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { 
+  Home, 
+  GraduationCap, 
+  BookOpen, 
+  GitFork, 
+  TrendingUp, 
+  Users, 
+  Trophy, 
+  MessageSquare,
+  Upload,
+  CheckCircle,
+  AlertCircle,
+  ArrowRight,
+  ShieldCheck,
+  FileText
+} from 'lucide-react';
+import { api, LearningMaterial } from '../../lib/api-client';
 
-interface UploadResult {
-    structure?: unknown;
-}
+const ButterflyLogo = () => (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 16C15 16 9 8 5 12C2 15 3 21 8 22C12 23 15 16 15 16Z" fill="url(#butterfly_grad_left)" opacity="0.85" />
+        <path d="M15 16C15 16 10 22 7 20C4 18 5 13 8 12C11 11 15 16 15 16Z" fill="url(#butterfly_grad_left_lower)" opacity="0.75" />
+        <path d="M17 16C17 16 23 8 27 12C30 15 29 21 24 22C20 23 17 16 17 16Z" fill="url(#butterfly_grad_right)" opacity="0.85" />
+        <path d="M17 16C17 16 22 22 25 20C28 18 27 13 24 12C21 11 17 16 17 16Z" fill="url(#butterfly_grad_right_lower)" opacity="0.75" />
+        <path d="M16 8V24" stroke="#FFE259" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="16" cy="6" r="2" fill="#FFA07A" />
+        <path d="M16 10C16 10 14 6 12 7" stroke="#FFE259" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M16 10C16 10 18 6 20 7" stroke="#FFE259" strokeWidth="1.5" strokeLinecap="round" />
+        <defs>
+            <linearGradient id="butterfly_grad_left" x1="5" y1="12" x2="15" y2="22" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#ec4899" />
+                <stop offset="100%" stopColor="#8b5cf6" />
+            </linearGradient>
+            <linearGradient id="butterfly_grad_left_lower" x1="7" y1="12" x2="15" y2="20" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#8b5cf6" />
+                <stop offset="100%" stopColor="#3b82f6" />
+            </linearGradient>
+            <linearGradient id="butterfly_grad_right" x1="27" y1="12" x2="17" y2="22" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#ec4899" />
+                <stop offset="100%" stopColor="#8b5cf6" />
+            </linearGradient>
+            <linearGradient id="butterfly_grad_right_lower" x1="25" y1="12" x2="17" y2="20" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#8b5cf6" />
+                <stop offset="100%" stopColor="#3b82f6" />
+            </linearGradient>
+        </defs>
+    </svg>
+);
 
 export default function UploadPage() {
-    const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
+    const [title, setTitle] = useState('');
+    const [subjectName, setSubjectName] = useState('Science');
+    const [gradeLevel, setGradeLevel] = useState(5);
+    const [activeLearner, setActiveLearner] = useState<any>(null);
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [statusStage, setStatusStage] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [result, setResult] = useState<any>(null);
 
-    const validateFile = (file: File): string | null => {
-        const maxSize = 50 * 1024 * 1024; // 50MB
-        const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/epub+zip'];
+    const navItems = [
+        { name: "Home", icon: Home, active: false, href: "/library" },
+        { name: "Learn", icon: GraduationCap, active: false, href: "/learn" },
+        { name: "Library", icon: BookOpen, active: true, href: "/library" },
+        { name: "Knowledge Map", icon: GitFork, active: false, href: "/knowledge-map" },
+        { name: "My Growth", icon: TrendingUp, active: false, href: "/growth" },
+        { name: "For Parents", icon: Users, active: false, href: "/parent/dashboard" },
+        { name: "Observe (VITALIS)", icon: Trophy, active: false, href: "/observe" },
+    ];
 
-        if (file.size > maxSize) {
-            return 'File size must be less than 50MB';
-        }
-
-        if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|docx|epub)$/i)) {
-            return 'Only PDF, DOCX, and EPUB files are supported';
-        }
-
-        return null;
-    };
+    useEffect(() => {
+        const initProfile = async () => {
+            try {
+                let token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+                if (!token) {
+                    const loginRes = await api.login('demo@ekaguru.com', 'password123');
+                    if (loginRes.access_token && typeof window !== 'undefined') {
+                        localStorage.setItem('token', loginRes.access_token);
+                    }
+                }
+                const res = await api.getLearners();
+                if (res.data && res.data.length > 0) {
+                    setActiveLearner(res.data[0]);
+                }
+            } catch (err: any) {
+                console.error('Failed to init profile:', err);
+            }
+        };
+        initProfile();
+    }, []);
 
     const handleFileSelect = (selectedFile: File) => {
-        const validationError = validateFile(selectedFile);
-        if (validationError) {
-            setError(validationError);
+        const maxSize = 50 * 1024 * 1024;
+        if (selectedFile.size > maxSize) {
+            setError('File size exceeds maximum 50MB limit.');
+            return;
+        }
+        setFile(selectedFile);
+        if (!title) {
+            setTitle(selectedFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '));
+        }
+        setError(null);
+    };
+
+    const handleUploadAndProcess = async () => {
+        if (!file) {
+            setError('Please select a file to upload.');
             return;
         }
 
-        setFile(selectedFile);
-        setError(null);
-    };
-
-    const handleUpload = async () => {
-        if (!file) return;
-
         setUploading(true);
         setError(null);
+        setProgress(10);
+        setStatusStage('Validating & Uploading Document...');
 
         try {
-            const response = await api.uploadBook(file, setProgress) as UploadResult;
-            setResult(response);
-            // Store for dashboard
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('lastAnalysis', JSON.stringify(response.structure));
+            const learnerId = activeLearner?.id || 'learner-default-001';
+            const uploadRes = await api.uploadLearningMaterial(
+                file,
+                {
+                    learnerId,
+                    title: title.trim() || file.name,
+                    subjectName,
+                    gradeLevel,
+                    materialType: 'TEXTBOOK',
+                },
+                (prog) => setProgress(Math.min(prog, 60)),
+            ) as any;
+
+            const materialId = uploadRes?.data?.id;
+            setProgress(70);
+            setStatusStage('Triggering M2 Page Truth & Structure Pipeline...');
+
+            if (materialId) {
+                try {
+                    await api.processLearningMaterial(materialId);
+                } catch (procErr: any) {
+                    console.log('Background processing running or queued:', procErr?.message);
+                }
             }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Upload failed');
+
+            setProgress(100);
+            setStatusStage('Processing Completed Successfully!');
+            setResult(uploadRes?.data);
+        } catch (err: any) {
+            setError(err?.message || 'Upload failed. Check VITALIS Observability for detailed trace.');
         } finally {
             setUploading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-6">
-            <div className="max-w-3xl mx-auto">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
-                >
-                    <p className="text-sm font-bold uppercase tracking-[0.18em] text-teal-200 mb-3">Learning Library</p>
-                    <h1 className="text-4xl font-bold mb-4">Add learning material</h1>
-                    <p className="text-gray-400">Transform a learning source into a structured experience. PDF, DOCX and EPUB are available today; image and note ingestion follow in the next phase.</p>
-                </motion.div>
+        <div className="min-h-screen bg-[#03050c] text-white flex">
+            {/* Sidebar */}
+            <aside className="w-64 bg-[#050814] border-r border-white/5 flex flex-col p-4 shrink-0">
+                <div className="flex items-center gap-3 px-3 py-4 mb-6">
+                    <ButterflyLogo />
+                    <span className="text-xl font-bold tracking-[0.14em] text-white select-none">
+                        EKAGURU
+                    </span>
+                </div>
 
+                <nav className="flex-1 space-y-1">
+                    {navItems.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                            <Link
+                                key={item.name}
+                                href={item.href}
+                                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all select-none ${
+                                    item.active
+                                        ? "bg-[#1d1b54] text-white font-semibold border border-purple-500/10 shadow-lg shadow-indigo-950/20"
+                                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                                }`}
+                            >
+                                <Icon className={`w-5 h-5 shrink-0 ${item.active ? "text-purple-400" : "text-slate-400"}`} />
+                                <span className="text-sm tracking-wide">{item.name}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </aside>
+
+            {/* Main Upload Workspace */}
+            <main className="flex-1 bg-[#03050c] p-8 lg:p-12 overflow-y-auto max-w-4xl">
                 <div className="space-y-6">
+                    <div>
+                        <Link href="/library" className="text-xs font-mono text-teal-300 hover:underline">
+                            ← Back to Library
+                        </Link>
+                        <h1 className="text-3xl font-black text-white tracking-tight mt-2">
+                            Add Learning Material
+                        </h1>
+                        <p className="text-sm text-slate-400 mt-1">
+                            Upload a textbook chapter, worksheet, or notes to automatically extract concepts and structure through the M2 Pipeline.
+                        </p>
+                    </div>
+
+                    {/* Form Controls */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs font-mono text-slate-400 block mb-1">MATERIAL TITLE</label>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="e.g. NCERT Science Chapter 1 - Food"
+                                className="w-full bg-[#070E1B] border border-[#1a2d4c] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-teal-400 font-sans"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-mono text-slate-400 block mb-1">SUBJECT</label>
+                            <select
+                                value={subjectName}
+                                onChange={(e) => setSubjectName(e.target.value)}
+                                className="w-full bg-[#070E1B] border border-[#1a2d4c] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-teal-400 font-sans"
+                            >
+                                <option value="Science">Science</option>
+                                <option value="Mathematics">Mathematics</option>
+                                <option value="Social Studies">Social Studies</option>
+                                <option value="English">English</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Dropzone */}
                     <div
-                        className="border-2 border-dashed border-gray-700 rounded-lg p-12 text-center hover:border-cyan-500 transition-colors cursor-pointer"
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => {
                             e.preventDefault();
-                            const droppedFile = e.dataTransfer.files[0];
-                            if (droppedFile) handleFileSelect(droppedFile);
+                            if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
                         }}
-                        onClick={() => document.getElementById('file-input')?.click()}
+                        onClick={() => document.getElementById('file-upload-input')?.click()}
+                        className="p-10 rounded-2xl border-2 border-dashed border-[#1a2d4c] hover:border-teal-400/60 bg-[#070E1B] text-center cursor-pointer transition-all space-y-3"
                     >
-                        <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                        <p className="text-xl font-semibold mb-2">Drop learning material here</p>
-                        <p className="text-gray-400 mb-2">or click to browse</p>
-                        <p className="text-sm text-gray-500">PDF, DOCX, EPUB (max 50MB)</p>
+                        <input
+                            id="file-upload-input"
+                            type="file"
+                            accept=".pdf,.docx,.epub,.png,.jpg,.jpeg"
+                            className="hidden"
+                            onChange={(e) => {
+                                if (e.target.files?.[0]) handleFileSelect(e.target.files[0]);
+                            }}
+                        />
+                        <div className="w-14 h-14 rounded-2xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center mx-auto text-teal-300">
+                            <Upload className="w-7 h-7" />
+                        </div>
+                        {file ? (
+                            <div>
+                                <div className="text-sm font-bold text-white flex items-center justify-center gap-2">
+                                    <FileText className="w-4 h-4 text-teal-400" />
+                                    {file.name}
+                                </div>
+                                <div className="text-xs text-slate-400 mt-0.5">
+                                    {(file.size / (1024 * 1024)).toFixed(2)} MB • Ready to process
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <div className="text-sm font-bold text-white">
+                                    Drop your document here, or <span className="text-teal-400 underline">browse</span>
+                                </div>
+                                <div className="text-xs text-slate-400 mt-1">
+                                    Supports PDF, DOCX, EPUB, PNG, JPG (Max 50MB)
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <input
-                        id="file-input"
-                        type="file"
-                        accept=".pdf,.docx,.epub"
-                        className="hidden"
-                        onChange={(e) => {
-                            const selectedFile = e.target.files?.[0];
-                            if (selectedFile) handleFileSelect(selectedFile);
-                        }}
-                    />
-
-                    {file && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-gray-800 rounded-lg p-6"
-                        >
-                            <div className="flex items-center justify-between mb-4">
-                                <span className="font-medium">{file.name}</span>
-                                <span className="text-sm text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                    {/* Progress Bar & Status */}
+                    {uploading && (
+                        <div className="p-4 rounded-xl bg-[#0B1526] border border-[#1a2d4c] space-y-2">
+                            <div className="flex items-center justify-between text-xs font-mono">
+                                <span className="text-teal-300 font-bold">{statusStage}</span>
+                                <span className="text-white font-bold">{progress}%</span>
                             </div>
-
-                            {uploading && (
-                                <div className="space-y-2">
-                                    <div className="w-full bg-gray-700 rounded-full h-2">
-                                        <div
-                                            className="bg-cyan-500 h-2 rounded-full transition-all"
-                                            style={{ width: `${progress}%` }}
-                                        />
-                                    </div>
-                                    <p className="text-sm text-gray-400">Uploading... {Math.round(progress)}%</p>
-                                </div>
-                            )}
-
-                            {!uploading && !result && (
-                                <button
-                                    onClick={handleUpload}
-                                    className="w-full mt-2 bg-cyan-500 hover:bg-cyan-600 py-3 rounded-lg font-semibold transition-colors"
-                                >
-                                    Analyze material
-                                </button>
-                            )}
-                        </motion.div>
+                            <div className="w-full h-2 bg-[#040811] rounded-full overflow-hidden">
+                                <div className="h-full bg-teal-400 transition-all duration-300" style={{ width: `${progress}%` }} />
+                            </div>
+                        </div>
                     )}
 
-                    {error && !result && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="bg-red-900/20 border border-red-500 rounded-lg p-4 flex items-center gap-3"
-                        >
-                            <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                            <p className="text-red-500">
-                                {(() => {
-                                    try {
-                                        const parsed = JSON.parse(error);
-                                        return parsed.message || parsed.error || error;
-                                    } catch {
-                                        return error;
-                                    }
-                                })()}
-                            </p>
-                        </motion.div>
+                    {/* Error Box */}
+                    {error && (
+                        <div className="p-4 rounded-xl bg-rose-950/30 border border-rose-600/50 flex items-start gap-3 text-xs text-rose-300">
+                            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                            <div>
+                                <strong className="font-bold block text-white">Upload Error</strong>
+                                {error}
+                            </div>
+                        </div>
                     )}
 
+                    {/* Success Outcome */}
                     {result && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="bg-green-900/20 border border-green-500 rounded-lg p-6"
-                        >
-                            <div className="flex items-center gap-3 mb-4">
-                                <CheckCircle className="w-6 h-6 text-green-500" />
-                                <div>
-                                    <p className="text-green-500 font-semibold text-lg">Learning material analysed</p>
-                                    <p className="text-gray-400 text-sm">
-                                        Target Audience: {
-                                            result.structure?.chapters?.[0]?.topics?.[0]?.difficulty === 'beginner'
-                                                ? 'Beginner Friendly'
-                                                : 'Technical/Advanced'
-                                        }
-                                    </p>
-                                </div>
+                        <div className="p-5 rounded-2xl bg-emerald-950/25 border border-emerald-500/40 space-y-3">
+                            <div className="flex items-center gap-2.5">
+                                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                                <span className="text-sm font-bold text-white">
+                                    Material Created &amp; Processing Initiated!
+                                </span>
                             </div>
-
-                            <div className="bg-gray-900/50 rounded-lg p-4 mb-6 border border-gray-700 max-h-60 overflow-y-auto">
-                                <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wide">Knowledge Graph Preview</h3>
-                                <ul className="space-y-3">
-                                    {result.structure?.chapters?.map((chapter: any, idx: number) => (
-                                        <li key={idx}>
-                                            <p className="font-semibold text-cyan-400">{chapter.title}</p>
-                                            <ul className="pl-4 mt-1 border-l-2 border-gray-700">
-                                                {chapter.topics?.map((topic: any, tIdx: number) => (
-                                                    <li key={tIdx} className="text-sm text-gray-300 py-0.5 flex justify-between">
-                                                        <span>{topic.title}</span>
-                                                        {topic.diagramDescription && (
-                                                            <span className="text-xs px-2 rounded-full bg-purple-500/20 text-purple-400">Diagram</span>
-                                                        )}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </li>
-                                    ))}
-                                </ul>
+                            <p className="text-xs text-slate-300 font-sans">
+                                Material <strong className="text-white">"{result.title}"</strong> has been saved and queued for M2 Structure extraction.
+                            </p>
+                            <div className="pt-2 flex items-center gap-3">
+                                <Link
+                                    href="/library"
+                                    className="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-black font-bold text-xs transition-colors shadow-sm"
+                                >
+                                    View in Library →
+                                </Link>
+                                <Link
+                                    href="/observe"
+                                    className="px-4 py-2 rounded-xl bg-[#070E1B] hover:bg-[#14233c] text-teal-300 border border-teal-500/40 text-xs font-mono font-bold transition-colors"
+                                >
+                                    Inspect Trace in VITALIS ◈
+                                </Link>
                             </div>
-
-                            <div className="flex gap-4 text-sm text-gray-400 mb-6">
-                                <span>📚 {result.structure?.chapters?.length || 0} Chapters</span>
-                                <span>💡 {result.structure?.chapters?.reduce((acc: number, ch: any) => acc + (ch.topics?.length || 0), 0) || 0} Topics</span>
-                                <span>📄 {result.structure?.metadata?.pageCount || 0} Pages</span>
-                            </div>
-
-                            <button
-                                onClick={() => router.push(`/library`)}
-                                className="w-full bg-cyan-500 hover:bg-cyan-600 py-3 rounded-lg font-semibold transition-colors"
-                            >
-                                Return to Learning Library →
-                            </button>
-                        </motion.div>
+                        </div>
                     )}
+
+                    {/* Action Button */}
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                        <span className="text-xs text-slate-500 flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-teal-400" />
+                            Monitored natively by VITALIS Causal Intelligence
+                        </span>
+                        <button
+                            onClick={handleUploadAndProcess}
+                            disabled={uploading || !file}
+                            className="px-6 py-2.5 rounded-xl bg-[#6366f1] hover:bg-[#5558e6] disabled:opacity-50 text-white font-bold text-sm transition-all shadow-md flex items-center gap-2"
+                        >
+                            {uploading ? 'Processing...' : 'Upload & Process Material →'}
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

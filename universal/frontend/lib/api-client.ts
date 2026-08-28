@@ -401,21 +401,31 @@ export const api = {
             body: JSON.stringify({ name, category }),
         }),
 
-    // Book Upload with Trace Headers
-    uploadBook: async (file: File, onProgress?: (progress: number) => void) => {
+    // Learning Material Upload with Trace Headers & M2 Pipeline
+    uploadLearningMaterial: async (
+        file: File,
+        dto: { learnerId: string; title: string; subjectName?: string; gradeLevel?: number; materialType?: string },
+        onProgress?: (progress: number) => void,
+    ) => {
         const traceId = generateClientTraceId();
         const requestId = generateClientRequestId();
         const clientRoute = getClientRoute();
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('learnerId', dto.learnerId);
+        formData.append('title', dto.title);
+        if (dto.subjectName) formData.append('subjectName', dto.subjectName);
+        if (dto.gradeLevel) formData.append('gradeLevel', dto.gradeLevel.toString());
+        if (dto.materialType) formData.append('materialType', dto.materialType);
 
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable && onProgress) {
-                    onProgress((e.loaded / e.total) * 100);
+                    onProgress(Math.round((e.loaded / e.total) * 100));
                 }
             });
 
@@ -423,30 +433,30 @@ export const api = {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     resolve(JSON.parse(xhr.responseText));
                 } else {
-                    sendClientSpanSafely(traceId, requestId, 'Browser.UploadError', '/upload/book', 'ERROR', `HTTP ${xhr.status}`);
+                    sendClientSpanSafely(traceId, requestId, 'Browser.UploadError', '/api/v2/learning-materials/upload', 'ERROR', `HTTP ${xhr.status}`);
                     reject(new APIError(xhr.status, xhr.responseText));
                 }
             });
 
             xhr.addEventListener('error', () => {
-                sendClientSpanSafely(traceId, requestId, 'Browser.UploadNetworkError', '/upload/book', 'ERROR', 'XHR Network Upload Error');
+                sendClientSpanSafely(traceId, requestId, 'Browser.UploadNetworkError', '/api/v2/learning-materials/upload', 'ERROR', 'XHR Network Upload Error');
                 reject(new Error('Upload failed'));
             });
 
-            xhr.open('POST', `${API_BASE_URL}/upload/book`);
+            xhr.open('POST', `${API_BASE_URL}/api/v2/learning-materials/upload`);
+            if (token) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            }
             xhr.setRequestHeader('x-trace-id', traceId);
             xhr.setRequestHeader('x-request-id', requestId);
             xhr.setRequestHeader('x-client-platform', 'browser');
             xhr.setRequestHeader('x-client-route', clientRoute);
-
-            if (typeof window !== 'undefined') {
-                const token = localStorage.getItem('token');
-                if (token) {
-                    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-                }
-            }
-
             xhr.send(formData);
         });
     },
+
+    processLearningMaterial: (id: string) =>
+        apiCall<{ data: any }>(`/api/v2/learning-materials/${id}/process`, {
+            method: 'POST',
+        }),
 };
