@@ -16,7 +16,8 @@ import {
   AlertCircle,
   ArrowRight,
   ShieldCheck,
-  FileText
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import { api, LearningMaterial } from '../../lib/api-client';
 
@@ -51,6 +52,14 @@ const ButterflyLogo = () => (
     </svg>
 );
 
+const BoyAvatar = () => (
+    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-rose-400 p-[1.5px] shrink-0">
+        <div className="w-full h-full rounded-full bg-[#0a0f24] flex items-center justify-center text-xs font-bold text-amber-300">
+            👦🏽
+        </div>
+    </div>
+);
+
 export default function UploadPage() {
     const [file, setFile] = useState<File | null>(null);
     const [title, setTitle] = useState('');
@@ -70,7 +79,8 @@ export default function UploadPage() {
         { name: "Knowledge Map", icon: GitFork, active: false, href: "/knowledge-map" },
         { name: "My Growth", icon: TrendingUp, active: false, href: "/growth" },
         { name: "For Parents", icon: Users, active: false, href: "/parent/dashboard" },
-        { name: "Observe (VITALIS)", icon: Trophy, active: false, href: "/observe" },
+        { name: "Achievements", icon: Trophy, active: false, href: "/library" },
+        { name: "Messages", icon: MessageSquare, active: false, href: "/library" },
     ];
 
     useEffect(() => {
@@ -155,40 +165,63 @@ export default function UploadPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#03050c] text-white flex">
-            {/* Sidebar */}
-            <aside className="w-64 bg-[#050814] border-r border-white/5 flex flex-col p-4 shrink-0">
-                <div className="flex items-center gap-3 px-3 py-4 mb-6">
-                    <ButterflyLogo />
-                    <span className="text-xl font-bold tracking-[0.14em] text-white select-none">
-                        EKAGURU
-                    </span>
+        <div className="min-h-screen bg-[#03050c] text-white flex overflow-x-hidden">
+            {/* 1. Left Side Pane (Fixed 220px Width) */}
+            <aside className="w-[220px] min-w-[220px] bg-[#050814] border-r border-white/5 flex flex-col p-4 shrink-0 h-screen fixed top-0 left-0 justify-between z-10">
+                <div>
+                    {/* Brand Logo */}
+                    <div className="flex items-center gap-3 px-3 py-4 mb-6">
+                        <ButterflyLogo />
+                        <span className="text-xl font-bold tracking-[0.14em] text-white select-none">
+                            EKAGURU
+                        </span>
+                    </div>
+
+                    {/* Nav Items */}
+                    <nav className="space-y-1">
+                        {navItems.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <Link
+                                    key={item.name}
+                                    href={item.href}
+                                    className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all select-none ${
+                                        item.active
+                                            ? "bg-[#1d1b54] text-white font-semibold border border-purple-500/10 shadow-lg shadow-indigo-950/20"
+                                            : "text-slate-400 hover:text-white hover:bg-white/5"
+                                    }`}
+                                >
+                                    <Icon className={`w-5 h-5 shrink-0 ${item.active ? "text-purple-400" : "text-slate-400"}`} />
+                                    <span className="text-sm tracking-wide">{item.name}</span>
+                                </Link>
+                            );
+                        })}
+                    </nav>
                 </div>
 
-                <nav className="flex-1 space-y-1">
-                    {navItems.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all select-none ${
-                                    item.active
-                                        ? "bg-[#1d1b54] text-white font-semibold border border-purple-500/10 shadow-lg shadow-indigo-950/20"
-                                        : "text-slate-400 hover:text-white hover:bg-white/5"
-                                }`}
-                            >
-                                <Icon className={`w-5 h-5 shrink-0 ${item.active ? "text-purple-400" : "text-slate-400"}`} />
-                                <span className="text-sm tracking-wide">{item.name}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
+                {/* Bottom Active User Card */}
+                <div className="px-2 py-3 border-t border-white/5 mt-auto">
+                    <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-2xl p-3 cursor-pointer hover:bg-white/[0.04] transition">
+                        <div className="flex items-center gap-3">
+                            <BoyAvatar />
+                            <div className="text-left">
+                                <span className="block text-sm font-bold text-white leading-none">
+                                    {activeLearner?.name || 'Arjun'}
+                                </span>
+                                <span className="block text-[10px] text-slate-500 mt-1.5 font-semibold">
+                                    Grade {activeLearner?.grade || 5}
+                                </span>
+                            </div>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                    </div>
+                </div>
             </aside>
 
-            {/* Main Upload Workspace */}
-            <main className="flex-1 bg-[#03050c] p-8 lg:p-12 overflow-y-auto max-w-4xl">
-                <div className="space-y-6">
+            {/* 2. Main Right Workspace (Offset by 220px) */}
+            <div className="flex-1 ml-[220px] flex flex-col min-h-screen bg-[#03050c]">
+                <main className="w-full px-8 lg:px-12 py-10 max-w-4xl">
+                    <div className="space-y-6">
                     <div>
                         <Link href="/library" className="text-xs font-mono text-teal-300 hover:underline">
                             ← Back to Library
@@ -340,8 +373,9 @@ export default function UploadPage() {
                             {uploading ? 'Processing...' : 'Upload & Process Material →'}
                         </button>
                     </div>
-                </div>
-            </main>
+                    </div>
+                </main>
+            </div>
         </div>
     );
 }
