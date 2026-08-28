@@ -18,6 +18,7 @@ const mockRetryLearningMaterial = jest.fn();
 
 jest.mock('../../lib/api-client', () => ({
     api: {
+        login: jest.fn().mockResolvedValue({ access_token: 'mock-token' }),
         getLearners: () => mockGetLearners(),
         getLearningMaterials: (params: any) => mockGetLearningMaterials(params),
         getLearningMaterialStatus: (id: string) => mockGetLearningMaterialStatus(id),
@@ -50,14 +51,12 @@ describe('LibraryPage', () => {
     });
 
     it('renders the header and materials correctly', async () => {
-        await act(async () => {
-            render(<LibraryPage />);
-        });
+        render(<LibraryPage />);
         
         expect(screen.getByRole('heading', { level: 1, name: 'Library' })).toBeInTheDocument();
         expect(screen.getByText('Your learning materials and resources')).toBeInTheDocument();
-        expect(screen.getByText('Science Textbook')).toBeInTheDocument();
-        expect(screen.getAllByText('Ready')[0]).toBeInTheDocument();
-        expect(screen.getByText('Chapters')).toBeInTheDocument();
+        expect(await screen.findByText('Science Textbook')).toBeInTheDocument();
+        expect((await screen.findAllByText('Ready'))[0]).toBeInTheDocument();
+        expect(await screen.findByText('Chapters')).toBeInTheDocument();
     });
 });

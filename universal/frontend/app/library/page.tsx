@@ -787,13 +787,13 @@ export default function LibraryPage() {
 
                                                 <div>
                                                     <div className="border-t border-white/5 mb-1" />
-                                                    <div 
-                                                        aria-disabled="true"
-                                                        className="h-[64px] flex items-center justify-between text-slate-600 cursor-not-allowed select-none"
+                                                    <Link 
+                                                        href={`/library/${item.id}`}
+                                                        className="h-[64px] flex items-center justify-between text-emerald-400 hover:text-emerald-300 transition cursor-pointer select-none font-bold tracking-wider uppercase text-[15px]"
                                                     >
-                                                        <span className="text-[15px] font-bold tracking-wider uppercase">View Details</span>
+                                                        <span>View Details</span>
                                                         <ArrowRight className="w-5 h-5" />
-                                                    </div>
+                                                    </Link>
                                                 </div>
                                             </div>
                                         ))}
