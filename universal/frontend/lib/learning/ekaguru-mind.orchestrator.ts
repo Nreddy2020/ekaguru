@@ -82,7 +82,7 @@ export class EkaguruMindOrchestrator {
       chapterNumber: subjectDef.chapterNumber,
       chapterTitle: subjectDef.chapterTitle,
       printedPage,
-      pdfPage: printedPage + 1,
+      pdfPage: printedPage + (subjectDef.pdfPage - subjectDef.printedPage),
       sequenceIndex: printedPage,
       archetype: 'NORMAL_CHAPTER',
     };
