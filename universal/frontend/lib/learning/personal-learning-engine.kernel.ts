@@ -1,18 +1,19 @@
 /**
  * ============================================================================
- * EKAGURU PERSONAL LEARNING ENGINE — CORE KERNEL & ORCHESTRATOR
+ * EKAGURU PERSONAL LEARNING ENGINE — UNIVERSAL KERNEL (STEP 4)
  * ============================================================================
  * 
- * Implements the golden-path execution pipeline:
+ * 100% Subject-Agnostic Engine Pipeline:
  * Textbook Page → Concept → EKAGURU Mind Planner → LearningExperience →
  * Show / Teach / Try / Go Deeper → Evidence Ledger → Dual-Spine Safe Return
+ * 
+ * Invariant: Works identically for EVS, Science, Mathematics, History, and beyond.
  */
 
 import {
   CurriculumPosition,
   TextbookPage,
   KnowledgeNode,
-  LearnerContext,
   LearnerState,
   LearningExperience,
   EvidenceEvent,
@@ -20,6 +21,18 @@ import {
   NextRecommendedAction,
   MasteryVector,
 } from './personal-learning-engine.contracts';
+import { UniversalContentRegistry } from './universal-content-registry';
+
+export interface DecisionAuditTrace {
+  curriculumContext: string;
+  conceptId: string;
+  learnerRecall: number;
+  learnerApplication: number;
+  learnerReasoning: number;
+  activeMisconceptionsCount: number;
+  decisionReason: string;
+  actionType: string;
+}
 
 export class PersonalLearningEngineKernel {
   private learnerStates: Map<string, LearnerState> = new Map();
@@ -29,43 +42,39 @@ export class PersonalLearningEngineKernel {
   constructor() {}
 
   // ==========================================================================
-  // 1. PAGE RESOLUTION & CONTEXT BUILDER (Gate 2)
+  // 1. GENERIC PAGE RESOLUTION & CONTEXT BUILDER (Gate 4.1)
   // ==========================================================================
-  public openPage(bookId: string, printedPage: number, learnerId: string): {
+  public openPage(
+    bookId: string,
+    printedPage: number,
+    learnerId: string
+  ): {
     page: TextbookPage;
     learnerState: LearnerState;
     experience: LearningExperience;
+    decisionTrace: DecisionAuditTrace;
   } {
+    const subjectDef = UniversalContentRegistry.getBySubjectOrBook(bookId);
+
     const position: CurriculumPosition = {
-      bookId,
-      bookTitle: 'Class 5 Environmental Studies (EVS)',
-      chapterNumber: 1,
-      chapterTitle: 'Festivals of India & Community Life',
+      bookId: subjectDef.bookId,
+      bookTitle: subjectDef.bookTitle,
+      chapterNumber: subjectDef.chapterNumber,
+      chapterTitle: subjectDef.chapterTitle,
       printedPage,
       pdfPage: printedPage + 1,
       sequenceIndex: printedPage,
       archetype: 'NORMAL_CHAPTER',
     };
 
-    const rawText =
-      'India is a land of festivals... Sankranthi is a popular harvest festival. Many people make colourful muggu (rangoli) at the entrance of their houses and fly colourful kites.';
-
     const page: TextbookPage = {
-      id: `page-${bookId}-${printedPage}`,
+      id: `page-${subjectDef.bookId}-${printedPage}`,
       position,
-      rawText,
-      extractedConcepts: ['c-festivals-india', 'c-harvest-crops', 'c-sun-seasons', 'c-muggu-rangoli'],
-      learningObjectives: [
-        {
-          id: 'obj-evs-5-01',
-          code: 'EVS-5-HARVEST-01',
-          statement: 'Understand the connection between solar seasons, agriculture harvest, and cultural celebrations',
-          bloomLevel: 'UNDERSTAND',
-          prerequisiteObjectiveIds: [],
-        },
-      ],
+      rawText: subjectDef.rawTextExcerpt,
+      extractedConcepts: [subjectDef.primaryConcept.id],
+      learningObjectives: subjectDef.learningObjectives,
       sourceConfidence: 1.0,
-      sourceAnchorId: 'src-0001',
+      sourceAnchorId: `src-${subjectDef.subjectId}-${printedPage}`,
     };
 
     let learnerState = this.learnerStates.get(learnerId);
@@ -85,38 +94,23 @@ export class PersonalLearningEngineKernel {
       learnerState.currentPosition = position;
     }
 
-    const canonicalConcept: KnowledgeNode = {
-      id: 'c-festivals-india',
-      title: 'Sankranthi & Harvest Celebrations',
-      domain: 'CULTURE_HISTORY',
-      tagline: 'Connecting solar transit, farming harvest, and human gratitude',
-      shortDefinition: 'A major harvest festival celebrating the bounty of crops and the movement of the sun.',
-      detailedExplanation:
-        'Sankranthi marks the transition of the Sun into warmer northern skies and celebrates months of farming labor yielding food to sustain communities.',
-      provenance: {
-        type: 'TEXTBOOK_SOURCE',
-        sourceName: 'Class 5 EVS Page 1 (Spread 2)',
-        confidence: 1.0,
-        retrievedAt: new Date().toISOString(),
-        ageAppropriateRating: 'CLASS_4_5',
-      },
-      gradeLevel: 5,
-      complexityLevel: 'FOUNDATIONAL',
-      tags: ['harvest', 'sun', 'agriculture', 'culture'],
-    };
-
-    const experience = this.planExperience(position, canonicalConcept, learnerState);
-    return { page, learnerState, experience };
+    const { experience, decisionTrace } = this.planExperience(position, subjectDef.primaryConcept, learnerState);
+    return { page, learnerState, experience, decisionTrace };
   }
 
   // ==========================================================================
-  // 2. EKAGURU MIND — DYNAMIC EXPERIENCE PLANNER (Gate 3, 4, 5, 6)
+  // 2. EKAGURU MIND — DYNAMIC EXPERIENCE PLANNER (Gate 4.3 & Gate 4.5)
   // ==========================================================================
   public planExperience(
     position: CurriculumPosition,
     concept: KnowledgeNode,
     learnerState: LearnerState
-  ): LearningExperience {
+  ): {
+    experience: LearningExperience;
+    decisionTrace: DecisionAuditTrace;
+  } {
+    const subjectDef = UniversalContentRegistry.getBySubjectOrBook(concept.id);
+
     const conceptMastery = learnerState.masteryByConcept[concept.id] || {
       recallScore: 0,
       applicationScore: 0,
@@ -127,122 +121,53 @@ export class PersonalLearningEngineKernel {
     };
 
     const isMastered = conceptMastery.status === 'MASTERED';
+    const activeMisconceptions = learnerState.activeMisconceptions.filter(
+      (m) => m.conceptId === concept.id && m.status === 'ACTIVE'
+    );
 
-    return {
+    let actionType: any = 'REINFORCE_FOUNDATION';
+    let decisionReason = 'Engage with Show Me and Try It to establish empirical understanding.';
+
+    if (activeMisconceptions.length > 0) {
+      actionType = 'REMEDIATE_MISCONCEPTION';
+      decisionReason = `Active misconception detected: ${activeMisconceptions[0].incorrectMentalModel}. Socratic contrast required.`;
+    } else if (isMastered) {
+      actionType = 'ADVANCE_CURRICULUM_PAGE';
+      decisionReason = 'Learner demonstrated complete understanding across Recall, Reasoning, and Application vectors.';
+    }
+
+    const decisionTrace: DecisionAuditTrace = {
+      curriculumContext: `${position.bookTitle} (p. ${position.printedPage})`,
+      conceptId: concept.id,
+      learnerRecall: conceptMastery.recallScore,
+      learnerApplication: conceptMastery.applicationScore,
+      learnerReasoning: conceptMastery.reasoningScore,
+      activeMisconceptionsCount: activeMisconceptions.length,
+      decisionReason,
+      actionType,
+    };
+
+    const experience: LearningExperience = {
       id: `exp-${position.bookId}-${position.printedPage}-${Date.now()}`,
       planTimestamp: new Date().toISOString(),
       curriculumPosition: position,
       concept,
-
-      // 🔬 SHOW ME: Visual Mechanism Chain
-      showMe: {
-        title: 'The Seed-to-Harvest Growth Chain',
-        visualMechanismSteps: [
-          { icon: '🌱', label: 'Seed in Soil', detail: 'Sprouts roots to absorb water and minerals' },
-          { icon: '🌿', label: 'Green Leaves', detail: 'Captures radiant sunlight energy (Photosynthesis)' },
-          { icon: '🌾', label: 'Golden Grain', detail: 'Stores solar energy as nutritious food' },
-          { icon: '👨‍🌾', label: 'Harvest Day', detail: 'Farmers reap the bounty with community gratitude' },
-        ],
-        interactiveDiagramType: 'SEED_GROWTH',
-      },
-
-      // 🧠 TEACH ME: Adaptive Socratic Dialogue
-      teachMe: {
-        socraticStepIndex: 0,
-        totalSocraticSteps: 5,
-        stageName: 'MEET_IDEA',
-        groundedExplanation:
-          'When crops like rice and wheat ripen under the winter sun, farmers harvest the food that took months of sunlight and care to grow. Sankranthi is the joyful celebration of this harvest!',
-        childAnalogy: 'Imagine baking a huge cake together—harvest festival is the moment everyone gets to taste the slice!',
-        remediationMode: false,
-      },
-
-      // 🎨 TRY IT: Hands-on Experiential Discovery
-      tryIt: {
-        activityType: 'PANTRY_OBSERVATION',
-        question: {
-          text: 'Why do farming communities celebrate during harvest time rather than during seed planting time?',
-          options: [
-            'Because months of hard labor have successfully yielded food to feed the community',
-            'Because farmers want to stop farming forever',
-            'Because crops grow with zero water or care',
-            'Because planting seeds is too noisy',
-          ],
-          correctIndex: 0,
-          explanation: 'Harvest marks the joyous culmination of months of farming effort, providing abundance and food security.',
-        },
-        handsOnExperiment: {
-          title: '🍚 Spot 3 Harvest Grains in Your Kitchen',
-          objective: 'Discover the real foods harvested by farmers in your own home pantry',
-          steps: [
-            { stepNumber: 1, action: 'OBSERVE', instruction: 'Find Rice grains, Sesame seeds (Til), or Jaggery (Gur).' },
-            { stepNumber: 2, action: 'EXPLAIN', instruction: 'Where did the energy inside these foods come from?' },
-          ],
-          rewardBadge: '🌾 Master Harvester',
-        },
-      },
-
-      // 🌌 GO DEEPER: Knowledge Universe Constellation & Cosmic Telescope
-      goDeeper: {
-        currentConceptId: concept.id,
-        universeConstellation: [
-          {
-            realmId: 'node-harvest-crops',
-            realmName: '🌾 Harvest & Agriculture',
-            icon: '🌾',
-            provenance: 'CURRICULUM_DERIVED',
-            tagline: 'Seed to crop growth biology',
-            shortDescription: 'How plants turn water and soil minerals into human nourishment.',
-            targetNodeId: 'c-harvest-crops',
-          },
-          {
-            realmId: 'node-sun-seasons',
-            realmName: '☀️ Sun & Earth Cycles',
-            icon: '☀️',
-            provenance: 'EXTERNAL_KNOWLEDGE',
-            tagline: 'Solar transit and seasonal warmth',
-            shortDescription: 'How Earth orbiting the Sun ripens crops across hemispheres.',
-            targetNodeId: 'c-sun-seasons',
-          },
-          {
-            realmId: 'node-muggu-rangoli',
-            realmName: '🎨 Muggu / Rangoli Art',
-            icon: '🎨',
-            provenance: 'TEXTBOOK_SOURCE',
-            tagline: 'Geometric symmetry and nature harmony',
-            shortDescription: 'Drawing 4x4 matrix dot loops using rice flour to feed ants.',
-            targetNodeId: 'c-muggu-rangoli',
-          },
-          {
-            realmId: 'node-kite-wind',
-            realmName: '🪁 Kites & Aerodynamics',
-            icon: '🪁',
-            provenance: 'EXTERNAL_KNOWLEDGE',
-            tagline: 'Air pressure and aerodynamic lift',
-            shortDescription: 'How winter thermals keep light bamboo frames soaring high.',
-            targetNodeId: 'c-kite-wind',
-          },
-        ],
-        cosmicTelescope: {
-          question: 'Where did the energy inside the rice grain originally come from?',
-          answer: 'From the SUN! Nuclear fusion at 15 million °C in our nearest star traveled 150 million km to power the plant leaves.',
-          cosmicDomain: 'ASTROPHYSICS & NUCLEAR PHYSICS',
-        },
-      },
-
-      // 🎯 DECISION ACTION
+      showMe: subjectDef.showMe,
+      teachMe: subjectDef.teachMe,
+      tryIt: subjectDef.tryIt,
+      goDeeper: subjectDef.goDeeper,
       nextRecommendedAction: {
-        actionType: isMastered ? 'ADVANCE_CURRICULUM_PAGE' : 'REINFORCE_FOUNDATION',
-        reason: isMastered
-          ? 'Learner demonstrated complete understanding across Recall, Reasoning, and Application.'
-          : 'Engage with Show Me and Try It to establish empirical understanding.',
-        targetId: isMastered ? 'page-Class5EVS-2' : undefined,
+        actionType,
+        reason: decisionReason,
+        targetId: isMastered ? `page-${position.bookId}-${position.printedPage + 1}` : undefined,
       },
     };
+
+    return { experience, decisionTrace };
   }
 
   // ==========================================================================
-  // 3. EVIDENCE ENGINE & MASTERY CALCULATION (Gate 5)
+  // 3. GENERIC EVIDENCE ENGINE (Gate 4.4)
   // ==========================================================================
   public submitInteraction(
     learnerId: string,
@@ -278,8 +203,8 @@ export class PersonalLearningEngineKernel {
       validationDetails: {
         isCorrect,
         feedback: isCorrect
-          ? '✓ Correct! You understood the biological and cultural foundation of harvest.'
-          : '💡 Let us explore how crops require months of care and sunlight.',
+          ? '✓ Correct! Understanding verified empirically.'
+          : '💡 Let us explore the core underlying mechanism.',
       },
       timestamp: new Date().toISOString(),
       sha256EvidenceKey: `sha256-${learnerId}-${conceptId}-${Date.now()}`,
@@ -288,7 +213,6 @@ export class PersonalLearningEngineKernel {
     this.evidenceLedger.push(evidenceEvent);
     learnerState.totalEvidenceCount++;
 
-    // Calculate updated mastery
     let currentMastery = learnerState.masteryByConcept[conceptId] || {
       recallScore: 0,
       applicationScore: 0,
@@ -302,7 +226,7 @@ export class PersonalLearningEngineKernel {
     if (response.dimension === 'RECALL' && isCorrect) currentMastery.recallScore = 100;
     if (response.dimension === 'REASONING' && isCorrect) currentMastery.reasoningScore = 100;
     if (response.dimension === 'APPLICATION' && isCorrect) currentMastery.applicationScore = 100;
-    if (response.dimension === 'OBSERVATION') {
+    if (response.dimension === 'OBSERVATION' || response.dimension === 'EXPERIMENT') {
       currentMastery.observationCount++;
       currentMastery.applicationScore = Math.max(currentMastery.applicationScore, 85);
     }
@@ -321,16 +245,16 @@ export class PersonalLearningEngineKernel {
       actionType: currentMastery.status === 'MASTERED' ? 'ADVANCE_CURRICULUM_PAGE' : 'REINFORCE_FOUNDATION',
       reason:
         currentMastery.status === 'MASTERED'
-          ? 'Mastery threshold verified with immutable empirical evidence.'
+          ? 'Mastery verified empirically with immutable evidence logs.'
           : 'Continue discovery in Try It or Go Deeper to complete mastery.',
-      targetId: 'page-Class5EVS-2',
+      targetId: `page-${learnerState.currentPosition.bookId}-${learnerState.currentPosition.printedPage + 1}`,
     };
 
     return { evidenceEvent, updatedMastery: currentMastery, nextAction };
   }
 
   // ==========================================================================
-  // 4. DUAL-SPINE EXPLORATION ENGINE (Gate 6 & Gate 7)
+  // 4. GENERIC DUAL-SPINE EXPLORATION & SAFE RETURN (Gate 4.6)
   // ==========================================================================
   public startExploration(
     learnerId: string,
@@ -353,7 +277,7 @@ export class PersonalLearningEngineKernel {
       explorationTrail: [
         {
           nodeId: targetConceptId,
-          conceptTitle: targetConceptId === 'c-sun-seasons' ? '☀️ Sun & Earth Cycles' : '⚛️ Nuclear Fusion in Stars',
+          conceptTitle: `Realm: ${targetConceptId}`,
           enteredAt: new Date().toISOString(),
           timeSpentSeconds: 0,
           evidenceCollected: [],
@@ -362,30 +286,29 @@ export class PersonalLearningEngineKernel {
       branchDepth: 1,
       evidenceEventsCollected: [],
       isExploring: true,
-      returnToCurriculumPage: learnerState.currentPosition.printedPage, // Page 1
-      nextCurriculumPageOnComplete: learnerState.currentPosition.printedPage + 1, // Page 2
+      returnToCurriculumPage: learnerState.currentPosition.printedPage,
+      nextCurriculumPageOnComplete: learnerState.currentPosition.printedPage + 1,
     };
 
     this.explorationSessions.set(sessionId, session);
 
     const explorationNode: KnowledgeNode = {
       id: targetConceptId,
-      title: targetConceptId === 'c-sun-seasons' ? '☀️ Sun & Earth Cycles' : '⚛️ Nuclear Fusion in Stars',
-      domain: targetConceptId === 'c-sun-seasons' ? 'ASTRONOMY' : 'PHYSICS',
-      tagline: 'Solar irradiance, nuclear fusion, and energy propagation',
-      shortDefinition: 'The physical mechanism by which our star generates photons powering Earth ecosystems.',
-      detailedExplanation:
-        'In the core of the Sun, hydrogen atoms fuse into helium at 15 million degrees Celsius, radiating photons that travel 8 minutes across space to reach Earth leaves.',
+      title: `Connected Realm: ${targetConceptId}`,
+      domain: 'PHYSICS',
+      tagline: 'Deep disciplinary and cosmic system extension',
+      shortDefinition: 'An interconnected knowledge node expanding beyond the textbook page.',
+      detailedExplanation: 'Exploring cross-disciplinary relationships and foundational scientific mechanisms.',
       provenance: {
         type: 'EXTERNAL_KNOWLEDGE',
-        sourceName: 'NASA Solar Physics Knowledge Base',
+        sourceName: 'EKAGURU Global Scientific Knowledge Base',
         confidence: 0.98,
         retrievedAt: new Date().toISOString(),
         ageAppropriateRating: 'CLASS_4_5',
       },
-      gradeLevel: 5,
+      gradeLevel: learnerState.currentPosition.printedPage >= 10 ? 6 : 5,
       complexityLevel: 'COSMIC_EXTENSION',
-      tags: ['sun', 'fusion', 'astronomy', 'energy'],
+      tags: ['interconnected', 'science', 'universe'],
     };
 
     return { session, explorationNode };
@@ -412,14 +335,16 @@ export class PersonalLearningEngineKernel {
     const learnerState = this.learnerStates.get(session.learnerId);
     if (learnerState) {
       learnerState.currentPosition = restoredPosition;
-      learnerState.completedPageIds.push(`page-${session.originCurriculumPosition.bookId}-${session.originCurriculumPosition.printedPage}`);
+      learnerState.completedPageIds.push(
+        `page-${session.originCurriculumPosition.bookId}-${session.originCurriculumPosition.printedPage}`
+      );
     }
 
     return {
       session,
       restoredPosition,
       nextPageToLoad: session.nextCurriculumPageOnComplete,
-      message: `🌟 You explored the cosmos and discovered the Sun's energy origin! Safely returning to Class 5 EVS Page ${session.nextCurriculumPageOnComplete}.`,
+      message: `🌟 You explored the knowledge universe! Safely returning to ${session.originCurriculumPosition.bookTitle} Page ${session.nextCurriculumPageOnComplete}.`,
     };
   }
 
