@@ -151,7 +151,8 @@ export class EkaguruMindOrchestrator {
       };
     }
 
-    const prereqMastery = learnerState.masteryByConcept[prereq.prereqId]?.recallScore ?? 100;
+    const memState = this.learnerStates.get(learnerState.learnerId)?.masteryByConcept[prereq.prereqId]?.recallScore;
+   const prereqMastery = memState !== undefined ? memState : (learnerState.masteryByConcept[prereq.prereqId]?.recallScore ?? 100);
     const hasGap = (prereqMastery / 100) < prereq.threshold;
 
     return {
