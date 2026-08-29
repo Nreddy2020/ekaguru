@@ -23,13 +23,13 @@ describe('Module 06.1: EKAGURU Learner Experience Engine & Studio Inspector', ()
       />
     );
 
-    expect(screen.getByText('🌱 My Learning Journey')).toBeInTheDocument();
+    expect(screen.getByText(/EKAGURU Education Engine/i)).toBeInTheDocument();
     expect(screen.getByText(/Meet the Idea/i)).toBeInTheDocument();
     expect(screen.getByText(/Which internal organ is responsible for pumping blood/i)).toBeInTheDocument();
     expect(screen.getByText('🌱 Your Understanding')).toBeInTheDocument();
   });
 
-  it('allows toggling between Learner Experience and Teacher/Studio Inspector', () => {
+  it('allows toggling between Learner Experience, Knowledge Universe, and Teacher/Studio Inspector', () => {
     render(
       <LearningExplanationPanel
         sectionId="sec-2-10"
@@ -38,12 +38,18 @@ describe('Module 06.1: EKAGURU Learner Experience Engine & Studio Inspector', ()
       />
     );
 
-    // Click Teacher / Studio toggle
-    const studioBtn = screen.getByRole('button', { name: /Teacher \/ Studio/i });
+    // Click Studio toggle
+    const studioBtn = screen.getByRole('button', { name: /Studio/i });
     fireEvent.click(studioBtn);
 
     expect(screen.getByText(/Pedagogical Reason:/i)).toBeInTheDocument();
     expect(screen.getByText(/NORMAL_CHAPTER/i)).toBeInTheDocument();
+
+    // Click Universe toggle
+    const universeBtn = screen.getByRole('button', { name: /Universe/i });
+    fireEvent.click(universeBtn);
+
+    expect(screen.getByText(/EKAGURU Knowledge Universe/i)).toBeInTheDocument();
   });
 
   it('handles empathetic misconception remediation with visual organ contrast', () => {
