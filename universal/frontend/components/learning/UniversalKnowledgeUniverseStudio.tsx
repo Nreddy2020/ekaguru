@@ -330,81 +330,11 @@ export function UniversalKnowledgeUniverseStudio({
               <BookOpen className="w-4 h-4 text-cyan-400" /> View Full Page
             </button>
 
-            {/* ============================================================ */}
-            {/* CANONICAL 18 CHAPTERS ACCORDION (100% GAPLESS HIERARCHY)     */}
-            {/* ============================================================ */}
-            <div className="flex flex-col gap-2 pt-2 border-t border-slate-800/80 font-sans">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-purple-400" />
-                  CHAPTERS IN THIS BOOK ({(book?.chapters || []).length})
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
-                {(book?.chapters || []).map((chap) => {
-                  const isCurrent = chap.id === ch.id;
-                  const isExpanded = !!expandedChapterIds[chap.id];
-
-                  return (
-                    <div key={chap.id} className="flex flex-col rounded-xl overflow-hidden border border-slate-800/60 bg-[#0b101d]">
-                      <button
-                        onClick={() => {
-                          toggleChapterExpand(chap.id);
-                          setCurrentChapter(chap);
-                          setCurrentPageNum(chap.startPage);
-                          setActiveSection(chap.sections[0]);
-                        }}
-                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between transition-all ${
-                          isCurrent
-                            ? 'bg-purple-950/80 text-purple-200 font-bold border-l-4 border-purple-500'
-                            : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 overflow-hidden pr-1">
-                          {isExpanded ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                          )}
-                          <span className="truncate">{chap.title}</span>
-                        </div>
-                        <span className="text-[9.5px] font-mono text-slate-400 shrink-0">
-                          {chap.pageRangeText}
-                        </span>
-                      </button>
-
-                      {/* Sub-lessons accordion dropdown */}
-                      {isExpanded && (
-                        <div className="pl-5 pr-2 py-1.5 bg-[#070c17] flex flex-col gap-1 border-t border-slate-800/50">
-                          {chap.sections.map((sec) => (
-                            <button
-                              key={sec.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveSection(sec);
-                                setCurrentPageNum(sec.page);
-                              }}
-                              className={`w-full py-1 px-2 text-left text-[11px] rounded-lg transition flex items-center justify-between ${
-                                activeSection?.id === sec.id
-                                  ? 'bg-purple-600/30 text-purple-300 font-bold'
-                                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-                              }`}
-                            >
-                              <span className="truncate">{sec.sectionNumber} {sec.title}</span>
-                              <span className="text-[9px] font-mono text-slate-500">p.{sec.page}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
+            {/* View Full Book Index Action */}
+            <div className="pt-2 border-t border-slate-800/80 font-sans">
               <button
                 onClick={() => setShowFullIndexModal(true)}
-                className="mt-1 w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-purple-950/40 hover:border-purple-500 border border-slate-700 text-xs font-bold text-purple-300 flex items-center justify-center gap-1.5 transition-all shadow-md"
+                className="w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-purple-950/40 hover:border-purple-500 border border-slate-700 text-xs font-bold text-purple-300 flex items-center justify-center gap-1.5 transition-all shadow-md"
               >
                 <Layers className="w-3.5 h-3.5 text-purple-400" /> View Full Book Index
               </button>
