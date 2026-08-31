@@ -108,7 +108,7 @@ export function LearningStructureNode({
               key={section.id}
               section={section}
               isActive={section.id === activeSectionId}
-              onSelect={onSelectSection}
+              onSelect={(sec) => onSelectSection(sec, chapter)}
             />
           ))}
         </div>

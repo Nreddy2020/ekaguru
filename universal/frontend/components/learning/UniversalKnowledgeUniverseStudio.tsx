@@ -118,6 +118,10 @@ export function UniversalKnowledgeUniverseStudio({
         confidence: 1.0,
         isCorrect: true,
         learnerResponse: { selectedOption: idx },
+        validationDetails: {
+          isCorrect: true,
+          feedback: 'Correct application of photosynthesis mechanism',
+        },
         timestamp: new Date().toISOString(),
         sha256EvidenceKey: `sha256-aarav-${Date.now()}`,
       });
