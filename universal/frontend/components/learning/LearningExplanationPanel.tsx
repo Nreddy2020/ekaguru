@@ -13,11 +13,21 @@ export interface LearningExplanationPanelProps {
 }
 
 export function LearningExplanationPanel({
+  sectionId = 'festivals-of-india',
+  sectionTitle = 'Festivals of India',
+  conceptName = 'Sankranthi & Harvest Festivals',
+  description = '',
+  sourceAnchor,
   className = '',
 }: LearningExplanationPanelProps) {
   return (
-    <div data-testid="learning-explanation-panel" className="w-full">
-      <UniversalKnowledgeUniverseStudio className={className} />
-    </div>
+    <UniversalKnowledgeUniverseStudio
+      sectionId={sectionId}
+      sectionTitle={sectionTitle}
+      conceptName={conceptName}
+      description={description}
+      printedPage={sourceAnchor?.printedPage || 2}
+      className={className}
+    />
   );
 }
