@@ -1,5 +1,7 @@
-import { redirect } from 'next/navigation';
+'use client';
 
-export default function HomePage() {
-    redirect('/library');
+import { EkaguruLearnHome } from '../components/learning/EkaguruLearnHome';
+
+export default function RootPage() {
+  return <EkaguruLearnHome />;
 }

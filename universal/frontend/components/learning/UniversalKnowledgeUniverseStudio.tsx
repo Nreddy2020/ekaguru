@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Sparkles,
   Search,
@@ -20,15 +21,8 @@ import {
   ChevronDown,
   Layers,
   Menu,
-  UploadCloud,
-  Plus,
-  Book,
+  MessageCircleQuestion,
   X,
-  Clock,
-  ShieldCheck,
-  Check,
-  Library,
-  FileUp,
 } from 'lucide-react';
 
 export interface UniversalKnowledgeUniverseStudioProps {
@@ -40,85 +34,6 @@ export interface UniversalKnowledgeUniverseStudioProps {
   className?: string;
 }
 
-interface TextbookItem {
-  id: string;
-  title: string;
-  subject: string;
-  grade: string;
-  pages: number;
-  chapters: number;
-  concepts: number;
-  mastery: number;
-  status: 'READY' | 'PROCESSING';
-  coverBg: string;
-  coverAccent: string;
-  pageSnippet: string;
-  topicTitle: string;
-}
-
-const INITIAL_BOOKS: TextbookItem[] = [
-  {
-    id: 'book-1',
-    title: 'Festivals of India & Environmental Studies',
-    subject: 'Environmental Studies',
-    grade: 'Class 5',
-    pages: 142,
-    chapters: 8,
-    concepts: 54,
-    mastery: 66,
-    status: 'READY',
-    coverBg: 'from-amber-600 to-rose-700',
-    coverAccent: '#f59e0b',
-    pageSnippet: 'India is a land of festivals. Sankranthi is a popular harvest festival celebrated across the country.',
-    topicTitle: 'Festivals of India - Sankranthi',
-  },
-  {
-    id: 'book-2',
-    title: 'Mathematics: Shapes, Fractions & Patterns',
-    subject: 'Mathematics',
-    grade: 'Class 5',
-    pages: 180,
-    chapters: 12,
-    concepts: 72,
-    mastery: 84,
-    status: 'READY',
-    coverBg: 'from-indigo-600 to-blue-700',
-    coverAccent: '#6366f1',
-    pageSnippet: 'Angles and triangles form the fundamental geometric basis of architecture and measurement.',
-    topicTitle: 'Geometry & Fractions',
-  },
-  {
-    id: 'book-3',
-    title: 'General Science: Living Systems & Plants',
-    subject: 'Science',
-    grade: 'Class 5',
-    pages: 160,
-    chapters: 10,
-    concepts: 68,
-    mastery: 42,
-    status: 'READY',
-    coverBg: 'from-emerald-600 to-teal-700',
-    coverAccent: '#10b981',
-    pageSnippet: 'Photosynthesis is the process by which green plants transform sunlight into nourishment.',
-    topicTitle: 'Plant Biology & Circulation',
-  },
-  {
-    id: 'book-4',
-    title: 'Our Heritage: Social Studies & Civics',
-    subject: 'Social Studies',
-    grade: 'Class 5',
-    pages: 130,
-    chapters: 7,
-    concepts: 40,
-    mastery: 90,
-    status: 'READY',
-    coverBg: 'from-orange-600 to-amber-700',
-    coverAccent: '#f97316',
-    pageSnippet: 'Ancient civilizations flourished along fertile river valleys, pioneering agriculture and trade.',
-    topicTitle: 'Civilizations & Community',
-  },
-];
-
 export function UniversalKnowledgeUniverseStudio({
   sectionId = 'festivals-of-india',
   sectionTitle = 'Festivals of India',
@@ -127,8 +42,7 @@ export function UniversalKnowledgeUniverseStudio({
   printedPage = 2,
   className = '',
 }: UniversalKnowledgeUniverseStudioProps) {
-  // State
-  const [activeNav, setActiveNav] = useState<'home' | 'learn' | 'notebook' | 'progress' | 'settings'>('learn');
+  // Teaching Depth: Basis -> Developing -> Proficient -> Advanced -> Deep
   const [activeDepth, setActiveDepth] = useState<'basis' | 'developing' | 'proficient' | 'advanced' | 'deep'>('developing');
   const [activeBoardTab, setActiveBoardTab] = useState<'teacher_explains' | 'visuals' | 'real_world' | 'key_points' | 'summary'>('teacher_explains');
   const [activeChapterIndex, setActiveChapterIndex] = useState<number>(1);
@@ -138,84 +52,11 @@ export function UniversalKnowledgeUniverseStudio({
   const [showFullPageModal, setShowFullPageModal] = useState<boolean>(false);
   const [showIndexModal, setShowIndexModal] = useState<boolean>(false);
 
-  // Books & Upload Management State
-  const [showLearnModal, setShowLearnModal] = useState<boolean>(false);
-  const [learnTab, setLearnTab] = useState<'my_books' | 'upload_new'>('my_books');
-  const [booksList, setBooksList] = useState<TextbookItem[]>(INITIAL_BOOKS);
-  const [selectedBook, setSelectedBook] = useState<TextbookItem>(INITIAL_BOOKS[0]);
+  // Socratic Interruption State (Teacher/Student question in between)
+  const [interruptionQuery, setInterruptionQuery] = useState<string | null>(null);
 
-  // Upload Form State
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadTitle, setUploadTitle] = useState<string>('');
-  const [uploadSubject, setUploadSubject] = useState<string>('Science');
-  const [uploadGrade, setUploadGrade] = useState<string>('Class 5');
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
-
-  const handleNavClick = (nav: 'home' | 'learn' | 'notebook' | 'progress' | 'settings') => {
-    setActiveNav(nav);
-    if (nav === 'learn') {
-      setShowLearnModal(true);
-    }
-  };
-
-  const handleBookSelect = (book: TextbookItem) => {
-    setSelectedBook(book);
-    setShowLearnModal(false);
-  };
-
-  const handleFileDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setUploadFile(file);
-      if (!uploadTitle) {
-        setUploadTitle(file.name.replace(/\.[^/.]+$/, ''));
-      }
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setUploadFile(file);
-      if (!uploadTitle) {
-        setUploadTitle(file.name.replace(/\.[^/.]+$/, ''));
-      }
-    }
-  };
-
-  const handleStartUpload = () => {
-    if (!uploadFile && !uploadTitle) return;
-    setIsUploading(true);
-
-    setTimeout(() => {
-      const newBook: TextbookItem = {
-        id: `book-${Date.now()}`,
-        title: uploadTitle || uploadFile?.name || 'New Textbook',
-        subject: uploadSubject,
-        grade: uploadGrade,
-        pages: 120,
-        chapters: 6,
-        concepts: 36,
-        mastery: 0,
-        status: 'READY',
-        coverBg: 'from-purple-600 to-indigo-700',
-        coverAccent: '#a855f7',
-        pageSnippet: 'Textbook indexed and processed successfully with verified canonical knowledge graph.',
-        topicTitle: uploadTitle || 'Chapter 1: Overview',
-      };
-
-      setBooksList([newBook, ...booksList]);
-      setIsUploading(false);
-      setUploadSuccess(true);
-      setTimeout(() => {
-        setUploadSuccess(false);
-        setLearnTab('my_books');
-        setSelectedBook(newBook);
-      }, 1200);
-    }, 1500);
+  const handleTriggerInterruption = (question: string) => {
+    setInterruptionQuery(question);
   };
 
   return (
@@ -224,18 +65,17 @@ export function UniversalKnowledgeUniverseStudio({
       className={`flex flex-col w-screen h-screen max-h-screen bg-[#070b14] text-slate-100 font-sans select-none overflow-hidden ${className}`}
     >
       {/* ==================================================================== */}
-      {/* 1. TOP NAVBAR HEADER                                                 */}
+      {/* 1. TOP RUNTIME NAVBAR (NO UPLOAD / LIBRARY BUTTONS)                   */}
       {/* ==================================================================== */}
       <header className="h-14 px-6 bg-[#0a0f1d] border-b border-slate-800/80 flex items-center justify-between z-30 shrink-0">
-        {/* Left: Hamburger & Brand */}
         <div className="flex items-center gap-3.5">
-          <button
-            onClick={() => setShowLearnModal(true)}
+          <Link
+            href="/learn"
             className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition"
-            title="Book Library & Upload"
+            title="Back to Learn Home"
           >
             <Menu className="w-5 h-5" />
-          </button>
+          </Link>
 
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20 ring-1 ring-white/20">
@@ -250,12 +90,12 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
         </div>
 
-        {/* Center: Search input */}
+        {/* Center: Context-Aware Search */}
         <div className="relative w-[420px] hidden md:block">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder='Ask anything about "Sankranthi"...'
+            placeholder='Ask EKAGURU about "Sankranthi"...'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-12 py-2 bg-[#0d1424] border border-slate-700/60 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
@@ -265,21 +105,8 @@ export function UniversalKnowledgeUniverseStudio({
           </span>
         </div>
 
-        {/* Right: Badges & Profile */}
+        {/* Right Badges & Profile */}
         <div className="flex items-center gap-3.5">
-          {/* Quick Book Selector / Upload Button */}
-          <button
-            onClick={() => {
-              setLearnTab('upload_new');
-              setShowLearnModal(true);
-            }}
-            className="px-3.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-200 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
-          >
-            <UploadCloud className="w-3.5 h-3.5 text-purple-300" />
-            <span>Upload Book</span>
-          </button>
-
-          {/* Learning Streak */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-sm">
             <Flame className="w-4 h-4 text-amber-400" />
             <div className="text-left">
@@ -288,7 +115,6 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
           </div>
 
-          {/* Explorer Level */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 shadow-sm">
             <Gem className="w-4 h-4 text-purple-400" />
             <div className="text-left">
@@ -297,7 +123,6 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
           </div>
 
-          {/* User Profile */}
           <div className="flex items-center gap-2.5 pl-3.5 border-l border-slate-800/80">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-bold text-slate-950 text-xs shadow-md ring-1 ring-emerald-300/30">
               A
@@ -312,68 +137,48 @@ export function UniversalKnowledgeUniverseStudio({
       </header>
 
       {/* ==================================================================== */}
-      {/* 2. FULL VIEWPORT EDGE-TO-EDGE WORKSPACE                              */}
+      {/* 2. MAIN TEACHING WORKSPACE                                           */}
       {/* ==================================================================== */}
       <div className="flex-1 flex w-full h-full overflow-hidden">
-        {/* GLOBAL MINI SIDEBAR NAV */}
+        {/* Left Global Rail */}
         <nav className="w-16 bg-[#080d19] border-r border-slate-800/80 flex flex-col items-center justify-between py-4 shrink-0 z-20">
           <div className="flex flex-col items-center gap-3">
-            <button
-              onClick={() => handleNavClick('home')}
-              className={`p-2.5 rounded-xl transition flex flex-col items-center gap-1 ${
-                activeNav === 'home' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
+            <Link
+              href="/learn"
+              className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1"
             >
               <Home className="w-4 h-4" />
               <span className="text-[9px] font-medium">Home</span>
-            </button>
+            </Link>
 
-            {/* LEARN BUTTON - OPENS LIBRARY & UPLOAD MODAL */}
-            <button
-              onClick={() => handleNavClick('learn')}
-              className={`p-2.5 rounded-xl transition flex flex-col items-center gap-1 ${
-                activeNav === 'learn' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-              title="Click to view existing books or upload new books"
+            <Link
+              href="/learn"
+              className="p-2.5 rounded-xl bg-purple-600 text-white shadow-lg shadow-purple-600/30 flex flex-col items-center gap-1"
             >
               <BookOpen className="w-4 h-4" />
               <span className="text-[9px] font-medium">Learn</span>
-            </button>
+            </Link>
 
-            <button
-              onClick={() => handleNavClick('notebook')}
-              className={`p-2.5 rounded-xl transition flex flex-col items-center gap-1 ${
-                activeNav === 'notebook' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
+            <button className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1">
               <FileText className="w-4 h-4" />
               <span className="text-[9px] font-medium">Notebook</span>
             </button>
 
-            <button
-              onClick={() => handleNavClick('progress')}
-              className={`p-2.5 rounded-xl transition flex flex-col items-center gap-1 ${
-                activeNav === 'progress' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
+            <button className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1">
               <TrendingUp className="w-4 h-4" />
               <span className="text-[9px] font-medium">Progress</span>
             </button>
           </div>
 
           <div className="flex flex-col items-center gap-3">
-            <button
-              onClick={() => handleNavClick('settings')}
-              className={`p-2.5 rounded-xl transition flex flex-col items-center gap-1 ${
-                activeNav === 'settings' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              <span className="text-[9px] font-medium">Settings</span>
+            <button className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1">
+              <Users className="w-4 h-4" />
+              <span className="text-[9px] font-medium">Groups</span>
             </button>
 
-            <button className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60">
-              <Users className="w-4 h-4" />
+            <button className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1">
+              <Settings className="w-4 h-4" />
+              <span className="text-[9px] font-medium">Settings</span>
             </button>
 
             <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center">
@@ -382,7 +187,7 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
         </nav>
 
-        {/* LEFT COLUMN: FROM YOUR TEXTBOOK + CHAPTER INDEX */}
+        {/* LEFT COLUMN: FROM YOUR TEXTBOOK (SOURCE GROUNDED) */}
         <aside className="w-[320px] xl:w-[340px] bg-[#080d19] border-r border-slate-800/80 p-4 flex flex-col justify-between overflow-y-auto shrink-0 gap-4 custom-scrollbar">
           <div className="flex flex-col gap-4">
             {/* Header & Source Verified Pill */}
@@ -400,12 +205,10 @@ export function UniversalKnowledgeUniverseStudio({
 
             {/* High-Fidelity Textbook Card */}
             <div className="rounded-2xl overflow-hidden border border-slate-700/80 bg-[#fffdfa] text-slate-900 p-4 shadow-2xl relative flex flex-col gap-2.5">
-              {/* Blue circular page badge + Flying Kite */}
               <div className="flex items-center justify-between">
                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow">
                   2
                 </span>
-                {/* SVG Kite with Tail */}
                 <svg className="w-8 h-8" viewBox="0 0 40 40">
                   <polygon points="20,2 38,18 20,38 2,18" fill="#f43f5e" stroke="#be123c" strokeWidth="1.5" />
                   <polygon points="20,2 38,18 20,18" fill="#fbbf24" />
@@ -429,7 +232,6 @@ export function UniversalKnowledgeUniverseStudio({
 
               {/* Family & Rangoli Illustrated Scene */}
               <div className="w-full bg-gradient-to-b from-amber-50 to-orange-100/80 rounded-xl p-3 border border-amber-200 flex flex-col items-center shadow-inner relative overflow-hidden mt-1">
-                {/* Family Row */}
                 <div className="flex items-end justify-center gap-3 mb-2 z-10">
                   <div className="text-center">
                     <span className="text-2xl block leading-none">👵</span>
@@ -449,14 +251,13 @@ export function UniversalKnowledgeUniverseStudio({
                   </div>
                 </div>
 
-                {/* Big Circular Rangoli Mandala + Bonam Pongal Pot */}
                 <div className="flex items-center justify-center gap-4 z-10">
                   <svg className="w-20 h-20" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="48" fill="#fef3c7" stroke="#f59e0b" strokeWidth="2.5" />
                     <circle cx="50" cy="50" r="38" fill="#fbcfe8" stroke="#ec4899" strokeWidth="2" strokeDasharray="3 3" />
                     <circle cx="50" cy="50" r="28" fill="#fed7aa" stroke="#ea580c" strokeWidth="2" />
                     <circle cx="50" cy="50" r="18" fill="#bbf7d0" stroke="#16a34a" strokeWidth="2" />
-                    <circle cx="50" cy="50" r="7" fill="#f43f5e" />
+                    <circle cx="50" cy="7" fill="#f43f5e" />
                     {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
                       <circle
                         key={i}
@@ -467,7 +268,6 @@ export function UniversalKnowledgeUniverseStudio({
                       />
                     ))}
                   </svg>
-
                   <div className="flex flex-col items-center">
                     <span className="text-3xl leading-none">🏺</span>
                     <span className="text-[9.5px] font-bold text-amber-900 mt-1">Bonam</span>
@@ -476,7 +276,6 @@ export function UniversalKnowledgeUniverseStudio({
               </div>
             </div>
 
-            {/* View Full Page Button */}
             <button
               onClick={() => setShowFullPageModal(true)}
               className="w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors shadow-md"
@@ -484,12 +283,11 @@ export function UniversalKnowledgeUniverseStudio({
               <BookOpen className="w-4 h-4 text-cyan-400" /> View Full Page
             </button>
 
-            {/* Index of this chapter */}
+            {/* Chapter Index */}
             <div className="flex flex-col gap-2 pt-1">
               <span className="text-xs font-black uppercase tracking-wider text-slate-400">
                 INDEX OF THIS CHAPTER
               </span>
-
               <div className="flex flex-col gap-1.5">
                 {[
                   { id: 1, title: '1. Festivals of India', active: true },
@@ -510,13 +308,12 @@ export function UniversalKnowledgeUniverseStudio({
                     {item.active || activeChapterIndex === item.id ? (
                       <span className="w-2 h-2 rounded-full bg-purple-400 shadow-sm shadow-purple-400" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-500" />
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
                     )}
                   </button>
                 ))}
               </div>
 
-              {/* View Full Chapter Index */}
               <button
                 onClick={() => setShowIndexModal(true)}
                 className="mt-1 w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center justify-center gap-2 transition-colors"
@@ -527,9 +324,7 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
         </aside>
 
-        {/* ------------------------------------------------------------------ */}
-        {/* EXPANSIVE TEACHER GRAPHICAL CHALKBOARD STAGE                       */}
-        {/* ------------------------------------------------------------------ */}
+        {/* CENTER & RIGHT: DYNAMIC TEACHING RUNTIME STAGE */}
         <main className="flex-1 flex flex-col p-6 bg-[#070b14] overflow-y-auto gap-4 custom-scrollbar">
           {/* Top Row: Engine Analysis & Stats */}
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -546,7 +341,6 @@ export function UniversalKnowledgeUniverseStudio({
               </span>
             </div>
 
-            {/* 4 Stat Badges */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs shadow-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
@@ -574,11 +368,11 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
           </div>
 
-          {/* Second Row: Teaching Depth & Style */}
+          {/* Second Row: Teaching Depth */}
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <span className="text-xs font-black uppercase tracking-wider text-slate-400 mr-1">
-                TEACHING DEPTH / LEVEL
+                TEACHING DEPTH
               </span>
 
               {[
@@ -603,24 +397,20 @@ export function UniversalKnowledgeUniverseStudio({
               ))}
             </div>
 
-            {/* Teaching Style Dropdown */}
-            <div className="flex items-center gap-2.5 text-xs">
-              <span className="text-xs text-slate-400 font-medium">Teaching Style</span>
-              <div className="px-4 py-2 rounded-xl bg-[#0d1424] border border-slate-700/80 text-xs font-bold text-white flex items-center gap-2 cursor-pointer hover:border-slate-600 shadow-sm">
-                <span>Graphical Board</span>
-                <ChevronDown className="w-4 h-4 text-slate-400" />
-              </div>
-            </div>
+            <Link
+              href="/learn"
+              className="px-4 py-2 rounded-xl bg-[#0d1424] border border-slate-700/80 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Chapters
+            </Link>
           </div>
 
           {/* ================================================================ */}
-          {/* THE EXPANSIVE GRAPHICAL CHALKBOARD (READABLE TYPOGRAPHY)         */}
+          {/* THE TEACHING CHALKBOARD (DYNAMIC BASED ON DEPTH & INTERRUPTIONS) */}
           {/* ================================================================ */}
           <div className="relative rounded-3xl bg-[#08221b] border-[8px] border-[#4a3419] shadow-2xl p-8 overflow-hidden text-emerald-100 flex flex-col justify-between flex-1 min-h-[540px]">
-            {/* Wooden frame inner gold line */}
             <div className="absolute inset-2.5 border-2 border-[#836336]/60 rounded-2xl pointer-events-none" />
 
-            {/* Sound Icon in Top Right */}
             <button
               onClick={() => setAudioPlaying(!audioPlaying)}
               className={`absolute right-6 top-6 p-3 rounded-xl backdrop-blur-md transition z-20 ${
@@ -631,7 +421,30 @@ export function UniversalKnowledgeUniverseStudio({
               <Volume2 className="w-5 h-5" />
             </button>
 
-            {/* Chalkboard Titles */}
+            {/* Socratic Interruption Banner if student/teacher asked a question */}
+            {interruptionQuery && (
+              <div className="z-20 mb-4 p-4 rounded-2xl bg-amber-950/80 border-2 border-amber-500/60 text-amber-100 flex items-center justify-between shadow-2xl animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  <MessageCircleQuestion className="w-6 h-6 text-amber-300 shrink-0" />
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                      EKAGURU EXPLANATION EXPANSION (PAUSED LESSON)
+                    </span>
+                    <p className="text-xs font-bold">"{interruptionQuery}"</p>
+                    <p className="text-[11px] text-amber-200/90 mt-0.5">
+                      Roots absorb water and minerals from soil, while leaves capture sunlight and CO2 to create glucose.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setInterruptionQuery(null)}
+                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-black text-xs shrink-0"
+                >
+                  Resume Lesson ➔
+                </button>
+              </div>
+            )}
+
             <div className="text-center z-10 mb-6">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-widest text-[#f5d061] font-mono drop-shadow-md">
                 SANKRANTHI – THE HARVEST FESTIVAL
@@ -641,9 +454,8 @@ export function UniversalKnowledgeUniverseStudio({
               </p>
             </div>
 
-            {/* 5-Step Visual Flowchart */}
+            {/* 5-Step Flowchart */}
             <div className="grid grid-cols-5 gap-6 items-center text-center z-10 my-4">
-              {/* STEP 1: SUN */}
               <div className="flex flex-col items-center group">
                 <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <svg className="w-22 h-22" viewBox="0 0 100 100">
@@ -668,7 +480,6 @@ export function UniversalKnowledgeUniverseStudio({
                 </p>
               </div>
 
-              {/* STEP 2: PLANTS */}
               <div className="flex flex-col items-center group relative">
                 <span className="absolute -left-6 top-10 text-purple-300 font-bold text-2xl hidden md:block">➔</span>
                 <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -686,7 +497,6 @@ export function UniversalKnowledgeUniverseStudio({
                 </p>
               </div>
 
-              {/* STEP 3: CROPS */}
               <div className="flex flex-col items-center group relative">
                 <span className="absolute -left-6 top-10 text-amber-300 font-bold text-2xl hidden md:block">➔</span>
                 <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -708,18 +518,15 @@ export function UniversalKnowledgeUniverseStudio({
                 </p>
               </div>
 
-              {/* STEP 4: HARVEST */}
               <div className="flex flex-col items-center group relative">
                 <span className="absolute -left-6 top-10 text-cyan-300 font-bold text-2xl hidden md:block">➔</span>
                 <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <svg className="w-24 h-22" viewBox="0 0 130 100">
-                    {/* Farmer */}
                     <circle cx="35" cy="28" r="10" fill="#fbcfe8" />
                     <path d="M20,25 Q35,12 50,25" fill="#ca8a04" />
                     <path d="M35,38 L35,68 M35,46 L16,58 M35,46 L54,58" stroke="#0284c7" strokeWidth="4" />
                     <line x1="35" y1="68" x2="24" y2="88" stroke="#0284c7" strokeWidth="4" />
                     <line x1="35" y1="68" x2="46" y2="88" stroke="#0284c7" strokeWidth="4" />
-                    {/* White Oxen Pair */}
                     <ellipse cx="82" cy="55" rx="18" ry="12" fill="#f8fafc" stroke="#64748b" strokeWidth="2.5" />
                     <circle cx="102" cy="45" r="9.5" fill="#f8fafc" stroke="#64748b" strokeWidth="2.5" />
                     <line x1="74" y1="67" x2="74" y2="86" stroke="#64748b" strokeWidth="3.5" />
@@ -733,7 +540,6 @@ export function UniversalKnowledgeUniverseStudio({
                 </p>
               </div>
 
-              {/* STEP 5: CELEBRATION */}
               <div className="flex flex-col items-center group relative">
                 <span className="absolute -left-6 top-10 text-pink-300 font-bold text-2xl hidden md:block">➔</span>
                 <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -754,9 +560,8 @@ export function UniversalKnowledgeUniverseStudio({
               </div>
             </div>
 
-            {/* Chalkboard Sub-Panels (Bottom Row) */}
+            {/* Chalkboard Sub-Panels */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5 z-10 mt-6 pt-5 border-t-2 border-emerald-800/70">
-              {/* Left Sub-Box: HOW PLANTS MAKE FOOD? */}
               <div className="md:col-span-7 bg-[#051912]/95 border-2 border-emerald-600/50 rounded-2xl p-4 flex flex-col gap-2.5 shadow-inner">
                 <span className="text-sm font-black text-amber-300 font-mono tracking-wider text-center">
                   HOW PLANTS MAKE FOOD?
@@ -790,7 +595,6 @@ export function UniversalKnowledgeUniverseStudio({
                 </div>
               </div>
 
-              {/* Right Sub-Box: KEY IDEA */}
               <div className="md:col-span-5 bg-[#051912]/95 border-2 border-emerald-600/50 rounded-2xl p-4 flex flex-col justify-center gap-2 shadow-inner">
                 <span className="text-sm font-black text-amber-300 font-mono tracking-wider flex items-center gap-2">
                   💡 KEY IDEA
@@ -825,63 +629,73 @@ export function UniversalKnowledgeUniverseStudio({
             ))}
           </div>
 
-          {/* ASK EKAGURU ANYTHING AI+ PANEL */}
+          {/* ASK EKAGURU (CONTEXT-AWARE QUESTIONING WITH INTERRUPTION) */}
           <div className="bg-[#0b1222] border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-lg">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span className="text-sm font-black text-white">Ask EKAGURU Anything</span>
+              <span className="text-sm font-black text-white">Ask EKAGURU</span>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                AI+
+                AI
               </span>
             </div>
 
             <div className="relative flex items-center gap-3">
               <input
                 type="text"
-                placeholder="Ask a question about this topic..."
+                placeholder="Ask any question in between — EKAGURU will expand without losing your place..."
                 value={askInput}
                 onChange={(e) => setAskInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && askInput.trim()) {
+                    handleTriggerInterruption(askInput.trim());
+                    setAskInput('');
+                  }
+                }}
                 className="flex-1 pl-4 pr-12 py-3 bg-[#080d19] border border-slate-700/80 rounded-xl text-xs md:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 shadow-inner"
               />
               <button className="absolute right-28 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white">
                 <Mic className="w-5 h-5" />
               </button>
-              <button className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 shadow-md shadow-purple-600/30">
+              <button
+                onClick={() => {
+                  if (askInput.trim()) {
+                    handleTriggerInterruption(askInput.trim());
+                    setAskInput('');
+                  }
+                }}
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 shadow-md shadow-purple-600/30"
+              >
                 <Sparkles className="w-4 h-4" /> Ask
               </button>
             </div>
 
-            {/* Quick Prompt Suggestions */}
+            {/* Quick Socratic Prompt Suggestions (Click to trigger interruption) */}
             <div className="flex items-center gap-2.5 overflow-x-auto text-xs pt-1">
               {[
+                "Why can't plants eat the soil?",
                 'Why do farmers thank the Sun?',
                 'How does photosynthesis work?',
-                'What is rangoli?',
-                'Why is harvest important?',
+                'Why does the farmer wait until grain is mature?',
               ].map((prompt, i) => (
                 <button
                   key={i}
-                  onClick={() => setAskInput(prompt)}
-                  className="px-4 py-2 rounded-full bg-[#080d19] border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 whitespace-nowrap transition-colors text-xs font-medium"
+                  onClick={() => handleTriggerInterruption(prompt)}
+                  className="px-4 py-2 rounded-full bg-[#080d19] border border-slate-800 text-slate-300 hover:text-white hover:border-purple-500/50 whitespace-nowrap transition-colors text-xs font-medium"
                 >
                   {prompt}
                 </button>
               ))}
-              <button className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white">
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </main>
       </div>
 
       {/* ==================================================================== */}
-      {/* 3. BOTTOM PROGRESSION & NAVIGATION BAR                               */}
+      {/* 3. BOTTOM PROGRESSION & EVIDENCE CAPTURE BAR                         */}
       {/* ==================================================================== */}
       <footer className="h-14 px-6 bg-[#080d19] border-t border-slate-800/80 flex items-center justify-between z-30 shrink-0">
-        {/* Left: Source Verified Notice */}
         <div className="flex items-center gap-2.5">
           <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Source Verified
@@ -891,7 +705,6 @@ export function UniversalKnowledgeUniverseStudio({
           </span>
         </div>
 
-        {/* Center: Mastery Progress Indicator */}
         <div className="flex items-center gap-3.5">
           <div className="text-left hidden md:block">
             <div className="flex items-center gap-2.5">
@@ -905,15 +718,17 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
 
           <button className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">
-            View Details
+            View Evidence
           </button>
         </div>
 
-        {/* Right: Back & Next Buttons */}
         <div className="flex items-center gap-3">
-          <button className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-300 flex items-center gap-2 transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to Chapter
-          </button>
+          <Link
+            href="/learn"
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-300 flex items-center gap-2 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Chapters
+          </Link>
 
           <button className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all">
             Continue to Next Lesson <ArrowRight className="w-4 h-4" />
@@ -921,250 +736,7 @@ export function UniversalKnowledgeUniverseStudio({
         </div>
       </footer>
 
-      {/* ==================================================================== */}
-      {/* 4. LEARN & BOOK UPLOAD / SELECTION MODAL                             */}
-      {/* ==================================================================== */}
-      {showLearnModal && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0b1120] border border-slate-700 rounded-3xl max-w-4xl w-full p-6 shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
-                  <Library className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-white flex items-center gap-2">
-                    Textbook Library & Ingestion Center
-                  </h3>
-                  <p className="text-xs text-slate-400">Choose an existing book from your list or upload a new textbook</p>
-                </div>
-              </div>
-
-              {/* Close Button */}
-              <button
-                onClick={() => setShowLearnModal(false)}
-                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Tab Selection */}
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-              <button
-                onClick={() => setLearnTab('my_books')}
-                className={`px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition ${
-                  learnTab === 'my_books'
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <Book className="w-4 h-4" /> My Existing Books ({booksList.length})
-              </button>
-
-              <button
-                onClick={() => setLearnTab('upload_new')}
-                className={`px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition ${
-                  learnTab === 'upload_new'
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <UploadCloud className="w-4 h-4" /> Upload New Textbook
-              </button>
-            </div>
-
-            {/* TAB 1: MY EXISTING BOOKS */}
-            {learnTab === 'my_books' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto max-h-[55vh] p-1 custom-scrollbar">
-                {booksList.map((book) => (
-                  <div
-                    key={book.id}
-                    onClick={() => handleBookSelect(book)}
-                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex gap-3.5 group hover:scale-[1.01] ${
-                      selectedBook.id === book.id
-                        ? 'bg-purple-950/40 border-purple-500/60 shadow-lg shadow-purple-950/40'
-                        : 'bg-[#0e1628] border-slate-800/80 hover:border-slate-700'
-                    }`}
-                  >
-                    {/* Book Cover Thumbnail */}
-                    <div
-                      className={`w-20 h-28 rounded-xl bg-gradient-to-br ${book.coverBg} p-2 flex flex-col justify-between text-white shadow-md shrink-0`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-black uppercase tracking-wider opacity-80">{book.subject.slice(0, 4)}</span>
-                        <Book className="w-3.5 h-3.5 opacity-80" />
-                      </div>
-                      <div className="text-center">
-                        <span className="text-[11px] font-black leading-tight block drop-shadow-sm">{book.title.split(':')[0]}</span>
-                        <span className="text-[8px] opacity-75 font-semibold">{book.grade}</span>
-                      </div>
-                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white" style={{ width: `${book.mastery}%` }} />
-                      </div>
-                    </div>
-
-                    {/* Book Details */}
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                            {book.subject} • {book.grade}
-                          </span>
-                          <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Ready
-                          </span>
-                        </div>
-
-                        <h4 className="text-sm font-black text-white mt-1.5 group-hover:text-purple-200 transition">
-                          {book.title}
-                        </h4>
-                        <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-relaxed font-serif">
-                          {book.pageSnippet}
-                        </p>
-                      </div>
-
-                      {/* Stats & Action */}
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 mt-2">
-                        <div className="flex items-center gap-2.5 text-[10px] text-slate-400">
-                          <span>{book.chapters} Chapters</span>
-                          <span>•</span>
-                          <span>{book.concepts} Concepts</span>
-                          <span>•</span>
-                          <span className="text-emerald-400 font-bold">{book.mastery}% Mastered</span>
-                        </div>
-
-                        <button className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-sm">
-                          Open <ArrowRight className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* TAB 2: UPLOAD NEW TEXTBOOK */}
-            {learnTab === 'upload_new' && (
-              <div className="flex flex-col gap-4 overflow-y-auto max-h-[55vh] p-1 custom-scrollbar">
-                {uploadSuccess ? (
-                  <div className="p-8 rounded-2xl bg-emerald-950/40 border border-emerald-500/50 flex flex-col items-center justify-center text-center gap-3">
-                    <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
-                      <Check className="w-8 h-8" />
-                    </div>
-                    <h4 className="text-lg font-black text-white">Textbook Uploaded & Ingested Successfully!</h4>
-                    <p className="text-xs text-slate-300 max-w-md">
-                      The textbook knowledge universe has been extracted and grounded to source pages. Loading your book into the Classroom Studio...
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Drag and Drop Zone */}
-                    <div
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={handleFileDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-purple-500/40 hover:border-purple-400 rounded-2xl p-8 bg-[#0e1628]/60 hover:bg-purple-950/20 flex flex-col items-center justify-center text-center cursor-pointer transition group"
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdf,.epub,.txt"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                      <div className="w-14 h-14 rounded-2xl bg-purple-600/20 group-hover:bg-purple-600/30 text-purple-400 flex items-center justify-center mb-3 transition">
-                        <FileUp className="w-7 h-7" />
-                      </div>
-                      <h4 className="text-sm font-black text-white">
-                        {uploadFile ? uploadFile.name : 'Click to browse or drag & drop your textbook PDF'}
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {uploadFile ? `${(uploadFile.size / (1024 * 1024)).toFixed(2)} MB • Ready for processing` : 'Supports NCERT, CBSE, State Board and ICSE textbooks (PDF up to 500MB)'}
-                      </p>
-                    </div>
-
-                    {/* Form Fields */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-300 block mb-1">Textbook Title</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Science Class 5 - Nature"
-                          value={uploadTitle}
-                          onChange={(e) => setUploadTitle(e.target.value)}
-                          className="w-full px-3 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-300 block mb-1">Subject</label>
-                        <select
-                          value={uploadSubject}
-                          onChange={(e) => setUploadSubject(e.target.value)}
-                          className="w-full px-3 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
-                        >
-                          <option value="Science">General Science</option>
-                          <option value="Mathematics">Mathematics</option>
-                          <option value="Environmental Studies">Environmental Studies</option>
-                          <option value="Social Studies">Social Studies / Heritage</option>
-                          <option value="English">English Literature</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-300 block mb-1">Grade / Class</label>
-                        <select
-                          value={uploadGrade}
-                          onChange={(e) => setUploadGrade(e.target.value)}
-                          className="w-full px-3 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
-                        >
-                          <option value="Class 3">Class 3</option>
-                          <option value="Class 4">Class 4</option>
-                          <option value="Class 5">Class 5</option>
-                          <option value="Class 6">Class 6</option>
-                          <option value="Class 7">Class 7</option>
-                          <option value="Class 8">Class 8</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Submit Button */}
-                    <div className="flex items-center justify-end gap-3 pt-2">
-                      <button
-                        onClick={() => setLearnTab('my_books')}
-                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
-                      >
-                        Cancel
-                      </button>
-
-                      <button
-                        onClick={handleStartUpload}
-                        disabled={isUploading}
-                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-600/30 disabled:opacity-50"
-                      >
-                        {isUploading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Ingesting & Processing Textbook...
-                          </>
-                        ) : (
-                          <>
-                            <UploadCloud className="w-4 h-4" /> Start AI Knowledge Ingestion
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Full Page Textbook Modal */}
+      {/* Full Page Modal */}
       {showFullPageModal && (
         <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-[#0d1424] border border-slate-700 rounded-2xl max-w-xl w-full p-5 shadow-2xl flex flex-col gap-3">
@@ -1187,7 +759,7 @@ export function UniversalKnowledgeUniverseStudio({
         </div>
       )}
 
-      {/* Full Chapter Index Modal */}
+      {/* Chapter Index Modal */}
       {showIndexModal && (
         <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-[#0d1424] border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-3">
