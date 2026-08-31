@@ -59,7 +59,7 @@ export function UniversalKnowledgeUniverseStudio({
       {/* ==================================================================== */}
       <header className="h-14 px-6 bg-[#0a0f1d] border-b border-slate-800/80 flex items-center justify-between z-30 shrink-0">
         {/* Left: Hamburger & Brand */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <button className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition">
             <Menu className="w-5 h-5" />
           </button>
@@ -69,57 +69,57 @@ export function UniversalKnowledgeUniverseStudio({
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-black tracking-wider text-white flex items-center gap-1 leading-tight">
+              <h1 className="text-base font-black tracking-wider text-white flex items-center gap-1 leading-tight">
                 EKAGURU
               </h1>
-              <p className="text-[9px] text-slate-400 font-medium">From Textbook to Universe</p>
+              <p className="text-[10px] text-slate-400 font-medium">From Textbook to Universe</p>
             </div>
           </div>
         </div>
 
         {/* Center: Search input */}
-        <div className="relative w-96 hidden md:block">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <div className="relative w-[420px] hidden md:block">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder='Ask anything about "Sankranthi"...'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-12 py-1.5 bg-[#0d1424] border border-slate-700/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
+            className="w-full pl-10 pr-12 py-2 bg-[#0d1424] border border-slate-700/60 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
             ⌘ K
           </span>
         </div>
 
         {/* Right: Badges & Profile */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           {/* Learning Streak */}
-          <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-sm">
             <Flame className="w-4 h-4 text-amber-400" />
             <div className="text-left">
-              <span className="text-[7.5px] uppercase tracking-wider text-amber-400/80 font-bold block leading-none">Learning Streak</span>
+              <span className="text-[8px] uppercase tracking-wider text-amber-400/90 font-bold block leading-none">Learning Streak</span>
               <span className="text-xs font-black text-amber-300">14 days</span>
             </div>
           </div>
 
           {/* Explorer Level */}
-          <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-purple-500/10 border border-purple-500/20 shadow-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 shadow-sm">
             <Gem className="w-4 h-4 text-purple-400" />
             <div className="text-left">
-              <span className="text-[7.5px] uppercase tracking-wider text-purple-400/80 font-bold block leading-none">Explorer Level</span>
+              <span className="text-[8px] uppercase tracking-wider text-purple-400/90 font-bold block leading-none">Explorer Level</span>
               <span className="text-xs font-black text-purple-300">Young Scientist</span>
             </div>
           </div>
 
           {/* User Profile */}
-          <div className="flex items-center gap-2 pl-3 border-l border-slate-800/80">
+          <div className="flex items-center gap-2.5 pl-3.5 border-l border-slate-800/80">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-bold text-slate-950 text-xs shadow-md ring-1 ring-emerald-300/30">
               A
             </div>
             <div className="text-left leading-tight hidden sm:block">
               <span className="text-xs font-bold text-white block">Aarav</span>
-              <span className="text-[9px] text-slate-400">Class 5</span>
+              <span className="text-[10px] text-slate-400">Class 5</span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
           </div>
@@ -140,7 +140,7 @@ export function UniversalKnowledgeUniverseStudio({
               }`}
             >
               <Home className="w-4 h-4" />
-              <span className="text-[8px] font-medium">Home</span>
+              <span className="text-[9px] font-medium">Home</span>
             </button>
 
             <button
@@ -150,7 +150,7 @@ export function UniversalKnowledgeUniverseStudio({
               }`}
             >
               <BookOpen className="w-4 h-4" />
-              <span className="text-[8px] font-medium">Learn</span>
+              <span className="text-[9px] font-medium">Learn</span>
             </button>
 
             <button
@@ -160,7 +160,7 @@ export function UniversalKnowledgeUniverseStudio({
               }`}
             >
               <FileText className="w-4 h-4" />
-              <span className="text-[8px] font-medium">Notebook</span>
+              <span className="text-[9px] font-medium">Notebook</span>
             </button>
 
             <button
@@ -170,7 +170,7 @@ export function UniversalKnowledgeUniverseStudio({
               }`}
             >
               <TrendingUp className="w-4 h-4" />
-              <span className="text-[8px] font-medium">Progress</span>
+              <span className="text-[9px] font-medium">Progress</span>
             </button>
           </div>
 
@@ -182,7 +182,7 @@ export function UniversalKnowledgeUniverseStudio({
               }`}
             >
               <Settings className="w-4 h-4" />
-              <span className="text-[8px] font-medium">Settings</span>
+              <span className="text-[9px] font-medium">Settings</span>
             </button>
 
             <button className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60">
@@ -196,26 +196,26 @@ export function UniversalKnowledgeUniverseStudio({
         </nav>
 
         {/* LEFT COLUMN: FROM YOUR TEXTBOOK + CHAPTER INDEX */}
-        <aside className="w-[300px] xl:w-[320px] bg-[#080d19] border-r border-slate-800/80 p-4 flex flex-col justify-between overflow-y-auto shrink-0 gap-3.5 custom-scrollbar">
-          <div className="flex flex-col gap-3.5">
+        <aside className="w-[320px] xl:w-[340px] bg-[#080d19] border-r border-slate-800/80 p-4 flex flex-col justify-between overflow-y-auto shrink-0 gap-4 custom-scrollbar">
+          <div className="flex flex-col gap-4">
             {/* Header & Source Verified Pill */}
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11.5px] font-black uppercase tracking-wider text-white block">
+                <span className="text-xs font-black uppercase tracking-wider text-white block">
                   FROM YOUR TEXTBOOK
                 </span>
-                <span className="text-[10px] text-slate-400">Page 2 • Sankranthi</span>
+                <span className="text-xs text-slate-400">Page 2 • Sankranthi</span>
               </div>
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Source Verified
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Source Verified
               </span>
             </div>
 
             {/* High-Fidelity Textbook Card */}
-            <div className="rounded-xl overflow-hidden border border-slate-700/80 bg-[#fffdfa] text-slate-900 p-4 shadow-2xl relative">
+            <div className="rounded-2xl overflow-hidden border border-slate-700/80 bg-[#fffdfa] text-slate-900 p-4 shadow-2xl relative flex flex-col gap-2.5">
               {/* Blue circular page badge + Flying Kite */}
-              <div className="flex items-center justify-between mb-2">
-                <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-[11px] flex items-center justify-center shadow">
+              <div className="flex items-center justify-between">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow">
                   2
                 </span>
                 {/* SVG Kite with Tail */}
@@ -229,47 +229,47 @@ export function UniversalKnowledgeUniverseStudio({
                 </svg>
               </div>
 
-              <h3 className="text-sm font-black text-rose-800 mb-2 font-serif">
+              <h3 className="text-base font-black text-rose-800 font-serif leading-tight">
                 Festivals of India
               </h3>
 
-              <p className="text-[9.5px] leading-relaxed text-slate-700 font-serif mb-2.5">
+              <p className="text-xs leading-relaxed text-slate-800 font-serif">
                 India is a land of festivals. We celebrate different kinds of festivals in the country.
               </p>
-              <p className="text-[9.5px] leading-relaxed text-slate-700 font-serif mb-3">
+              <p className="text-xs leading-relaxed text-slate-800 font-serif">
                 <strong>Sankranthi</strong> is a popular harvest festival. Many people make colourful <em>muggulu (rangoli)</em> at the entrance of their houses. Many people also fly kites on Sankranthi. It is celebrated in many parts of India.
               </p>
 
               {/* Family & Rangoli Illustrated Scene */}
-              <div className="w-full bg-gradient-to-b from-amber-50 to-orange-100/70 rounded-xl p-2.5 border border-amber-200/90 flex flex-col items-center shadow-inner relative overflow-hidden">
+              <div className="w-full bg-gradient-to-b from-amber-50 to-orange-100/80 rounded-xl p-3 border border-amber-200 flex flex-col items-center shadow-inner relative overflow-hidden mt-1">
                 {/* Family Row */}
-                <div className="flex items-end justify-center gap-2 mb-1.5 z-10">
+                <div className="flex items-end justify-center gap-3 mb-2 z-10">
                   <div className="text-center">
-                    <span className="text-xl block leading-none">👵</span>
-                    <span className="text-[7.5px] text-amber-950 font-bold">Dadi</span>
+                    <span className="text-2xl block leading-none">👵</span>
+                    <span className="text-[9px] text-amber-950 font-bold">Dadi</span>
                   </div>
                   <div className="text-center">
-                    <span className="text-2xl block leading-none">👩</span>
-                    <span className="text-[7.5px] text-amber-950 font-bold">Amma</span>
+                    <span className="text-3xl block leading-none">👩</span>
+                    <span className="text-[9px] text-amber-950 font-bold">Amma</span>
                   </div>
                   <div className="text-center">
-                    <span className="text-lg block leading-none">👧</span>
-                    <span className="text-[7.5px] text-amber-950 font-bold">Anu</span>
+                    <span className="text-xl block leading-none">👧</span>
+                    <span className="text-[9px] text-amber-950 font-bold">Anu</span>
                   </div>
                   <div className="text-center">
-                    <span className="text-2xl block leading-none">👨</span>
-                    <span className="text-[7.5px] text-amber-950 font-bold">Appa</span>
+                    <span className="text-3xl block leading-none">👨</span>
+                    <span className="text-[9px] text-amber-950 font-bold">Appa</span>
                   </div>
                 </div>
 
                 {/* Big Circular Rangoli Mandala + Bonam Pongal Pot */}
-                <div className="flex items-center justify-center gap-3 z-10">
+                <div className="flex items-center justify-center gap-4 z-10">
                   <svg className="w-20 h-20" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="48" fill="#fef3c7" stroke="#f59e0b" strokeWidth="2.5" />
                     <circle cx="50" cy="50" r="38" fill="#fbcfe8" stroke="#ec4899" strokeWidth="2" strokeDasharray="3 3" />
                     <circle cx="50" cy="50" r="28" fill="#fed7aa" stroke="#ea580c" strokeWidth="2" />
                     <circle cx="50" cy="50" r="18" fill="#bbf7d0" stroke="#16a34a" strokeWidth="2" />
-                    <circle cx="50" cy="7" fill="#f43f5e" />
+                    <circle cx="50" cy="50" r="7" fill="#f43f5e" />
                     {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
                       <circle
                         key={i}
@@ -282,8 +282,8 @@ export function UniversalKnowledgeUniverseStudio({
                   </svg>
 
                   <div className="flex flex-col items-center">
-                    <span className="text-2xl leading-none">🏺</span>
-                    <span className="text-[8px] font-bold text-amber-900 mt-0.5">Bonam</span>
+                    <span className="text-3xl leading-none">🏺</span>
+                    <span className="text-[9.5px] font-bold text-amber-900 mt-1">Bonam</span>
                   </div>
                 </div>
               </div>
@@ -292,18 +292,18 @@ export function UniversalKnowledgeUniverseStudio({
             {/* View Full Page Button */}
             <button
               onClick={() => setShowFullPageModal(true)}
-              className="w-full py-2 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5 transition-colors shadow-md"
+              className="w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors shadow-md"
             >
               <BookOpen className="w-4 h-4 text-cyan-400" /> View Full Page
             </button>
 
             {/* Index of this chapter */}
-            <div className="flex flex-col gap-1.5 pt-1">
-              <span className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">
+            <div className="flex flex-col gap-2 pt-1">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-400">
                 INDEX OF THIS CHAPTER
               </span>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1.5">
                 {[
                   { id: 1, title: '1. Festivals of India', active: true },
                   { id: 2, title: '2. Harvest Festivals in India', hasSub: true },
@@ -313,7 +313,7 @@ export function UniversalKnowledgeUniverseStudio({
                   <button
                     key={item.id}
                     onClick={() => setActiveChapterIndex(item.id)}
-                    className={`w-full px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between transition-all ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-left text-xs font-medium flex items-center justify-between transition-all ${
                       item.active || activeChapterIndex === item.id
                         ? 'bg-purple-950/60 border border-purple-500/50 text-purple-200 font-bold shadow-md'
                         : 'text-slate-300 hover:bg-slate-800/60 hover:text-white border border-transparent'
@@ -323,7 +323,7 @@ export function UniversalKnowledgeUniverseStudio({
                     {item.active || activeChapterIndex === item.id ? (
                       <span className="w-2 h-2 rounded-full bg-purple-400 shadow-sm shadow-purple-400" />
                     ) : (
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                      <ChevronDown className="w-4 h-4 text-slate-500" />
                     )}
                   </button>
                 ))}
@@ -332,9 +332,9 @@ export function UniversalKnowledgeUniverseStudio({
               {/* View Full Chapter Index */}
               <button
                 onClick={() => setShowIndexModal(true)}
-                className="mt-1 w-full py-1.5 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700/80 text-[10.5px] font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-colors"
+                className="mt-1 w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center justify-center gap-2 transition-colors"
               >
-                <Layers className="w-3.5 h-3.5 text-purple-400" /> View Full Chapter Index
+                <Layers className="w-4 h-4 text-purple-400" /> View Full Chapter Index
               </button>
             </div>
           </div>
@@ -343,13 +343,13 @@ export function UniversalKnowledgeUniverseStudio({
         {/* ------------------------------------------------------------------ */}
         {/* EXPANSIVE TEACHER GRAPHICAL CHALKBOARD STAGE                       */}
         {/* ------------------------------------------------------------------ */}
-        <main className="flex-1 flex flex-col p-5 bg-[#070b14] overflow-y-auto gap-4 custom-scrollbar">
+        <main className="flex-1 flex flex-col p-6 bg-[#070b14] overflow-y-auto gap-4 custom-scrollbar">
           {/* Top Row: Engine Analysis & Stats */}
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <span className="text-sm font-black text-white tracking-wide flex items-center gap-2">
                 EKAGURU ENGINE ANALYSIS
-                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
                   AI
                 </span>
               </span>
@@ -360,28 +360,28 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
 
             {/* 4 Stat Badges */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs shadow-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span className="text-slate-400 font-bold">Concepts</span>
+                <span className="text-slate-300 font-bold">Concepts</span>
                 <span className="text-emerald-300 font-black text-sm">12</span>
               </div>
 
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-xs shadow-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
-                <span className="text-slate-400 font-bold">Key Ideas</span>
+                <span className="text-slate-300 font-bold">Key Ideas</span>
                 <span className="text-blue-300 font-black text-sm">6</span>
               </div>
 
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs shadow-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-purple-400" />
-                <span className="text-slate-400 font-bold">Connections</span>
+                <span className="text-slate-300 font-bold">Connections</span>
                 <span className="text-purple-300 font-black text-sm">18</span>
               </div>
 
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs shadow-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="text-slate-400 font-bold">Questions</span>
+                <span className="text-slate-300 font-bold">Questions</span>
                 <span className="text-amber-300 font-black text-sm">5</span>
               </div>
             </div>
@@ -389,7 +389,7 @@ export function UniversalKnowledgeUniverseStudio({
 
           {/* Second Row: Teaching Depth & Style */}
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <span className="text-xs font-black uppercase tracking-wider text-slate-400 mr-1">
                 TEACHING DEPTH / LEVEL
               </span>
@@ -404,14 +404,14 @@ export function UniversalKnowledgeUniverseStudio({
                 <button
                   key={lvl.id}
                   onClick={() => setActiveDepth(lvl.id as any)}
-                  className={`px-4 py-1.5 rounded-xl text-xs text-center border transition-all flex flex-col items-center ${
+                  className={`px-4 py-2 rounded-xl text-xs text-center border transition-all flex flex-col items-center ${
                     activeDepth === lvl.id
                       ? 'bg-purple-600 border-purple-400 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-purple-300'
                       : 'bg-[#0d1424] border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                   }`}
                 >
                   <span className="font-bold">{lvl.title}</span>
-                  <span className="text-[8.5px] opacity-80">{lvl.sub}</span>
+                  <span className="text-[9px] opacity-80">{lvl.sub}</span>
                 </button>
               ))}
             </div>
@@ -419,24 +419,24 @@ export function UniversalKnowledgeUniverseStudio({
             {/* Teaching Style Dropdown */}
             <div className="flex items-center gap-2.5 text-xs">
               <span className="text-xs text-slate-400 font-medium">Teaching Style</span>
-              <div className="px-3.5 py-2 rounded-xl bg-[#0d1424] border border-slate-700/80 text-xs font-bold text-white flex items-center gap-2 cursor-pointer hover:border-slate-600 shadow-sm">
+              <div className="px-4 py-2 rounded-xl bg-[#0d1424] border border-slate-700/80 text-xs font-bold text-white flex items-center gap-2 cursor-pointer hover:border-slate-600 shadow-sm">
                 <span>Graphical Board</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronDown className="w-4 h-4 text-slate-400" />
               </div>
             </div>
           </div>
 
           {/* ================================================================ */}
-          {/* THE EXPANSIVE GRAPHICAL CHALKBOARD                               */}
+          {/* THE EXPANSIVE GRAPHICAL CHALKBOARD (READABLE TYPOGRAPHY)         */}
           {/* ================================================================ */}
-          <div className="relative rounded-3xl bg-[#08221b] border-[8px] border-[#4a3419] shadow-2xl p-7 md:p-9 overflow-hidden text-emerald-100 flex flex-col justify-between flex-1 min-h-[500px]">
+          <div className="relative rounded-3xl bg-[#08221b] border-[8px] border-[#4a3419] shadow-2xl p-8 overflow-hidden text-emerald-100 flex flex-col justify-between flex-1 min-h-[540px]">
             {/* Wooden frame inner gold line */}
-            <div className="absolute inset-2 border-2 border-[#836336]/60 rounded-2xl pointer-events-none" />
+            <div className="absolute inset-2.5 border-2 border-[#836336]/60 rounded-2xl pointer-events-none" />
 
             {/* Sound Icon in Top Right */}
             <button
               onClick={() => setAudioPlaying(!audioPlaying)}
-              className={`absolute right-5 top-5 p-2.5 rounded-xl backdrop-blur-md transition z-20 ${
+              className={`absolute right-6 top-6 p-3 rounded-xl backdrop-blur-md transition z-20 ${
                 audioPlaying ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-300' : 'bg-slate-900/60 text-slate-300 hover:text-white'
               }`}
               title="Listen to Explanation"
@@ -445,11 +445,11 @@ export function UniversalKnowledgeUniverseStudio({
             </button>
 
             {/* Chalkboard Titles */}
-            <div className="text-center z-10 mb-5">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-widest text-[#f5d061] font-mono drop-shadow-md">
+            <div className="text-center z-10 mb-6">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-widest text-[#f5d061] font-mono drop-shadow-md">
                 SANKRANTHI – THE HARVEST FESTIVAL
               </h2>
-              <p className="text-sm md:text-base font-serif text-[#f294b4] mt-1.5 tracking-wide">
+              <p className="text-base md:text-lg font-serif text-[#f294b4] mt-2 tracking-wide font-medium">
                 A festival of gratitude, nature and togetherness.
               </p>
             </div>
@@ -475,8 +475,8 @@ export function UniversalKnowledgeUniverseStudio({
                     ))}
                   </svg>
                 </div>
-                <h4 className="text-base font-black text-amber-300 mt-2 uppercase font-mono tracking-wider">SUN</h4>
-                <p className="text-xs text-emerald-200/90 leading-tight mt-1 font-sans font-medium">
+                <h4 className="text-lg font-black text-amber-300 mt-2 uppercase font-mono tracking-wider">SUN</h4>
+                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
                   Gives us light and energy
                 </p>
               </div>
@@ -493,8 +493,8 @@ export function UniversalKnowledgeUniverseStudio({
                     <path d="M50,18 Q40,3 50,-2 Q60,3 50,18" fill="#86efac" stroke="#15803d" strokeWidth="2.5" />
                   </svg>
                 </div>
-                <h4 className="text-base font-black text-emerald-300 mt-2 uppercase font-mono tracking-wider">PLANTS</h4>
-                <p className="text-xs text-emerald-200/90 leading-tight mt-1 font-sans font-medium">
+                <h4 className="text-lg font-black text-emerald-300 mt-2 uppercase font-mono tracking-wider">PLANTS</h4>
+                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
                   Use sunlight to make their own food (Photosynthesis)
                 </p>
               </div>
@@ -515,8 +515,8 @@ export function UniversalKnowledgeUniverseStudio({
                     ))}
                   </svg>
                 </div>
-                <h4 className="text-base font-black text-amber-300 mt-2 uppercase font-mono tracking-wider">CROPS</h4>
-                <p className="text-xs text-emerald-200/90 leading-tight mt-1 font-sans font-medium">
+                <h4 className="text-lg font-black text-amber-300 mt-2 uppercase font-mono tracking-wider">CROPS</h4>
+                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
                   Plants grow and produce grains
                 </p>
               </div>
@@ -540,8 +540,8 @@ export function UniversalKnowledgeUniverseStudio({
                     <path d="M104,40 Q112,30 108,22" stroke="#334155" strokeWidth="3" fill="none" />
                   </svg>
                 </div>
-                <h4 className="text-base font-black text-cyan-300 mt-2 uppercase font-mono tracking-wider">HARVEST</h4>
-                <p className="text-xs text-emerald-200/90 leading-tight mt-1 font-sans font-medium">
+                <h4 className="text-lg font-black text-cyan-300 mt-2 uppercase font-mono tracking-wider">HARVEST</h4>
+                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
                   Farmers harvest the mature crops
                 </p>
               </div>
@@ -560,63 +560,63 @@ export function UniversalKnowledgeUniverseStudio({
                     <path d="M23,43 Q30,36 37,43" stroke="#fef08a" strokeWidth="3" fill="none" />
                   </svg>
                 </div>
-                <h4 className="text-base font-black text-pink-300 mt-2 uppercase font-mono tracking-wider">CELEBRATION</h4>
-                <p className="text-xs text-emerald-200/90 leading-tight mt-1 font-sans font-medium">
+                <h4 className="text-lg font-black text-pink-300 mt-2 uppercase font-mono tracking-wider">CELEBRATION</h4>
+                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
                   We celebrate with joy, rangoli, kites, feasts and gratitude
                 </p>
               </div>
             </div>
 
             {/* Chalkboard Sub-Panels (Bottom Row) */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 z-10 mt-5 pt-5 border-t-2 border-emerald-800/70">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 z-10 mt-6 pt-5 border-t-2 border-emerald-800/70">
               {/* Left Sub-Box: HOW PLANTS MAKE FOOD? */}
-              <div className="md:col-span-7 bg-[#051912]/95 border-2 border-emerald-600/50 rounded-2xl p-4 flex flex-col gap-2 shadow-inner">
-                <span className="text-sm font-black text-amber-300 font-mono tracking-wide text-center">
+              <div className="md:col-span-7 bg-[#051912]/95 border-2 border-emerald-600/50 rounded-2xl p-4 flex flex-col gap-2.5 shadow-inner">
+                <span className="text-sm font-black text-amber-300 font-mono tracking-wider text-center">
                   HOW PLANTS MAKE FOOD?
                 </span>
 
-                <div className="flex items-center justify-around text-center text-xs pt-1.5">
+                <div className="flex items-center justify-around text-center text-xs pt-1">
                   <div className="flex flex-col items-center">
                     <span className="text-3xl">☀️</span>
-                    <span className="font-bold text-amber-200 mt-1">Sunlight</span>
+                    <span className="text-xs font-bold text-amber-200 mt-1">Sunlight</span>
                   </div>
-                  <span className="text-amber-400 font-bold text-lg">+</span>
+                  <span className="text-amber-400 font-black text-lg">+</span>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl">💧</span>
-                    <span className="font-bold text-cyan-200 mt-1">Water (H2O)</span>
+                    <span className="text-xs font-bold text-cyan-200 mt-1">Water (H2O)</span>
                   </div>
-                  <span className="text-amber-400 font-bold text-lg">+</span>
+                  <span className="text-amber-400 font-black text-lg">+</span>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl">☁️</span>
-                    <span className="font-bold text-slate-200 mt-1">Carbon dioxide (CO2)</span>
+                    <span className="text-xs font-bold text-slate-200 mt-1">Carbon dioxide (CO2)</span>
                   </div>
-                  <span className="text-emerald-400 font-bold text-lg">➔</span>
+                  <span className="text-emerald-400 font-black text-lg">➔</span>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl">🌿</span>
-                    <span className="font-bold text-emerald-300 mt-1">Plant (Photosynthesis)</span>
+                    <span className="text-xs font-bold text-emerald-300 mt-1">Plant (Photosynthesis)</span>
                   </div>
-                  <span className="text-amber-400 font-bold text-lg">➔</span>
+                  <span className="text-amber-400 font-black text-lg">➔</span>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl">🍞</span>
-                    <span className="font-bold text-amber-200 mt-1">Food (Glucose)</span>
+                    <span className="text-xs font-bold text-amber-200 mt-1">Food (Glucose)</span>
                   </div>
                 </div>
               </div>
 
               {/* Right Sub-Box: KEY IDEA */}
               <div className="md:col-span-5 bg-[#051912]/95 border-2 border-emerald-600/50 rounded-2xl p-4 flex flex-col justify-center gap-2 shadow-inner">
-                <span className="text-sm font-black text-amber-300 font-mono tracking-wide flex items-center gap-2">
+                <span className="text-sm font-black text-amber-300 font-mono tracking-wider flex items-center gap-2">
                   💡 KEY IDEA
                 </span>
-                <p className="text-xs md:text-[13px] leading-relaxed text-emerald-100 font-sans">
-                  Plants use sunlight energy to make their own food through <strong>photosynthesis</strong>. This food helps the plant grow. When the grain is mature, farmers harvest it.
+                <p className="text-xs md:text-sm leading-relaxed text-emerald-50 font-sans font-medium">
+                  Plants use sunlight energy to make their own food through <strong className="text-amber-300">photosynthesis</strong>. This food helps the plant grow. When the grain is mature, farmers <strong className="text-amber-300">harvest</strong> it.
                 </p>
               </div>
             </div>
           </div>
 
           {/* Action Tabs below Blackboard */}
-          <div className="flex items-center gap-2.5 overflow-x-auto pb-0.5 text-xs">
+          <div className="flex items-center gap-3 overflow-x-auto pb-0.5 text-xs">
             {[
               { id: 'teacher_explains', label: '✨ Teacher Explains' },
               { id: 'visuals', label: '🌐 Visuals & Real World' },
@@ -627,10 +627,10 @@ export function UniversalKnowledgeUniverseStudio({
               <button
                 key={tab.id}
                 onClick={() => setActiveBoardTab(tab.id as any)}
-                className={`px-4 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${
                   activeBoardTab === tab.id
                     ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                    : 'bg-[#0d1424] border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                    : 'bg-[#0d1424] border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
                 }`}
               >
                 {tab.label}
@@ -645,7 +645,7 @@ export function UniversalKnowledgeUniverseStudio({
                 <Sparkles className="w-4 h-4" />
               </div>
               <span className="text-sm font-black text-white">Ask EKAGURU Anything</span>
-              <span className="text-[9px] font-extrabold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
                 AI+
               </span>
             </div>
@@ -656,18 +656,18 @@ export function UniversalKnowledgeUniverseStudio({
                 placeholder="Ask a question about this topic..."
                 value={askInput}
                 onChange={(e) => setAskInput(e.target.value)}
-                className="flex-1 pl-4 pr-12 py-3 bg-[#080d19] border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 shadow-inner"
+                className="flex-1 pl-4 pr-12 py-3 bg-[#080d19] border border-slate-700/80 rounded-xl text-xs md:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 shadow-inner"
               />
-              <button className="absolute right-24 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white">
+              <button className="absolute right-28 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white">
                 <Mic className="w-5 h-5" />
               </button>
-              <button className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md shadow-purple-600/30">
+              <button className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 shadow-md shadow-purple-600/30">
                 <Sparkles className="w-4 h-4" /> Ask
               </button>
             </div>
 
             {/* Quick Prompt Suggestions */}
-            <div className="flex items-center gap-2.5 overflow-x-auto text-[11px] pt-1">
+            <div className="flex items-center gap-2.5 overflow-x-auto text-xs pt-1">
               {[
                 'Why do farmers thank the Sun?',
                 'How does photosynthesis work?',
@@ -677,13 +677,13 @@ export function UniversalKnowledgeUniverseStudio({
                 <button
                   key={i}
                   onClick={() => setAskInput(prompt)}
-                  className="px-3.5 py-1.5 rounded-full bg-[#080d19] border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 whitespace-nowrap transition-colors"
+                  className="px-4 py-2 rounded-full bg-[#080d19] border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 whitespace-nowrap transition-colors text-xs font-medium"
                 >
                   {prompt}
                 </button>
               ))}
-              <button className="p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white">
-                <ArrowRight className="w-3.5 h-3.5" />
+              <button className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white">
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -696,8 +696,8 @@ export function UniversalKnowledgeUniverseStudio({
       <footer className="h-14 px-6 bg-[#080d19] border-t border-slate-800/80 flex items-center justify-between z-30 shrink-0">
         {/* Left: Source Verified Notice */}
         <div className="flex items-center gap-2.5">
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Source Verified
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Source Verified
           </span>
           <span className="text-xs text-slate-400 hidden sm:inline">
             Content is verified from your textbook
@@ -705,11 +705,11 @@ export function UniversalKnowledgeUniverseStudio({
         </div>
 
         {/* Center: Mastery Progress Indicator */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <div className="text-left hidden md:block">
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-black text-slate-200">Mastery Progress</span>
-              <div className="w-32 h-2.5 rounded-full bg-slate-800 overflow-hidden">
+              <div className="w-36 h-2.5 rounded-full bg-slate-800 overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[66%]" />
               </div>
               <span className="text-xs font-black text-emerald-400">66%</span>
@@ -723,7 +723,7 @@ export function UniversalKnowledgeUniverseStudio({
         </div>
 
         {/* Right: Back & Next Buttons */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <button className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-300 flex items-center gap-2 transition-colors">
             <ArrowLeft className="w-4 h-4" /> Back to Chapter
           </button>
