@@ -326,6 +326,9 @@ export class UniversalContentRegistry {
           title: '📐 Fold a Paper Square into 8ths',
           objective: 'Prove fraction equivalence by physical folding',
           rewardBadge: '📐 Master of Fractions',
+          steps: [
+            { stepNumber: 1, action: 'ACT', instruction: 'Fold a paper square in half twice, then once more to create 8 equal partitions.' },
+          ],
         },
       },
       goDeeper: {

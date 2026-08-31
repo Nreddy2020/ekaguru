@@ -221,6 +221,10 @@ export class AdaptiveLearningLoopEngine {
       misconceptionTriggeredId: interaction.triggeredMisconceptionTrap,
       misconceptionResolvedId: interaction.resolvedMisconceptionId,
       learnerResponse: interaction.learnerResponse || {},
+      validationDetails: {
+        isCorrect,
+        feedback: isCorrect ? 'Valid response' : 'Needs remediation',
+      },
       timestamp: new Date().toISOString(),
       sha256EvidenceKey: evidenceKey,
     };

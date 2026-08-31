@@ -94,6 +94,10 @@ export class ProductionHardeningEngine {
       misconceptionTriggeredId: req.misconceptionTriggeredId,
       misconceptionResolvedId: req.misconceptionResolvedId,
       learnerResponse: req.learnerResponse || {},
+      validationDetails: {
+        isCorrect: req.isCorrect,
+        feedback: req.isCorrect ? 'Valid response' : 'Needs review',
+      },
       timestamp: new Date().toISOString(),
       sha256EvidenceKey,
     };
