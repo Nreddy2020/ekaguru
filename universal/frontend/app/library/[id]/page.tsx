@@ -11180,29 +11180,10 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
             />
           </LearningLeftRail>
         }
-        rightRail={<LearningRightRail />}
         footer={<LearningBottomNav />}
       >
-        {/* Navigation Tabs */}
-        <LearningTabs />
-
-        {/* Center Split Learning Workspace: Module 05 + Module 06 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 flex-1 min-h-[600px]">
-          {/* MODULE 05: Original Book Content Viewer */}
-          <LearningOriginalBookViewer
-            materialId={material.id}
-            sourcePage={activeSourcePage}
-            totalSourcePages={sourceSequence.length}
-            totalPdfPages={manifestData.material.physicalPdfPages || 59}
-            totalPrintedPages={manifestData.material.logicalPrintedPages || 116}
-            sectionTitle={activeSectionTitle}
-            sourceTitle={`${material.title || manifestData.material.bookTitle} – NCERT`}
-            extractedContent={activeSourcePage?.content || ''}
-            onPreviousPage={handlePrevSource}
-            onNextPage={handleNextSource}
-          />
-
-          {/* MODULE 06: EKAGURU Knowledge Construction Companion */}
+        {/* Combined Full-Width Learning Workspace */}
+        <div className="w-full flex-1 min-h-[750px]">
           <LearningExplanationPanel
             sectionId={struct.sectionId || activeSourcePage?.sourceId}
             sectionTitle={activeSectionTitle}
