@@ -32,6 +32,7 @@ import {
   ChapterLessonModel,
   LessonSectionModel,
 } from '../../lib/learning/book-storage.service';
+import { BookPageViewer } from './BookPageViewer';
 import {
   CANONICAL_TEXTBOOK_TOC,
   getPhysicalPageContent,
@@ -293,48 +294,13 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
 
             {/* ============================================================ */}
-            {/* 100% REAL PDF PAGE CANVAS (ORIGINAL PUBLISHED LAYOUT)       */}
+            {/* 100% REAL PDF PAGE CANVAS VIEWER                           */}
             {/* ============================================================ */}
-            <div className="rounded-2xl overflow-hidden border-2 border-amber-900/30 bg-[#fffefc] text-slate-900 p-4 shadow-2xl relative flex flex-col justify-between min-h-[300px] font-serif">
-              {/* Top Textbook Header Strip */}
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-sans">
-                    {physicalPage.headerText}
-                  </span>
-                  <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center font-sans shadow">
-                    {currentPageNum}
-                  </span>
-                </div>
-
-                <h3 className="text-base font-black text-rose-950 leading-tight">
-                  {physicalPage.pageTitle}
-                </h3>
-
-                {/* Published Textbook Paragraphs */}
-                <div className="flex flex-col gap-1.5 mt-2">
-                  {physicalPage.columns[0]?.paragraphs.slice(0, 3).map((p, idx) => (
-                    <p key={idx} className="text-[11px] leading-relaxed text-slate-800">
-                      {p}
-                    </p>
-                  ))}
-                </div>
-
-                {/* Published Callout Box */}
-                {physicalPage.columns[0]?.callouts && physicalPage.columns[0].callouts.length > 0 && (
-                  <div className="mt-2.5 p-2 rounded-xl bg-amber-50 border border-amber-300 text-[10px] text-amber-950 font-sans font-bold leading-snug">
-                    {physicalPage.columns[0].callouts[0]}
-                  </div>
-                )}
-              </div>
-
-              {/* Published Figure Caption */}
-              <div className="mt-3 pt-2 border-t border-slate-200 text-center font-sans">
-                <span className="text-[9.5px] font-bold text-slate-600">
-                  {physicalPage.diagramCaption}
-                </span>
-              </div>
-            </div>
+            <BookPageViewer
+              pageNumber={currentPageNum}
+              totalPages={totalPages}
+              onOpenFullPage={() => setShowFullPageModal(true)}
+            />
 
             {/* Page Navigator [ ← ] Page X of 59 [ → ] */}
             <div className="flex items-center justify-between bg-[#0d1424] border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 shadow-inner font-sans">
