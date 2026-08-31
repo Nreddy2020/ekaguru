@@ -26,10 +26,6 @@ import {
   Loader2,
   LayoutGrid,
   List as ListIcon,
-  BookCheck,
-  Microscope,
-  Calculator,
-  Landmark,
   FileText as DocumentIcon,
 } from 'lucide-react';
 
@@ -48,58 +44,6 @@ export interface BookModel {
   lastLessonId?: string;
 }
 
-const INITIAL_BOOKS: BookModel[] = [
-  {
-    id: 'f309dd23-dc84-4dfa-8a4c-94d0e0e09049',
-    title: 'Environmental Studies: Festivals & Living Earth',
-    subject: 'Environmental Studies',
-    grade: 'CLASS 5',
-    chaptersCount: 18,
-    conceptsCount: 54,
-    status: 'READY',
-    cardGradient: 'from-[#b84218] via-[#851e18] to-[#14080a]',
-    iconType: 'book',
-    lastLessonId: 'festivals-of-india',
-  },
-  {
-    id: 'math-class-5',
-    title: 'Mathematics: Shapes, Fractions & Geometry',
-    subject: 'Mathematics',
-    grade: 'CLASS 5',
-    chaptersCount: 18,
-    conceptsCount: 72,
-    status: 'READY',
-    cardGradient: 'from-[#4338ca] via-[#2563eb] to-[#080e1e]',
-    iconType: 'math',
-    lastLessonId: 'angles-triangles',
-  },
-  {
-    id: 'science-class-6',
-    title: 'General Science: Living Systems & Matter',
-    subject: 'Science',
-    grade: 'CLASS 6',
-    chaptersCount: 12,
-    conceptsCount: 68,
-    status: 'ANALYSING',
-    progress: 68,
-    currentStage: 'Building Knowledge Universe Graph (Step 5 of 7)',
-    cardGradient: 'from-[#047857] via-[#065f46] to-[#041510]',
-    iconType: 'science',
-  },
-  {
-    id: 'heritage-class-5',
-    title: 'Our Heritage: Social Studies & Civics',
-    subject: 'Social Studies',
-    grade: 'CLASS 5',
-    chaptersCount: 10,
-    conceptsCount: 40,
-    status: 'READY',
-    cardGradient: 'from-[#b45309] via-[#92400e] to-[#170e06]',
-    iconType: 'heritage',
-    lastLessonId: 'ancient-civilizations',
-  },
-];
-
 const INGESTION_STAGES = [
   'UPLOADED',
   'READING BOOK',
@@ -113,7 +57,8 @@ const INGESTION_STAGES = [
 
 export function EkaguruLearnHome() {
   const router = useRouter();
-  const [books, setBooks] = useState<BookModel[]>(INITIAL_BOOKS);
+  // Clear sample books: Start with an empty list
+  const [books, setBooks] = useState<BookModel[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showUploadModal, setShowUploadModal] = useState(false);
 
@@ -167,11 +112,11 @@ export function EkaguruLearnHome() {
             chaptersCount: 8,
             conceptsCount: 42,
             status: 'READY',
-            cardGradient: 'from-[#6b21a8] via-[#4c1d95] to-[#12071f]',
+            cardGradient: 'from-[#b84218] via-[#851e18] to-[#14080a]',
             iconType: 'book',
-            lastLessonId: 'chapter-1',
+            lastLessonId: 'festivals-of-india',
           };
-          setBooks([newBook, ...books]);
+          setBooks((prev) => [newBook, ...prev]);
           setIsUploading(false);
           setShowUploadModal(false);
           router.push(`/learn/books/${newBook.id}/lessons/${newBook.lastLessonId}`);
@@ -383,114 +328,124 @@ export function EkaguruLearnHome() {
                 </div>
               </div>
 
-              {/* 4 Textbook Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {books.map((book) => (
-                  <div
-                    key={book.id}
-                    className={`rounded-3xl bg-gradient-to-b ${book.cardGradient} border border-white/10 p-5 flex flex-col justify-between shadow-2xl min-h-[380px] relative overflow-hidden group hover:scale-[1.01] transition-transform`}
+              {/* Books Grid / Empty State */}
+              {books.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-slate-800 bg-[#090f1d]/50 p-12 flex flex-col items-center justify-center text-center gap-3">
+                  <div className="w-16 h-16 rounded-2xl bg-purple-600/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-2xl">
+                    📚
+                  </div>
+                  <h4 className="text-base font-black text-white">No textbooks added yet</h4>
+                  <p className="text-xs text-slate-400 max-w-sm">
+                    Upload your first textbook PDF to start your personalized Socratic learning experience.
+                  </p>
+                  <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="mt-2 px-5 py-2.5 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-600/30"
                   >
-                    <div>
-                      {/* Top Pills */}
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-[10px] font-black tracking-wider bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur text-white/90">
-                          {book.grade}
-                        </span>
+                    <Plus className="w-4 h-4" />
+                    <span>Upload Your First Textbook</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {books.map((book) => (
+                    <div
+                      key={book.id}
+                      className={`rounded-3xl bg-gradient-to-b ${book.cardGradient} border border-white/10 p-5 flex flex-col justify-between shadow-2xl min-h-[380px] relative overflow-hidden group hover:scale-[1.01] transition-transform`}
+                    >
+                      <div>
+                        {/* Top Pills */}
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-[10px] font-black tracking-wider bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur text-white/90">
+                            {book.grade}
+                          </span>
 
+                          {book.status === 'READY' ? (
+                            <span className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center gap-1 backdrop-blur">
+                              <CheckCircle2 className="w-3 h-3" /> Ready to Learn
+                            </span>
+                          ) : (
+                            <span className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 flex items-center gap-1 backdrop-blur animate-pulse">
+                              <Clock className="w-3 h-3" /> Analysing...
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Center Glowing Icon */}
+                        <div className="flex items-center justify-center my-3">
+                          {renderCardIcon(book.iconType)}
+                        </div>
+
+                        {/* Title & Subject */}
+                        <div className="text-center mt-3">
+                          <h4 className="text-sm font-black text-white leading-tight">
+                            {book.title}
+                          </h4>
+                          <span className="text-[11px] text-amber-200/80 font-medium mt-1 block">
+                            {book.subject}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Lower Info & Footer */}
+                      <div className="flex flex-col gap-3 pt-3 border-t border-white/10 mt-2">
                         {book.status === 'READY' ? (
-                          <span className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center gap-1 backdrop-blur">
-                            <CheckCircle2 className="w-3 h-3" /> Ready to Learn
-                          </span>
+                          <>
+                            <div className="flex items-center justify-around text-xs text-white/80">
+                              <span className="flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 opacity-80" /> {book.chaptersCount} Chapters
+                              </span>
+                              <span>{book.conceptsCount} Concepts</span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1">
+                              <Link
+                                href={`/learn/books/${book.id}`}
+                                className="text-xs text-white/70 hover:text-white font-medium"
+                              >
+                                View Chapters
+                              </Link>
+
+                              <Link
+                                href={`/learn/books/${book.id}/lessons/${book.lastLessonId || 'festivals-of-india'}`}
+                                className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-xl font-bold text-xs flex items-center gap-1 shadow-lg shadow-purple-600/30"
+                              >
+                                <span>Continue Lesson</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </Link>
+                            </div>
+                          </>
                         ) : (
-                          <span className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 flex items-center gap-1 backdrop-blur animate-pulse">
-                            <Clock className="w-3 h-3" /> Analysing...
-                          </span>
+                          <>
+                            <div className="flex items-center justify-around text-xs text-white/80">
+                              <span>📖 {book.chaptersCount} Chapters</span>
+                              <span>{book.conceptsCount} Concepts</span>
+                            </div>
+
+                            <div className="flex flex-col gap-1 mt-1">
+                              <div className="flex items-center justify-between text-[10px] text-amber-300 font-bold">
+                                <span>Processing Pipeline</span>
+                                <span>{book.progress}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-400" style={{ width: `${book.progress}%` }} />
+                              </div>
+                              <span className="text-[9px] text-white/60 mt-0.5">{book.currentStage}</span>
+                            </div>
+
+                            <button
+                              disabled
+                              className="w-full py-2 bg-black/30 text-white/80 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-90 mt-1"
+                            >
+                              View Status ➔
+                            </button>
+                          </>
                         )}
                       </div>
-
-                      {/* Center Glowing Icon */}
-                      <div className="flex items-center justify-center my-3">
-                        {renderCardIcon(book.iconType)}
-                      </div>
-
-                      {/* Title & Subject */}
-                      <div className="text-center mt-3">
-                        <h4 className="text-sm font-black text-white leading-tight">
-                          {book.title}
-                        </h4>
-                        <span className="text-[11px] text-amber-200/80 font-medium mt-1 block">
-                          {book.subject}
-                        </span>
-                      </div>
                     </div>
-
-                    {/* Lower Info & Footer */}
-                    <div className="flex flex-col gap-3 pt-3 border-t border-white/10 mt-2">
-                      {book.status === 'READY' ? (
-                        <>
-                          <div className="flex items-center justify-around text-xs text-white/80">
-                            <span className="flex items-center gap-1.5">
-                              <BookOpen className="w-3.5 h-3.5 opacity-80" /> {book.chaptersCount} Chapters
-                            </span>
-                            <span>{book.conceptsCount} Concepts</span>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-1">
-                            <Link
-                              href={`/learn/books/${book.id}`}
-                              className="text-xs text-white/70 hover:text-white font-medium"
-                            >
-                              View Chapters
-                            </Link>
-
-                            <Link
-                              href={`/learn/books/${book.id}/lessons/${book.lastLessonId || 'festivals-of-india'}`}
-                              className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-xl font-bold text-xs flex items-center gap-1 shadow-lg shadow-purple-600/30"
-                            >
-                              {book.id === 'f309dd23-dc84-4dfa-8a4c-94d0e0e09049' ? (
-                                <>
-                                  <span>Continue Lesson</span>
-                                  <ArrowRight className="w-3.5 h-3.5" />
-                                </>
-                              ) : (
-                                <>
-                                  <span>Open Book</span>
-                                  <ArrowRight className="w-3.5 h-3.5" />
-                                </>
-                              )}
-                            </Link>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-center justify-around text-xs text-white/80">
-                            <span>📖 {book.chaptersCount} Chapters</span>
-                            <span>{book.conceptsCount} Concepts</span>
-                          </div>
-
-                          <div className="flex flex-col gap-1 mt-1">
-                            <div className="flex items-center justify-between text-[10px] text-amber-300 font-bold">
-                              <span>Processing Pipeline</span>
-                              <span>{book.progress}%</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
-                              <div className="h-full bg-amber-400" style={{ width: `${book.progress}%` }} />
-                            </div>
-                            <span className="text-[9px] text-white/60 mt-0.5">{book.currentStage}</span>
-                          </div>
-
-                          <button
-                            disabled
-                            className="w-full py-2 bg-black/30 text-white/80 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-90 mt-1"
-                          >
-                            View Status ➔
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
