@@ -721,37 +721,13 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
 
             <div className="p-8 overflow-y-auto custom-scrollbar flex flex-col items-center bg-[#151d30]/60">
-              <div className="w-full max-w-2xl bg-[#fffefc] text-slate-900 rounded-2xl shadow-2xl p-8 border border-slate-400 flex flex-col gap-4 font-serif">
-                <div className="flex items-center justify-between border-b border-slate-300 pb-3 font-sans">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {physicalPage.headerText}
-                  </span>
-                  <span className="text-xs font-bold text-slate-500">Page {currentPageNum}</span>
-                </div>
-
-                <h2 className="text-xl font-black text-rose-950">
-                  {physicalPage.pageTitle}
-                </h2>
-
-                <div className="flex flex-col gap-2.5">
-                  {physicalPage.columns[0]?.paragraphs.map((p, i) => (
-                    <p key={i} className="text-sm leading-relaxed text-slate-800">
-                      {p}
-                    </p>
-                  ))}
-                </div>
-
-                {physicalPage.columns[0]?.callouts && physicalPage.columns[0].callouts.length > 0 && (
-                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-300 font-sans text-xs text-amber-950 font-bold">
-                    {physicalPage.columns[0].callouts[0]}
-                  </div>
-                )}
-
-                <div className="my-2 p-4 bg-slate-100 rounded-xl border border-slate-300 text-center font-sans">
-                  <span className="text-xs font-bold text-slate-700">
-                    {physicalPage.diagramCaption}
-                  </span>
-                </div>
+              <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl p-2 border border-slate-600 flex items-center justify-center overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/textbooks/evs-class-5/page-${currentPageNum}.png`}
+                  alt={`Full High-Res Original Page ${currentPageNum}`}
+                  className="w-full max-h-[75vh] object-contain rounded-xl"
+                />
               </div>
             </div>
 
