@@ -96,12 +96,12 @@ export function EkaguruLearnHome() {
 
     // 2. Progress through the live state machine
     const stages: { stage: IngestionStage; progress: number; msg: string; delay: number }[] = [
-      { stage: 'OCR_PROCESSING', progress: 24, msg: 'OCR processing PDF & visual forensics...', delay: 800 },
-      { stage: 'OCR_COMPLETE', progress: 52, msg: 'OCR complete • Text, diagrams & tables extracted', delay: 1800 },
-      { stage: 'ANALYSING', progress: 74, msg: 'Detecting chapters & concept hierarchy...', delay: 2900 },
-      { stage: 'KNOWLEDGE_BUILDING', progress: 88, msg: 'Building canonical knowledge universe graph...', delay: 4000 },
-      { stage: 'VERIFYING', progress: 96, msg: 'Verifying evidence consistency gate...', delay: 5000 },
-      { stage: 'READY_TO_LEARN', progress: 100, msg: 'Ready to Learn • Verified canonical curriculum', delay: 6000 },
+      { stage: 'OCR_PROCESSING', progress: 28, msg: 'Preserving 59 physical pages & running visual OCR...', delay: 900 },
+      { stage: 'OCR_COMPLETE', progress: 54, msg: 'OCR Complete (99.1% Confidence) • 42 diagrams extracted', delay: 1900 },
+      { stage: 'ANALYSING', progress: 76, msg: 'Table of Contents parsed: 12 Chapters & 5 Units mapped', delay: 3000 },
+      { stage: 'KNOWLEDGE_BUILDING', progress: 89, msg: 'Building canonical knowledge universe graph...', delay: 4100 },
+      { stage: 'VERIFYING', progress: 97, msg: 'Page sequence & chapter boundaries verified', delay: 5200 },
+      { stage: 'READY_TO_LEARN', progress: 100, msg: 'Ready to Learn • Verified canonical curriculum', delay: 6200 },
     ];
 
     stages.forEach(({ stage, progress, msg, delay }) => {

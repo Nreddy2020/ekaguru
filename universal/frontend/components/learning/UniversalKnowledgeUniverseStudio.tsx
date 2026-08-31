@@ -122,17 +122,16 @@ export function UniversalKnowledgeUniverseStudio({
   };
 
   const ch = currentChapter || {
-    id: 'ch-1',
-    chapterNumber: 1,
-    title: 'Core Foundations & Scientific Method',
-    startPage: 2,
-    endPage: 11,
-    pageRangeText: 'Pages 2–11',
+    id: 'ch-0',
+    chapterNumber: 0,
+    unitName: 'Unit 1: About Me',
+    title: 'Art Special: Festivals of India',
+    startPage: 1,
+    endPage: 1,
+    pageRangeText: 'Page 1',
     sections: [
-      { id: 'sec-1-1', sectionNumber: '1.1', title: 'What is Science?', page: 2 },
-      { id: 'sec-1-2', sectionNumber: '1.2', title: 'Observing the World', page: 4 },
-      { id: 'sec-1-3', sectionNumber: '1.3', title: 'Asking Questions', page: 6 },
-      { id: 'sec-1-4', sectionNumber: '1.4', title: 'Chapter Exercises', page: 10 },
+      { id: 'sec-0-1', sectionNumber: '0.1', title: 'Festivals of India (Sankranthi, Bathukamma, Bonalu)', page: 1 },
+      { id: 'sec-0-2', sectionNumber: '0.2', title: 'Fun Activity: Gudi Padwa & Ugadi Collage', page: 1 },
     ],
     concepts: ['Scientific Inquiry', 'Observation', 'Hypothesis'],
     boardTitle: 'CORE FOUNDATIONS & THE SCIENTIFIC METHOD',
@@ -317,29 +316,45 @@ export function UniversalKnowledgeUniverseStudio({
 
               {/* Grounded Visual SVG on the page */}
               <div className="w-full bg-amber-50/80 rounded-xl p-2 border border-amber-200/80 flex items-center justify-center shadow-inner">
-                {currentPageData?.diagramSvgType === 'sun_photosynthesis' ? (
+                {currentPageData?.visualScene === 'festivals_sankranthi_bonalu' ? (
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">☀️</span>
                     <span className="text-xs font-bold text-amber-900">➔</span>
-                    <span className="text-2xl">🌿</span>
-                    <span className="text-xs font-bold text-emerald-900">➔</span>
-                    <span className="text-2xl">🌾</span>
+                    <span className="text-2xl">🏺</span>
+                    <span className="text-xs font-bold text-rose-900">➔</span>
+                    <span className="text-2xl">🪁</span>
                   </div>
-                ) : currentPageData?.diagramSvgType === 'geometry_triangles' ? (
+                ) : currentPageData?.visualScene === 'growing_up_chicks' ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">📐</span>
+                    <span className="text-2xl">🥚</span>
+                    <span className="text-xs font-bold text-amber-900">➔</span>
+                    <span className="text-2xl">🐣</span>
+                    <span className="text-xs font-bold text-emerald-900">➔</span>
+                    <span className="text-2xl">🐔</span>
+                  </div>
+                ) : currentPageData?.visualScene === 'body_internal_organs' ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🧠</span>
                     <span className="text-xs font-bold text-indigo-900">➔</span>
-                    <span className="text-2xl">🔺</span>
+                    <span className="text-2xl">🫀</span>
+                    <span className="text-xs font-bold text-rose-900">➔</span>
+                    <span className="text-2xl">💪</span>
+                  </div>
+                ) : currentPageData?.visualScene === 'food_groups' ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🥔</span>
+                    <span className="text-xs font-bold text-amber-900">➔</span>
+                    <span className="text-2xl">🥛</span>
                     <span className="text-xs font-bold text-blue-900">➔</span>
-                    <span className="text-2xl">📦</span>
+                    <span className="text-2xl">🥗</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">📖</span>
-                    <span className="text-xs font-bold text-slate-900">➔</span>
-                    <span className="text-2xl">🔬</span>
-                    <span className="text-xs font-bold text-purple-900">➔</span>
-                    <span className="text-2xl">💡</span>
+                    <span className="text-2xl">🌱</span>
+                    <span className="text-xs font-bold text-emerald-900">➔</span>
+                    <span className="text-2xl">☀️</span>
+                    <span className="text-xs font-bold text-amber-900">➔</span>
+                    <span className="text-2xl">🍎</span>
                   </div>
                 )}
               </div>
