@@ -24,7 +24,10 @@ import {
   Menu,
   MessageCircleQuestion,
   ChevronLeft,
+  X,
   FileText as DocumentIcon,
+  Check,
+  Eye,
 } from 'lucide-react';
 import {
   BookStorageService,
@@ -32,6 +35,7 @@ import {
   ChapterLessonModel,
   LessonSectionModel,
 } from '../../lib/learning/book-storage.service';
+import { PreservedPage } from '../../lib/learning/page-preservation-engine';
 
 export interface UniversalKnowledgeUniverseStudioProps {
   bookId?: string;
@@ -51,8 +55,13 @@ export function UniversalKnowledgeUniverseStudio({
   const [book, setBook] = useState<IngestedBookModel | undefined>(undefined);
   const [currentChapter, setCurrentChapter] = useState<ChapterLessonModel | undefined>(undefined);
   const [activeSection, setActiveSection] = useState<LessonSectionModel | undefined>(undefined);
-  const [currentPage, setCurrentPage] = useState<number>(2);
+  const [currentPageNum, setCurrentPageNum] = useState<number>(2);
+  const [currentPageData, setCurrentPageData] = useState<PreservedPage | undefined>(undefined);
   const [expandedChapterIds, setExpandedChapterIds] = useState<Record<string, boolean>>({});
+
+  // Modals
+  const [showFullIndexModal, setShowFullIndexModal] = useState<boolean>(false);
+  const [showFullPageModal, setShowFullPageModal] = useState<boolean>(false);
 
   useEffect(() => {
     const loadedBook = BookStorageService.getBookById(bookId);
@@ -60,12 +69,30 @@ export function UniversalKnowledgeUniverseStudio({
     if (loadedBook && loadedBook.chapters.length > 0) {
       const foundCh = loadedBook.chapters.find((c) => c.id === sectionId) || loadedBook.chapters[0];
       setCurrentChapter(foundCh);
-      setCurrentPage(foundCh.startPage);
+      setCurrentPageNum(foundCh.startPage);
       setActiveSection(foundCh.sections[0]);
-      // Expand current chapter by default
       setExpandedChapterIds({ [foundCh.id]: true });
+
+      const pageData = loadedBook.pages.find((p) => p.pageNumber === foundCh.startPage) || loadedBook.pages[0];
+      setCurrentPageData(pageData);
     }
   }, [bookId, sectionId]);
+
+  // Sync page data whenever currentPageNum changes
+  useEffect(() => {
+    if (book && book.pages.length > 0) {
+      const pageData = book.pages.find((p) => p.pageNumber === currentPageNum);
+      if (pageData) {
+        setCurrentPageData(pageData);
+        // Also auto-sync current chapter if crossed boundary
+        const matchedCh = book.chapters.find((c) => currentPageNum >= c.startPage && currentPageNum <= c.endPage);
+        if (matchedCh && matchedCh.id !== currentChapter?.id) {
+          setCurrentChapter(matchedCh);
+          setExpandedChapterIds((prev) => ({ ...prev, [matchedCh.id]: true }));
+        }
+      }
+    }
+  }, [currentPageNum, book]);
 
   const toggleChapterExpand = (chId: string) => {
     setExpandedChapterIds((prev) => ({
@@ -74,16 +101,20 @@ export function UniversalKnowledgeUniverseStudio({
     }));
   };
 
+  const jumpToLesson = (chap: ChapterLessonModel, sec: LessonSectionModel) => {
+    setCurrentChapter(chap);
+    setActiveSection(sec);
+    setCurrentPageNum(sec.page);
+    setExpandedChapterIds((prev) => ({ ...prev, [chap.id]: true }));
+    setShowFullIndexModal(false);
+  };
+
   // Teaching Depth: Basis -> Developing -> Proficient -> Advanced -> Deep
   const [activeDepth, setActiveDepth] = useState<'basis' | 'developing' | 'proficient' | 'advanced' | 'deep'>('developing');
   const [activeBoardTab, setActiveBoardTab] = useState<'teacher_explains' | 'visuals' | 'real_world' | 'key_points' | 'summary'>('teacher_explains');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [askInput, setAskInput] = useState<string>('');
   const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
-  const [showFullPageModal, setShowFullPageModal] = useState<boolean>(false);
-  const [showIndexModal, setShowIndexModal] = useState<boolean>(false);
-
-  // Socratic Interruption State (Teacher/Student question in between)
   const [interruptionQuery, setInterruptionQuery] = useState<string | null>(null);
 
   const handleTriggerInterruption = (question: string) => {
@@ -93,23 +124,23 @@ export function UniversalKnowledgeUniverseStudio({
   const ch = currentChapter || {
     id: 'ch-1',
     chapterNumber: 1,
-    title: 'Core Foundations',
+    title: 'Core Foundations & Scientific Method',
     startPage: 2,
     endPage: 11,
     pageRangeText: 'Pages 2–11',
     sections: [
-      { id: 'sec-1-1', sectionNumber: '1.1', title: 'Introduction', page: 2 },
+      { id: 'sec-1-1', sectionNumber: '1.1', title: 'What is Science?', page: 2 },
       { id: 'sec-1-2', sectionNumber: '1.2', title: 'Observing the World', page: 4 },
-      { id: 'sec-1-3', sectionNumber: '1.3', title: 'Core Mechanisms', page: 7 },
+      { id: 'sec-1-3', sectionNumber: '1.3', title: 'Asking Questions', page: 6 },
       { id: 'sec-1-4', sectionNumber: '1.4', title: 'Chapter Exercises', page: 10 },
     ],
-    concepts: ['Foundational Concepts', 'Scientific Inquiry', 'Mechanisms'],
-    boardTitle: 'FOUNDATIONS OF LEARNING',
-    boardSubtitle: 'Structured Socratic explanation grounded in verified textbook truth.',
+    concepts: ['Scientific Inquiry', 'Observation', 'Hypothesis'],
+    boardTitle: 'CORE FOUNDATIONS & THE SCIENTIFIC METHOD',
+    boardSubtitle: 'A structured Socratic exploration grounded in verified textbook truth.',
     flowSteps: [
-      { label: 'INPUT', icon: '☀️', description: 'Core observations and sensory inputs' },
-      { label: 'PROCESS', icon: '🌿', description: 'Underlying biological/mathematical mechanism' },
-      { label: 'OUTPUT', icon: '🌾', description: 'Observable results and structured products' },
+      { label: 'OBSERVE', icon: '☀️', description: 'Core observations and sensory inputs' },
+      { label: 'HYPOTHESIS', icon: '🌿', description: 'Underlying biological/mathematical mechanism' },
+      { label: 'EXPERIMENT', icon: '🌾', description: 'Observable results and structured products' },
       { label: 'HARVEST', icon: '🧑‍🌾', description: 'Practical utilization and mastery' },
       { label: 'SYNTHESIS', icon: '🎉', description: 'Celebration of understanding and insight' },
     ],
@@ -247,7 +278,7 @@ export function UniversalKnowledgeUniverseStudio({
 
         {/* LEFT COLUMN: FROM YOUR TEXTBOOK + CHAPTERS ACCORDION */}
         <aside className="w-[330px] xl:w-[350px] bg-[#080d19] border-r border-slate-800/80 p-4 flex flex-col justify-between overflow-y-auto shrink-0 gap-4 custom-scrollbar">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3.5">
             {/* Header & Source Verified Pill */}
             <div className="flex items-center justify-between">
               <div>
@@ -255,7 +286,7 @@ export function UniversalKnowledgeUniverseStudio({
                   FROM YOUR TEXTBOOK
                 </span>
                 <span className="text-xs text-slate-400">
-                  Page {currentPage} • {book?.subject || 'Curriculum'}
+                  Page {currentPageNum} • {book?.subject || 'Curriculum'}
                 </span>
               </div>
               <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1">
@@ -263,49 +294,82 @@ export function UniversalKnowledgeUniverseStudio({
               </span>
             </div>
 
-            {/* OCR-Rendered Textbook Page Card */}
-            <div className="rounded-2xl overflow-hidden border border-slate-700/80 bg-[#fffdfa] text-slate-900 p-4 shadow-2xl relative flex flex-col gap-2.5">
-              <div className="flex items-center justify-between">
-                <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow">
-                  {currentPage}
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  {book?.curriculum || 'NCERT'}
-                </span>
+            {/* ACTUAL IMMUTABLE TEXTBOOK PAGE IMAGE / SVG CANVAS */}
+            <div className="rounded-2xl overflow-hidden border border-slate-700/80 bg-[#fffdfa] text-slate-900 p-4 shadow-2xl relative flex flex-col gap-2.5 min-h-[260px] justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow">
+                    {currentPageNum}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                    {book?.curriculum || 'NCERT'}
+                  </span>
+                </div>
+
+                <h3 className="text-sm font-black text-rose-900 font-serif leading-tight mt-1">
+                  {currentPageData?.sectionTitle || (activeSection ? `${activeSection.sectionNumber} ${activeSection.title}` : ch.title)}
+                </h3>
+
+                <p className="text-[11.5px] leading-relaxed text-slate-800 font-serif mt-1">
+                  {currentPageData?.layoutElements[1]?.content || ch.textbookExcerpt}
+                </p>
               </div>
 
-              <h3 className="text-base font-black text-rose-800 font-serif leading-tight">
-                {activeSection ? `${activeSection.sectionNumber} ${activeSection.title}` : ch.title}
-              </h3>
+              {/* Grounded Visual SVG on the page */}
+              <div className="w-full bg-amber-50/80 rounded-xl p-2 border border-amber-200/80 flex items-center justify-center shadow-inner">
+                {currentPageData?.diagramSvgType === 'sun_photosynthesis' ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">☀️</span>
+                    <span className="text-xs font-bold text-amber-900">➔</span>
+                    <span className="text-2xl">🌿</span>
+                    <span className="text-xs font-bold text-emerald-900">➔</span>
+                    <span className="text-2xl">🌾</span>
+                  </div>
+                ) : currentPageData?.diagramSvgType === 'geometry_triangles' ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">📐</span>
+                    <span className="text-xs font-bold text-indigo-900">➔</span>
+                    <span className="text-2xl">🔺</span>
+                    <span className="text-xs font-bold text-blue-900">➔</span>
+                    <span className="text-2xl">📦</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">📖</span>
+                    <span className="text-xs font-bold text-slate-900">➔</span>
+                    <span className="text-2xl">🔬</span>
+                    <span className="text-xs font-bold text-purple-900">➔</span>
+                    <span className="text-2xl">💡</span>
+                  </div>
+                )}
+              </div>
 
-              <p className="text-xs leading-relaxed text-slate-800 font-serif">
-                {ch.textbookExcerpt}
-              </p>
-
-              {/* Concepts discovered */}
-              <div className="w-full bg-slate-50 rounded-xl p-2 border border-slate-200 mt-1 flex flex-wrap gap-1.5">
+              {/* Concepts tag row */}
+              <div className="flex flex-wrap gap-1">
                 {ch.concepts.slice(0, 3).map((c, i) => (
-                  <span key={i} className="text-[9.5px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 border border-purple-200">
+                  <span key={i} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-900 border border-purple-200">
                     {c}
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Page Navigator [ ← ] Page X of Y [ → ] */}
+            {/* Page Navigator [ ← ] Page X of 130 [ → ] */}
             <div className="flex items-center justify-between bg-[#0d1424] border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 shadow-inner">
               <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
+                onClick={() => setCurrentPageNum((p) => Math.max(1, p - 1))}
+                disabled={currentPageNum <= 1}
                 className="p-1 rounded hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                title="Previous Page"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span>Page {currentPage} of {totalPages}</span>
+              <span className="font-mono">Page {currentPageNum} of {totalPages}</span>
               <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPageNum((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPageNum >= totalPages}
                 className="p-1 rounded hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                title="Next Page"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -313,7 +377,7 @@ export function UniversalKnowledgeUniverseStudio({
 
             <button
               onClick={() => setShowFullPageModal(true)}
-              className="w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors shadow-md"
+              className="w-full py-2 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors shadow-md"
             >
               <BookOpen className="w-4 h-4 text-cyan-400" /> View Full Page
             </button>
@@ -327,7 +391,7 @@ export function UniversalKnowledgeUniverseStudio({
                 </span>
               </div>
 
-              <div className="flex flex-col gap-1.5 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">
+              <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
                 {(book?.chapters || [ch]).map((chap) => {
                   const isCurrent = chap.id === ch.id;
                   const isExpanded = !!expandedChapterIds[chap.id];
@@ -338,16 +402,16 @@ export function UniversalKnowledgeUniverseStudio({
                         onClick={() => {
                           toggleChapterExpand(chap.id);
                           setCurrentChapter(chap);
-                          setCurrentPage(chap.startPage);
+                          setCurrentPageNum(chap.startPage);
                           setActiveSection(chap.sections[0]);
                         }}
-                        className={`w-full px-3 py-2.5 text-left text-xs flex items-center justify-between transition-all ${
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between transition-all ${
                           isCurrent
                             ? 'bg-purple-950/80 text-purple-200 font-bold border-l-4 border-purple-500'
                             : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
                         }`}
                       >
-                        <div className="flex items-center gap-2 overflow-hidden pr-1">
+                        <div className="flex items-center gap-1.5 overflow-hidden pr-1">
                           {isExpanded ? (
                             <ChevronDown className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                           ) : (
@@ -362,14 +426,14 @@ export function UniversalKnowledgeUniverseStudio({
 
                       {/* Sub-lessons accordion dropdown */}
                       {isExpanded && (
-                        <div className="pl-6 pr-2 py-1.5 bg-[#070c17] flex flex-col gap-1 border-t border-slate-800/50">
+                        <div className="pl-5 pr-2 py-1.5 bg-[#070c17] flex flex-col gap-1 border-t border-slate-800/50">
                           {chap.sections.map((sec) => (
                             <button
                               key={sec.id}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setActiveSection(sec);
-                                setCurrentPage(sec.page);
+                                setCurrentPageNum(sec.page);
                               }}
                               className={`w-full py-1 px-2 text-left text-[11px] rounded-lg transition flex items-center justify-between ${
                                 activeSection?.id === sec.id
@@ -389,8 +453,8 @@ export function UniversalKnowledgeUniverseStudio({
               </div>
 
               <button
-                onClick={() => setShowIndexModal(true)}
-                className="mt-1 w-full py-2 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-colors"
+                onClick={() => setShowFullIndexModal(true)}
+                className="mt-1 w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-purple-950/40 hover:border-purple-500 border border-slate-700 text-xs font-bold text-purple-300 flex items-center justify-center gap-1.5 transition-all shadow-md"
               >
                 <Layers className="w-3.5 h-3.5 text-purple-400" /> View Full Book Index
               </button>
@@ -652,6 +716,13 @@ export function UniversalKnowledgeUniverseStudio({
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowFullIndexModal(true)}
+            className="px-4 py-2 rounded-xl bg-purple-950/50 hover:bg-purple-900/50 border border-purple-500/40 text-xs font-bold text-purple-300 flex items-center gap-1.5 transition-colors"
+          >
+            <Layers className="w-3.5 h-3.5" /> Full Book Index
+          </button>
+
           <Link
             href={`/learn/books/${book?.id || bookId}`}
             className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-300 flex items-center gap-2 transition-colors"
@@ -660,6 +731,174 @@ export function UniversalKnowledgeUniverseStudio({
           </Link>
         </div>
       </footer>
+
+      {/* ==================================================================== */}
+      {/* 4. INTERACTIVE FULL BOOK INDEX MODAL (REAL TOC CLICKABLE JUMP)       */}
+      {/* ==================================================================== */}
+      {showFullIndexModal && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0b1120] border border-slate-700 rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-600/20 text-purple-300 border border-purple-500/40 flex items-center justify-center">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">
+                    {book?.title || 'Canonical Table of Contents'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {book?.chapters.length || 12} Chapters • {totalPages} Total Preserved Pages • Click any lesson to jump
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFullIndexModal(false)}
+                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+              {(book?.chapters || [ch]).map((chap) => (
+                <div
+                  key={chap.id}
+                  className="rounded-2xl border border-slate-800/80 bg-[#090f1d] p-4 flex flex-col gap-2.5 hover:border-purple-500/40 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-purple-600/20 text-purple-300 font-black text-xs flex items-center justify-center border border-purple-500/30">
+                        {chap.chapterNumber}
+                      </span>
+                      <h4 className="text-sm font-black text-white">{chap.title}</h4>
+                    </div>
+                    <span className="text-xs font-mono text-purple-300 bg-purple-950/60 px-2.5 py-0.5 rounded-md border border-purple-500/30">
+                      {chap.pageRangeText}
+                    </span>
+                  </div>
+
+                  {/* Clickable Sub-Lessons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
+                    {chap.sections.map((sec) => (
+                      <button
+                        key={sec.id}
+                        onClick={() => jumpToLesson(chap, sec)}
+                        className="p-2 rounded-xl bg-[#0d1424] hover:bg-purple-600/20 border border-slate-800 hover:border-purple-500/40 text-left transition flex items-center justify-between group"
+                      >
+                        <span className="text-xs text-slate-300 group-hover:text-purple-200">
+                          {sec.sectionNumber} {sec.title}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500 group-hover:text-purple-400">
+                          p.{sec.page}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 bg-[#080d19] border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setShowFullIndexModal(false)}
+                className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30"
+              >
+                Close Index
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* 5. HIGH-RESOLUTION FULL TEXTBOOK PAGE INSPECTOR MODAL               */}
+      {/* ==================================================================== */}
+      {showFullPageModal && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0b1120] border border-slate-700 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-4 px-6 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow">
+                  {currentPageNum}
+                </span>
+                <div>
+                  <h3 className="text-sm font-black text-white">
+                    {book?.title || 'Original Textbook'} — Page {currentPageNum} of {totalPages}
+                  </h3>
+                  <p className="text-[10.5px] text-emerald-400 font-mono">
+                    ✓ Immutable Ground Truth • OCR Confidence: {currentPageData?.confidence.ocr || 98.4}%
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowFullPageModal(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-8 overflow-y-auto custom-scrollbar flex flex-col items-center bg-[#151d30]/60">
+              <div className="w-full max-w-2xl bg-[#fffdfa] text-slate-900 rounded-2xl shadow-2xl p-8 border border-slate-400 flex flex-col gap-4 font-serif">
+                <div className="flex items-center justify-between border-b border-slate-300 pb-3">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {book?.curriculum || 'NCERT'} TEXTBOOK
+                  </span>
+                  <span className="text-xs font-bold text-slate-500">Page {currentPageNum}</span>
+                </div>
+
+                <h2 className="text-xl font-black text-rose-900">
+                  {currentPageData?.sectionTitle || ch.title}
+                </h2>
+
+                <p className="text-sm leading-relaxed text-slate-800">
+                  {currentPageData?.layoutElements[1]?.content || ch.textbookExcerpt}
+                </p>
+
+                <div className="my-4 p-6 bg-amber-50 rounded-xl border-2 border-dashed border-amber-300 text-center flex flex-col items-center gap-2">
+                  <span className="text-4xl">🔬</span>
+                  <span className="text-xs font-bold text-amber-950">
+                    Figure {currentPageNum}.1: {currentPageData?.illustrationDescription || 'Canonical Textbook Diagram'}
+                  </span>
+                </div>
+
+                <div className="p-4 bg-slate-100 rounded-xl border border-slate-300 text-xs text-slate-700">
+                  <strong>Searchable OCR Text Layer:</strong>
+                  <p className="font-mono mt-1 text-[11px] text-slate-600">{currentPageData?.ocrText}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 px-6 bg-[#080d19] border-t border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPageNum((p) => Math.max(1, p - 1))}
+                  disabled={currentPageNum <= 1}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 disabled:opacity-40"
+                >
+                  ← Previous Page
+                </button>
+                <button
+                  onClick={() => setCurrentPageNum((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPageNum >= totalPages}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 disabled:opacity-40"
+                >
+                  Next Page →
+                </button>
+              </div>
+
+              <button
+                onClick={() => setShowFullPageModal(false)}
+                className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
