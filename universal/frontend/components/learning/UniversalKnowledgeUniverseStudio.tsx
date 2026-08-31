@@ -266,7 +266,7 @@ export function UniversalKnowledgeUniverseStudio({
   return (
     <div
       data-testid="universal-knowledge-universe-studio"
-      className={`flex flex-col w-full min-h-screen bg-[#070b14] text-slate-100 font-sans select-none overflow-hidden ${className}`}
+      className={`flex flex-col w-full h-screen max-h-screen w-full bg-[#070b14] text-slate-100 font-sans select-none overflow-hidden ${className}`}
     >
       {/* ==================================================================== */}
       {/* 1. TOP NAVBAR HEADER                                                 */}
@@ -600,7 +600,7 @@ export function UniversalKnowledgeUniverseStudio({
         {/* ------------------------------------------------------------------ */}
         {/* COLUMN 3 (RIGHT): SOCRATIC TRIAD & MASTERY METRIC RINGS            */}
         {/* ------------------------------------------------------------------ */}
-        <div className="lg:col-span-4 bg-[#080d19] p-4 flex flex-col justify-between overflow-y-auto gap-3">
+        <div className="lg:col-span-4 bg-[#080d19] p-4 flex flex-col justify-between overflow-y-auto gap-3 border-l border-slate-800/80">
           <div className="flex flex-col gap-2.5">
             {/* Exploration Node Header */}
             <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">

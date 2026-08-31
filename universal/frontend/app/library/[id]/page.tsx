@@ -11157,43 +11157,16 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
 
   if (isStudioMode) {
     return (
-      <LearningShell
-        header={
-          <LearningHeader
-            brandName="EKAGURU"
-            breadcrumbs={currentTopicBreadcrumbs}
-            status={material.status === 'ACTIVE' ? 'READY' : 'PROCESSING'}
-            learnerMode={true}
-            onBack={() => setIsStudioMode(false)}
-            backHref="/library"
-            userProfile={{ name: 'Arjun Kumar', role: 'Student' }}
-          />
-        }
-        leftRail={
-          <LearningLeftRail
-            bookTitle={material.title || manifestData.material.bookTitle}
-            subjectGrade="Environmental Studies Class 5"
-          >
-            <LearningBookStructure
-              structure={structureData}
-              activeSectionId={struct.sectionId || activeSourcePage?.sourceId}
-              onSelectSection={handleSelectFromStructure}
-            />
-          </LearningLeftRail>
-        }
-        footer={<LearningBottomNav />}
-      >
-        {/* Full Desktop 3-Column EKAGURU Knowledge Universe Studio */}
-        <div className="w-full flex-1 min-h-screen">
-          <UniversalKnowledgeUniverseStudio
-            sectionId={struct.sectionId || activeSourcePage?.sourceId}
-            sectionTitle={activeSectionTitle}
-            conceptName={cleanConceptName}
-            description={activeSourcePage?.content || ''}
-            printedPage={activeSourcePage?.printed?.number || activeSourcePage?.printedPage || 2}
-          />
-        </div>
-      </LearningShell>
+      <div className="w-screen h-screen max-h-screen overflow-hidden bg-[#070b14] flex flex-col">
+        <UniversalKnowledgeUniverseStudio
+          sectionId={struct.sectionId || activeSourcePage?.sourceId}
+          sectionTitle={activeSectionTitle}
+          conceptName={cleanConceptName}
+          description={activeSourcePage?.content || ''}
+          printedPage={activeSourcePage?.printed?.number || activeSourcePage?.printedPage || 2}
+          className="flex-1 w-full h-full"
+        />
+      </div>
     );
   }
 
