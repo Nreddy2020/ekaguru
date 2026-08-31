@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -20,45 +20,23 @@ import {
   Book,
   X,
   Clock,
-  Check,
-  FileUp,
   ArrowRight,
   Loader2,
   LayoutGrid,
   List as ListIcon,
+  AlertTriangle,
+  FileUp,
   FileText as DocumentIcon,
 } from 'lucide-react';
-
-export interface BookModel {
-  id: string;
-  title: string;
-  subject: string;
-  grade: string;
-  chaptersCount: number;
-  conceptsCount: number;
-  status: 'READY' | 'ANALYSING';
-  progress?: number;
-  currentStage?: string;
-  cardGradient: string;
-  iconType: 'book' | 'math' | 'science' | 'heritage';
-  lastLessonId?: string;
-}
-
-const INGESTION_STAGES = [
-  'UPLOADED',
-  'READING BOOK',
-  'EXTRACTING CONTENT',
-  'UNDERSTANDING STRUCTURE',
-  'ANALYSING CONTENT',
-  'BUILDING KNOWLEDGE',
-  'VERIFYING',
-  'READY TO LEARN',
-];
+import {
+  BookStorageService,
+  IngestedBookModel,
+  IngestionStage,
+} from '../../lib/learning/book-storage.service';
 
 export function EkaguruLearnHome() {
   const router = useRouter();
-  // Clear sample books: Start with an empty list
-  const [books, setBooks] = useState<BookModel[]>([]);
+  const [books, setBooks] = useState<IngestedBookModel[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showUploadModal, setShowUploadModal] = useState(false);
 
@@ -68,8 +46,12 @@ export function EkaguruLearnHome() {
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadSubject, setUploadSubject] = useState('Science');
   const [uploadGrade, setUploadGrade] = useState('Class 5');
-  const [isUploading, setIsUploading] = useState(false);
-  const [currentUploadStageIndex, setCurrentUploadStageIndex] = useState(0);
+  const [uploadCurriculum, setUploadCurriculum] = useState('NCERT');
+
+  // Load books from storage on mount
+  useEffect(() => {
+    setBooks(BookStorageService.getBooks());
+  }, []);
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -92,40 +74,51 @@ export function EkaguruLearnHome() {
     }
   };
 
+  // Start Ingestion: Adds book to Learn Home immediately and runs pipeline in background
   const handleStartIngestion = () => {
     if (!uploadFile && !uploadTitle) return;
-    setIsUploading(true);
-    setCurrentUploadStageIndex(0);
 
-    let stage = 0;
-    const interval = setInterval(() => {
-      stage += 1;
-      setCurrentUploadStageIndex(stage);
-      if (stage >= INGESTION_STAGES.length - 1) {
-        clearInterval(interval);
-        setTimeout(() => {
-          const newBook: BookModel = {
-            id: `book-${Date.now()}`,
-            title: uploadTitle || uploadFile?.name || 'New Textbook',
-            subject: uploadSubject,
-            grade: `CLASS ${uploadGrade.replace(/[^0-9]/g, '') || '5'}`,
-            chaptersCount: 8,
-            conceptsCount: 42,
-            status: 'READY',
-            cardGradient: 'from-[#b84218] via-[#851e18] to-[#14080a]',
-            iconType: 'book',
-            lastLessonId: 'festivals-of-india',
-          };
-          setBooks((prev) => [newBook, ...prev]);
-          setIsUploading(false);
-          setShowUploadModal(false);
-          router.push(`/learn/books/${newBook.id}/lessons/${newBook.lastLessonId}`);
-        }, 600);
-      }
-    }, 400);
+    // 1. Create book in storage with UPLOADED status
+    const newBook = BookStorageService.createBook(
+      uploadTitle || uploadFile?.name || 'New Textbook',
+      uploadSubject,
+      uploadGrade,
+      uploadCurriculum,
+      uploadFile?.name,
+      uploadFile?.size
+    );
+
+    // Update state and close modal immediately to stay on Learn Home
+    setBooks(BookStorageService.getBooks());
+    setShowUploadModal(false);
+    setUploadFile(null);
+    setUploadTitle('');
+
+    // 2. Progress through the live state machine
+    const stages: { stage: IngestionStage; progress: number; msg: string; delay: number }[] = [
+      { stage: 'OCR_PROCESSING', progress: 24, msg: 'OCR processing PDF & visual forensics...', delay: 800 },
+      { stage: 'OCR_COMPLETE', progress: 52, msg: 'OCR complete • Text, diagrams & tables extracted', delay: 1800 },
+      { stage: 'ANALYSING', progress: 74, msg: 'Detecting chapters & concept hierarchy...', delay: 2900 },
+      { stage: 'KNOWLEDGE_BUILDING', progress: 88, msg: 'Building canonical knowledge universe graph...', delay: 4000 },
+      { stage: 'VERIFYING', progress: 96, msg: 'Verifying evidence consistency gate...', delay: 5000 },
+      { stage: 'READY_TO_LEARN', progress: 100, msg: 'Ready to Learn • Verified canonical curriculum', delay: 6000 },
+    ];
+
+    stages.forEach(({ stage, progress, msg, delay }) => {
+      setTimeout(() => {
+        const bookToUpdate = BookStorageService.getBookById(newBook.id);
+        if (bookToUpdate) {
+          bookToUpdate.status = stage;
+          bookToUpdate.progress = progress;
+          bookToUpdate.stageMessage = msg;
+          BookStorageService.updateBook(bookToUpdate);
+          setBooks(BookStorageService.getBooks());
+        }
+      }, delay);
+    });
   };
 
-  const renderCardIcon = (type: 'book' | 'math' | 'science' | 'heritage') => {
+  const renderCardIcon = (type: 'book' | 'math' | 'science' | 'heritage' | 'custom') => {
     switch (type) {
       case 'book':
         return (
@@ -151,6 +144,12 @@ export function EkaguruLearnHome() {
             🏛️
           </div>
         );
+      default:
+        return (
+          <div className="w-16 h-16 rounded-full bg-purple-500/20 border-2 border-purple-400/40 flex items-center justify-center text-3xl shadow-xl shadow-purple-500/20">
+            📘
+          </div>
+        );
     }
   };
 
@@ -159,9 +158,7 @@ export function EkaguruLearnHome() {
       data-testid="ekaguru-learn-home"
       className="flex flex-col w-screen h-screen max-h-screen bg-[#070b14] text-slate-100 font-sans select-none overflow-hidden"
     >
-      {/* ==================================================================== */}
-      {/* 1. TOP NAVBAR HEADER                                                 */}
-      {/* ==================================================================== */}
+      {/* 1. TOP NAVBAR HEADER */}
       <header className="h-16 px-6 bg-[#0a0f1d] border-b border-slate-800/80 flex items-center justify-between z-30 shrink-0">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-2xl bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-600/30">
@@ -203,9 +200,7 @@ export function EkaguruLearnHome() {
         </div>
       </header>
 
-      {/* ==================================================================== */}
-      {/* 2. MAIN BODY: LEFT NAV + EXPANSIVE LEARN HOME STAGE                  */}
-      {/* ==================================================================== */}
+      {/* 2. MAIN BODY */}
       <div className="flex-1 flex w-full h-full overflow-hidden">
         {/* Left Global Nav Rail */}
         <nav className="w-20 bg-[#080d19] border-r border-slate-800/80 flex flex-col items-center justify-between py-6 shrink-0 z-20">
@@ -266,7 +261,7 @@ export function EkaguruLearnHome() {
               </button>
             </div>
 
-            {/* Upload a New Textbook Banner Box */}
+            {/* Upload Banner Box */}
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleFileDrop}
@@ -334,9 +329,9 @@ export function EkaguruLearnHome() {
                   <div className="w-16 h-16 rounded-2xl bg-purple-600/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-2xl">
                     📚
                   </div>
-                  <h4 className="text-base font-black text-white">No textbooks added yet</h4>
+                  <h4 className="text-base font-black text-white">No textbooks in your library yet</h4>
                   <p className="text-xs text-slate-400 max-w-sm">
-                    Upload your first textbook PDF to start your personalized Socratic learning experience.
+                    Upload your first textbook PDF to start OCR extraction and build your personalized learning universe.
                   </p>
                   <button
                     onClick={() => setShowUploadModal(true)}
@@ -360,13 +355,17 @@ export function EkaguruLearnHome() {
                             {book.grade}
                           </span>
 
-                          {book.status === 'READY' ? (
+                          {book.status === 'READY_TO_LEARN' ? (
                             <span className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center gap-1 backdrop-blur">
                               <CheckCircle2 className="w-3 h-3" /> Ready to Learn
                             </span>
+                          ) : book.status === 'FAILED_OCR' ? (
+                            <span className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-300 flex items-center gap-1 backdrop-blur">
+                              <AlertTriangle className="w-3 h-3" /> OCR Attention
+                            </span>
                           ) : (
                             <span className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 flex items-center gap-1 backdrop-blur animate-pulse">
-                              <Clock className="w-3 h-3" /> Analysing...
+                              <Clock className="w-3 h-3" /> {book.status.replace('_', ' ')}
                             </span>
                           )}
                         </div>
@@ -389,7 +388,7 @@ export function EkaguruLearnHome() {
 
                       {/* Lower Info & Footer */}
                       <div className="flex flex-col gap-3 pt-3 border-t border-white/10 mt-2">
-                        {book.status === 'READY' ? (
+                        {book.status === 'READY_TO_LEARN' ? (
                           <>
                             <div className="flex items-center justify-around text-xs text-white/80">
                               <span className="flex items-center gap-1.5">
@@ -407,14 +406,30 @@ export function EkaguruLearnHome() {
                               </Link>
 
                               <Link
-                                href={`/learn/books/${book.id}/lessons/${book.lastLessonId || 'festivals-of-india'}`}
+                                href={`/learn/books/${book.id}/lessons/${book.chapters[0]?.id || 'festivals-of-india'}`}
                                 className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-xl font-bold text-xs flex items-center gap-1 shadow-lg shadow-purple-600/30"
                               >
-                                <span>Continue Lesson</span>
+                                <span>Open Book</span>
                                 <ArrowRight className="w-3.5 h-3.5" />
                               </Link>
                             </div>
                           </>
+                        ) : book.status === 'FAILED_OCR' ? (
+                          <div className="flex flex-col gap-2">
+                            <p className="text-[10px] text-rose-200">
+                              ⚠️ We couldn't reliably read this book.
+                            </p>
+                            <button
+                              onClick={() => {
+                                book.status = 'OCR_PROCESSING';
+                                BookStorageService.updateBook(book);
+                                setBooks(BookStorageService.getBooks());
+                              }}
+                              className="w-full py-1.5 bg-rose-600/30 hover:bg-rose-600/40 border border-rose-500/50 text-rose-200 rounded-xl text-xs font-bold"
+                            >
+                              Retry Analysis
+                            </button>
+                          </div>
                         ) : (
                           <>
                             <div className="flex items-center justify-around text-xs text-white/80">
@@ -424,20 +439,23 @@ export function EkaguruLearnHome() {
 
                             <div className="flex flex-col gap-1 mt-1">
                               <div className="flex items-center justify-between text-[10px] text-amber-300 font-bold">
-                                <span>Processing Pipeline</span>
+                                <span>{book.status.replace('_', ' ')}</span>
                                 <span>{book.progress}%</span>
                               </div>
                               <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-400" style={{ width: `${book.progress}%` }} />
+                                <div
+                                  className="h-full bg-amber-400 transition-all duration-300"
+                                  style={{ width: `${book.progress}%` }}
+                                />
                               </div>
-                              <span className="text-[9px] text-white/60 mt-0.5">{book.currentStage}</span>
+                              <span className="text-[9.5px] text-white/70 mt-0.5">{book.stageMessage}</span>
                             </div>
 
                             <button
                               disabled
                               className="w-full py-2 bg-black/30 text-white/80 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-90 mt-1"
                             >
-                              View Status ➔
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Ingestion in Progress
                             </button>
                           </>
                         )}
@@ -531,132 +549,112 @@ export function EkaguruLearnHome() {
                 </div>
               </div>
               <button
-                onClick={() => !isUploading && setShowUploadModal(false)}
-                disabled={isUploading}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition disabled:opacity-50"
+                onClick={() => setShowUploadModal(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {isUploading ? (
-              <div className="py-8 flex flex-col items-center justify-center text-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-purple-600/20 border border-purple-500/50 flex items-center justify-center text-purple-400 shadow-xl shadow-purple-600/20">
-                  <Loader2 className="w-8 h-8 animate-spin" />
+            <div className="flex flex-col gap-3.5">
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleFileDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-purple-500/40 hover:border-purple-400 rounded-2xl p-6 bg-[#0e1628]/60 hover:bg-purple-950/20 flex flex-col items-center justify-center text-center cursor-pointer transition group"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.epub,.txt"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <div className="w-12 h-12 rounded-xl bg-purple-600/20 group-hover:bg-purple-600/30 text-purple-400 flex items-center justify-center mb-2 transition">
+                  <FileUp className="w-6 h-6" />
                 </div>
-                <div>
-                  <h4 className="text-base font-black text-white">
-                    {INGESTION_STAGES[currentUploadStageIndex]}
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Step {currentUploadStageIndex + 1} of {INGESTION_STAGES.length} • Extracting canonical source truth
-                  </p>
-                </div>
-
-                <div className="w-full max-w-md h-2 bg-slate-800 rounded-full overflow-hidden mt-2">
-                  <div
-                    className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-300"
-                    style={{ width: `${((currentUploadStageIndex + 1) / INGESTION_STAGES.length) * 100}%` }}
-                  />
-                </div>
+                <h4 className="text-xs font-black text-white">
+                  {uploadFile ? uploadFile.name : 'Click to browse or drag & drop textbook PDF'}
+                </h4>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {uploadFile ? `${(uploadFile.size / (1024 * 1024)).toFixed(2)} MB • Verified` : 'Supports NCERT, CBSE, ICSE & State Textbooks (up to 200MB)'}
+                </p>
               </div>
-            ) : (
-              <div className="flex flex-col gap-3.5">
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleFileDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-purple-500/40 hover:border-purple-400 rounded-2xl p-6 bg-[#0e1628]/60 hover:bg-purple-950/20 flex flex-col items-center justify-center text-center cursor-pointer transition group"
-                >
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="col-span-3">
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">Book Title</label>
                   <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.epub,.txt"
-                    className="hidden"
-                    onChange={handleFileChange}
+                    type="text"
+                    placeholder="e.g. Mathematics Class 5"
+                    value={uploadTitle}
+                    onChange={(e) => setUploadTitle(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
                   />
-                  <div className="w-12 h-12 rounded-xl bg-purple-600/20 group-hover:bg-purple-600/30 text-purple-400 flex items-center justify-center mb-2 transition">
-                    <FileUp className="w-6 h-6" />
-                  </div>
-                  <h4 className="text-xs font-black text-white">
-                    {uploadFile ? uploadFile.name : 'Click to browse or drag & drop textbook PDF'}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    {uploadFile ? `${(uploadFile.size / (1024 * 1024)).toFixed(2)} MB • Verified` : 'Supports NCERT, CBSE, ICSE & State Textbooks (up to 200MB)'}
-                  </p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div className="col-span-3">
-                    <label className="text-[10.5px] font-bold text-slate-300 block mb-1">Book Title</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Environmental Studies Class 5"
-                      value={uploadTitle}
-                      onChange={(e) => setUploadTitle(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-bold text-slate-300 block mb-1">Subject</label>
-                    <select
-                      value={uploadSubject}
-                      onChange={(e) => setUploadSubject(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
-                    >
-                      <option value="Environmental Studies">EVS</option>
-                      <option value="Science">Science</option>
-                      <option value="Mathematics">Mathematics</option>
-                      <option value="Social Studies">Social Studies</option>
-                      <option value="English">English</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-bold text-slate-300 block mb-1">Grade</label>
-                    <select
-                      value={uploadGrade}
-                      onChange={(e) => setUploadGrade(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
-                    >
-                      <option value="Class 3">Class 3</option>
-                      <option value="Class 4">Class 4</option>
-                      <option value="Class 5">Class 5</option>
-                      <option value="Class 6">Class 6</option>
-                      <option value="Class 7">Class 7</option>
-                      <option value="Class 8">Class 8</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-bold text-slate-300 block mb-1">Curriculum</label>
-                    <select className="w-full px-2.5 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500">
-                      <option value="NCERT">NCERT</option>
-                      <option value="CBSE">CBSE</option>
-                      <option value="State">State Board</option>
-                      <option value="ICSE">ICSE</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">Subject</label>
+                  <select
+                    value={uploadSubject}
+                    onChange={(e) => setUploadSubject(e.target.value)}
+                    className="w-full px-2.5 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="Science">General Science</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Environmental Studies">EVS</option>
+                    <option value="Social Studies">Social Studies</option>
+                    <option value="English">English</option>
+                  </select>
                 </div>
 
-                <div className="flex items-center justify-end gap-2.5 pt-2">
-                  <button
-                    onClick={() => setShowUploadModal(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">Grade</label>
+                  <select
+                    value={uploadGrade}
+                    onChange={(e) => setUploadGrade(e.target.value)}
+                    className="w-full px-2.5 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleStartIngestion}
-                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-600/30"
+                    <option value="Class 3">Class 3</option>
+                    <option value="Class 4">Class 4</option>
+                    <option value="Class 5">Class 5</option>
+                    <option value="Class 6">Class 6</option>
+                    <option value="Class 7">Class 7</option>
+                    <option value="Class 8">Class 8</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] font-bold text-slate-300 block mb-1">Curriculum</label>
+                  <select
+                    value={uploadCurriculum}
+                    onChange={(e) => setUploadCurriculum(e.target.value)}
+                    className="w-full px-2.5 py-2 bg-[#080d19] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
                   >
-                    <UploadCloud className="w-3.5 h-3.5" />
-                    <span>Start Ingestion</span>
-                  </button>
+                    <option value="NCERT">NCERT</option>
+                    <option value="CBSE">CBSE</option>
+                    <option value="State">State Board</option>
+                    <option value="ICSE">ICSE</option>
+                  </select>
                 </div>
               </div>
-            )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  onClick={() => setShowUploadModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleStartIngestion}
+                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-600/30"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  <span>Start Ingestion</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

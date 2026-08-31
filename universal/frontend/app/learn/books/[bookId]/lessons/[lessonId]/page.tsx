@@ -9,10 +9,8 @@ export default function LessonRuntimePage({
 }) {
   return (
     <UniversalKnowledgeUniverseStudio
+      bookId={params.bookId}
       sectionId={params.lessonId}
-      sectionTitle="Festivals of India"
-      conceptName="Sankranthi & Harvest Festivals"
-      printedPage={2}
     />
   );
 }

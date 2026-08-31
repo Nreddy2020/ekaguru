@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -22,10 +22,15 @@ import {
   Layers,
   Menu,
   MessageCircleQuestion,
-  X,
 } from 'lucide-react';
+import {
+  BookStorageService,
+  IngestedBookModel,
+  ChapterLessonModel,
+} from '../../lib/learning/book-storage.service';
 
 export interface UniversalKnowledgeUniverseStudioProps {
+  bookId?: string;
   sectionId?: string;
   sectionTitle?: string;
   conceptName?: string;
@@ -35,17 +40,25 @@ export interface UniversalKnowledgeUniverseStudioProps {
 }
 
 export function UniversalKnowledgeUniverseStudio({
+  bookId = 'evs-class-5',
   sectionId = 'festivals-of-india',
-  sectionTitle = 'Festivals of India',
-  conceptName = 'Sankranthi & Harvest Festivals',
-  description = '',
-  printedPage = 2,
   className = '',
 }: UniversalKnowledgeUniverseStudioProps) {
+  const [book, setBook] = useState<IngestedBookModel | undefined>(undefined);
+  const [currentChapter, setCurrentChapter] = useState<ChapterLessonModel | undefined>(undefined);
+
+  useEffect(() => {
+    const loadedBook = BookStorageService.getBookById(bookId);
+    setBook(loadedBook);
+    if (loadedBook) {
+      const foundCh = loadedBook.chapters.find((c) => c.id === sectionId) || loadedBook.chapters[0];
+      setCurrentChapter(foundCh);
+    }
+  }, [bookId, sectionId]);
+
   // Teaching Depth: Basis -> Developing -> Proficient -> Advanced -> Deep
   const [activeDepth, setActiveDepth] = useState<'basis' | 'developing' | 'proficient' | 'advanced' | 'deep'>('developing');
   const [activeBoardTab, setActiveBoardTab] = useState<'teacher_explains' | 'visuals' | 'real_world' | 'key_points' | 'summary'>('teacher_explains');
-  const [activeChapterIndex, setActiveChapterIndex] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [askInput, setAskInput] = useState<string>('');
   const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
@@ -59,14 +72,33 @@ export function UniversalKnowledgeUniverseStudio({
     setInterruptionQuery(question);
   };
 
+  const ch = currentChapter || {
+    id: 'lesson-1',
+    chapterNumber: 1,
+    title: 'Lesson 1: Foundations',
+    printedPage: 2,
+    concepts: ['Core Concepts', 'Mechanisms', 'Applications'],
+    boardTitle: 'FOUNDATIONS OF LEARNING',
+    boardSubtitle: 'A structured Socratic exploration grounded in verified textbook truth.',
+    flowSteps: [
+      { label: 'INPUT', icon: '☀️', description: 'Core observations and sensory inputs' },
+      { label: 'PROCESS', icon: '🌿', description: 'Underlying biological/mathematical mechanism' },
+      { label: 'OUTPUT', icon: '🌾', description: 'Observable results and structured products' },
+      { label: 'HARVEST', icon: '🧑‍🌾', description: 'Practical utilization and mastery' },
+      { label: 'SYNTHESIS', icon: '🎉', description: 'Celebration of understanding and insight' },
+    ],
+    subBoxTitle: 'HOW THE MECHANISM WORKS?',
+    subBoxFormula: 'Observation + Reasoning ➔ Concept ➔ Verified Knowledge',
+    keyIdea: 'Learning occurs when foundational observations connect with underlying mechanisms.',
+    textbookExcerpt: 'Source extracted directly from your verified textbook page.',
+  };
+
   return (
     <div
       data-testid="universal-knowledge-universe-studio"
       className={`flex flex-col w-screen h-screen max-h-screen bg-[#070b14] text-slate-100 font-sans select-none overflow-hidden ${className}`}
     >
-      {/* ==================================================================== */}
-      {/* 1. TOP RUNTIME NAVBAR (NO UPLOAD / LIBRARY BUTTONS)                   */}
-      {/* ==================================================================== */}
+      {/* 1. TOP RUNTIME NAVBAR */}
       <header className="h-14 px-6 bg-[#0a0f1d] border-b border-slate-800/80 flex items-center justify-between z-30 shrink-0">
         <div className="flex items-center gap-3.5">
           <Link
@@ -95,7 +127,7 @@ export function UniversalKnowledgeUniverseStudio({
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder='Ask EKAGURU about "Sankranthi"...'
+            placeholder={`Ask EKAGURU about ${book?.title || 'this lesson'}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-12 py-2 bg-[#0d1424] border border-slate-700/60 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
@@ -136,9 +168,7 @@ export function UniversalKnowledgeUniverseStudio({
         </div>
       </header>
 
-      {/* ==================================================================== */}
-      {/* 2. MAIN TEACHING WORKSPACE                                           */}
-      {/* ==================================================================== */}
+      {/* 2. MAIN TEACHING WORKSPACE */}
       <div className="flex-1 flex w-full h-full overflow-hidden">
         {/* Left Global Rail */}
         <nav className="w-16 bg-[#080d19] border-r border-slate-800/80 flex flex-col items-center justify-between py-4 shrink-0 z-20">
@@ -187,92 +217,47 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
         </nav>
 
-        {/* LEFT COLUMN: FROM YOUR TEXTBOOK (SOURCE GROUNDED) */}
+        {/* LEFT COLUMN: FROM YOUR TEXTBOOK (GROUNDED IN SELECTED BOOK) */}
         <aside className="w-[320px] xl:w-[340px] bg-[#080d19] border-r border-slate-800/80 p-4 flex flex-col justify-between overflow-y-auto shrink-0 gap-4 custom-scrollbar">
           <div className="flex flex-col gap-4">
-            {/* Header & Source Verified Pill */}
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-black uppercase tracking-wider text-white block">
                   FROM YOUR TEXTBOOK
                 </span>
-                <span className="text-xs text-slate-400">Page 2 • Sankranthi</span>
+                <span className="text-xs text-slate-400">
+                  Page {ch.printedPage} • {book?.subject || 'Curriculum'}
+                </span>
               </div>
               <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Source Verified
               </span>
             </div>
 
-            {/* High-Fidelity Textbook Card */}
+            {/* Grounded Textbook Card */}
             <div className="rounded-2xl overflow-hidden border border-slate-700/80 bg-[#fffdfa] text-slate-900 p-4 shadow-2xl relative flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow">
-                  2
+                  {ch.printedPage}
                 </span>
-                <svg className="w-8 h-8" viewBox="0 0 40 40">
-                  <polygon points="20,2 38,18 20,38 2,18" fill="#f43f5e" stroke="#be123c" strokeWidth="1.5" />
-                  <polygon points="20,2 38,18 20,18" fill="#fbbf24" />
-                  <polygon points="2,18 20,18 20,38" fill="#3b82f6" />
-                  <line x1="20" y1="2" x2="20" y2="38" stroke="#ffffff" strokeWidth="1" />
-                  <line x1="2" y1="18" x2="38" y2="18" stroke="#ffffff" strokeWidth="1" />
-                  <path d="M20,38 Q28,42 24,48 Q18,52 26,58" stroke="#f43f5e" strokeWidth="2" fill="none" />
-                </svg>
+                <span className="text-xs font-bold text-slate-500">{book?.curriculum || 'NCERT'}</span>
               </div>
 
               <h3 className="text-base font-black text-rose-800 font-serif leading-tight">
-                Festivals of India
+                {ch.title}
               </h3>
 
               <p className="text-xs leading-relaxed text-slate-800 font-serif">
-                India is a land of festivals. We celebrate different kinds of festivals in the country.
-              </p>
-              <p className="text-xs leading-relaxed text-slate-800 font-serif">
-                <strong>Sankranthi</strong> is a popular harvest festival. Many people make colourful <em>muggulu (rangoli)</em> at the entrance of their houses. Many people also fly kites on Sankranthi. It is celebrated in many parts of India.
+                {ch.textbookExcerpt}
               </p>
 
-              {/* Family & Rangoli Illustrated Scene */}
-              <div className="w-full bg-gradient-to-b from-amber-50 to-orange-100/80 rounded-xl p-3 border border-amber-200 flex flex-col items-center shadow-inner relative overflow-hidden mt-1">
-                <div className="flex items-end justify-center gap-3 mb-2 z-10">
-                  <div className="text-center">
-                    <span className="text-2xl block leading-none">👵</span>
-                    <span className="text-[9px] text-amber-950 font-bold">Dadi</span>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-3xl block leading-none">👩</span>
-                    <span className="text-[9px] text-amber-950 font-bold">Amma</span>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-xl block leading-none">👧</span>
-                    <span className="text-[9px] text-amber-950 font-bold">Anu</span>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-3xl block leading-none">👨</span>
-                    <span className="text-[9px] text-amber-950 font-bold">Appa</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-center gap-4 z-10">
-                  <svg className="w-20 h-20" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="48" fill="#fef3c7" stroke="#f59e0b" strokeWidth="2.5" />
-                    <circle cx="50" cy="50" r="38" fill="#fbcfe8" stroke="#ec4899" strokeWidth="2" strokeDasharray="3 3" />
-                    <circle cx="50" cy="50" r="28" fill="#fed7aa" stroke="#ea580c" strokeWidth="2" />
-                    <circle cx="50" cy="50" r="18" fill="#bbf7d0" stroke="#16a34a" strokeWidth="2" />
-                    <circle cx="50" cy="7" fill="#f43f5e" />
-                    {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
-                      <circle
-                        key={i}
-                        cx={50 + 28 * Math.cos((angle * Math.PI) / 180)}
-                        cy={50 + 28 * Math.sin((angle * Math.PI) / 180)}
-                        r="4.5"
-                        fill="#6366f1"
-                      />
-                    ))}
-                  </svg>
-                  <div className="flex flex-col items-center">
-                    <span className="text-3xl leading-none">🏺</span>
-                    <span className="text-[9.5px] font-bold text-amber-900 mt-1">Bonam</span>
-                  </div>
-                </div>
+              {/* Concepts discovered */}
+              <div className="w-full bg-slate-50 rounded-xl p-2.5 border border-slate-200 mt-1 flex flex-wrap gap-1.5">
+                {ch.concepts.map((c, i) => (
+                  <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 border border-purple-200">
+                    {c}
+                  </span>
+                ))}
               </div>
             </div>
 
@@ -286,47 +271,35 @@ export function UniversalKnowledgeUniverseStudio({
             {/* Chapter Index */}
             <div className="flex flex-col gap-2 pt-1">
               <span className="text-xs font-black uppercase tracking-wider text-slate-400">
-                INDEX OF THIS CHAPTER
+                CHAPTERS IN THIS BOOK
               </span>
               <div className="flex flex-col gap-1.5">
-                {[
-                  { id: 1, title: '1. Festivals of India', active: true },
-                  { id: 2, title: '2. Harvest Festivals in India', hasSub: true },
-                  { id: 3, title: '3. Regional Festivals', hasSub: true },
-                  { id: 4, title: '4. Unity in Diversity', hasSub: true },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveChapterIndex(item.id)}
+                {(book?.chapters || [ch]).map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/learn/books/${book?.id || bookId}/lessons/${c.id}`}
                     className={`w-full px-3.5 py-2.5 rounded-xl text-left text-xs font-medium flex items-center justify-between transition-all ${
-                      item.active || activeChapterIndex === item.id
+                      c.id === ch.id
                         ? 'bg-purple-950/60 border border-purple-500/50 text-purple-200 font-bold shadow-md'
                         : 'text-slate-300 hover:bg-slate-800/60 hover:text-white border border-transparent'
                     }`}
                   >
-                    <span>{item.title}</span>
-                    {item.active || activeChapterIndex === item.id ? (
+                    <span>{c.title}</span>
+                    {c.id === ch.id ? (
                       <span className="w-2 h-2 rounded-full bg-purple-400 shadow-sm shadow-purple-400" />
                     ) : (
                       <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
                     )}
-                  </button>
+                  </Link>
                 ))}
               </div>
-
-              <button
-                onClick={() => setShowIndexModal(true)}
-                className="mt-1 w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center justify-center gap-2 transition-colors"
-              >
-                <Layers className="w-4 h-4 text-purple-400" /> View Full Chapter Index
-              </button>
             </div>
           </div>
         </aside>
 
-        {/* CENTER & RIGHT: DYNAMIC TEACHING RUNTIME STAGE */}
+        {/* CENTER & RIGHT: TEACHING CHALKBOARD STAGE */}
         <main className="flex-1 flex flex-col p-6 bg-[#070b14] overflow-y-auto gap-4 custom-scrollbar">
-          {/* Top Row: Engine Analysis & Stats */}
+          {/* Top Row: Engine Analysis */}
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <span className="text-sm font-black text-white tracking-wide flex items-center gap-2">
@@ -345,7 +318,7 @@ export function UniversalKnowledgeUniverseStudio({
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs shadow-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                 <span className="text-slate-300 font-bold">Concepts</span>
-                <span className="text-emerald-300 font-black text-sm">12</span>
+                <span className="text-emerald-300 font-black text-sm">{ch.concepts.length}</span>
               </div>
 
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-xs shadow-sm">
@@ -398,7 +371,7 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
 
             <Link
-              href="/learn"
+              href={`/learn/books/${book?.id || bookId}`}
               className="px-4 py-2 rounded-xl bg-[#0d1424] border border-slate-700/80 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 transition"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Chapters
@@ -406,7 +379,7 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
 
           {/* ================================================================ */}
-          {/* THE TEACHING CHALKBOARD (DYNAMIC BASED ON DEPTH & INTERRUPTIONS) */}
+          {/* THE TEACHING CHALKBOARD (DYNAMICALLY MATCHING THIS LESSON)       */}
           {/* ================================================================ */}
           <div className="relative rounded-3xl bg-[#08221b] border-[8px] border-[#4a3419] shadow-2xl p-8 overflow-hidden text-emerald-100 flex flex-col justify-between flex-1 min-h-[540px]">
             <div className="absolute inset-2.5 border-2 border-[#836336]/60 rounded-2xl pointer-events-none" />
@@ -421,18 +394,18 @@ export function UniversalKnowledgeUniverseStudio({
               <Volume2 className="w-5 h-5" />
             </button>
 
-            {/* Socratic Interruption Banner if student/teacher asked a question */}
+            {/* Socratic Interruption Banner */}
             {interruptionQuery && (
               <div className="z-20 mb-4 p-4 rounded-2xl bg-amber-950/80 border-2 border-amber-500/60 text-amber-100 flex items-center justify-between shadow-2xl animate-in fade-in">
                 <div className="flex items-center gap-3">
                   <MessageCircleQuestion className="w-6 h-6 text-amber-300 shrink-0" />
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
-                      EKAGURU EXPLANATION EXPANSION (PAUSED LESSON)
+                      EKAGURU Socratic Expansion (Paused Lesson)
                     </span>
                     <p className="text-xs font-bold">"{interruptionQuery}"</p>
                     <p className="text-[11px] text-amber-200/90 mt-0.5">
-                      Roots absorb water and minerals from soil, while leaves capture sunlight and CO2 to create glucose.
+                      Explaining context for {ch.title}: foundational connections grounded in {book?.subject || 'this domain'}.
                     </p>
                   </div>
                 </div>
@@ -446,153 +419,45 @@ export function UniversalKnowledgeUniverseStudio({
             )}
 
             <div className="text-center z-10 mb-6">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-widest text-[#f5d061] font-mono drop-shadow-md">
-                SANKRANTHI – THE HARVEST FESTIVAL
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-widest text-[#f5d061] font-mono drop-shadow-md uppercase">
+                {ch.boardTitle}
               </h2>
               <p className="text-base md:text-lg font-serif text-[#f294b4] mt-2 tracking-wide font-medium">
-                A festival of gratitude, nature and togetherness.
+                {ch.boardSubtitle}
               </p>
             </div>
 
-            {/* 5-Step Flowchart */}
+            {/* 5-Step Visual Flowchart */}
             <div className="grid grid-cols-5 gap-6 items-center text-center z-10 my-4">
-              <div className="flex flex-col items-center group">
-                <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <svg className="w-22 h-22" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="26" fill="#fbbf24" stroke="#f59e0b" strokeWidth="3.5" />
-                    {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg, idx) => (
-                      <line
-                        key={idx}
-                        x1={50 + 30 * Math.cos((deg * Math.PI) / 180)}
-                        y1={50 + 30 * Math.sin((deg * Math.PI) / 180)}
-                        x2={50 + 46 * Math.cos((deg * Math.PI) / 180)}
-                        y2={50 + 46 * Math.sin((deg * Math.PI) / 180)}
-                        stroke="#f59e0b"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                      />
-                    ))}
-                  </svg>
+              {ch.flowSteps.map((step, idx) => (
+                <div key={idx} className="flex flex-col items-center group relative">
+                  {idx > 0 && (
+                    <span className="absolute -left-6 top-10 text-purple-300 font-bold text-2xl hidden md:block">
+                      ➔
+                    </span>
+                  )}
+                  <div className="w-24 h-24 rounded-full bg-emerald-950/40 border-2 border-emerald-400/30 flex items-center justify-center text-4xl shadow-xl shadow-emerald-950/40 group-hover:scale-110 transition-transform">
+                    {step.icon}
+                  </div>
+                  <h4 className="text-lg font-black text-amber-300 mt-2 uppercase font-mono tracking-wider">
+                    {step.label}
+                  </h4>
+                  <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
+                    {step.description}
+                  </p>
                 </div>
-                <h4 className="text-lg font-black text-amber-300 mt-2 uppercase font-mono tracking-wider">SUN</h4>
-                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
-                  Gives us light and energy
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center group relative">
-                <span className="absolute -left-6 top-10 text-purple-300 font-bold text-2xl hidden md:block">➔</span>
-                <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <svg className="w-22 h-22" viewBox="0 0 100 100">
-                    <path d="M15,85 Q50,80 85,85" stroke="#78350f" strokeWidth="4.5" fill="none" />
-                    <path d="M50,85 Q50,45 50,18" stroke="#15803d" strokeWidth="5" fill="none" strokeLinecap="round" />
-                    <path d="M50,55 Q22,40 18,28 Q38,28 50,55" fill="#22c55e" stroke="#15803d" strokeWidth="2.5" />
-                    <path d="M50,45 Q78,28 82,18 Q62,18 50,45" fill="#4ade80" stroke="#15803d" strokeWidth="2.5" />
-                    <path d="M50,18 Q40,3 50,-2 Q60,3 50,18" fill="#86efac" stroke="#15803d" strokeWidth="2.5" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-black text-emerald-300 mt-2 uppercase font-mono tracking-wider">PLANTS</h4>
-                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
-                  Use sunlight to make their own food (Photosynthesis)
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center group relative">
-                <span className="absolute -left-6 top-10 text-amber-300 font-bold text-2xl hidden md:block">➔</span>
-                <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <svg className="w-22 h-22" viewBox="0 0 100 100">
-                    <path d="M50,90 L50,10" stroke="#ca8a04" strokeWidth="4" strokeLinecap="round" />
-                    <path d="M50,90 L28,18" stroke="#ca8a04" strokeWidth="3.5" strokeLinecap="round" />
-                    <path d="M50,90 L72,18" stroke="#ca8a04" strokeWidth="3.5" strokeLinecap="round" />
-                    {[18, 30, 42, 54, 66].map((y, i) => (
-                      <g key={i}>
-                        <ellipse cx="40" cy={y} rx="7" ry="4" fill="#facc15" stroke="#ca8a04" strokeWidth="1.5" transform={`rotate(-25 40 ${y})`} />
-                        <ellipse cx="60" cy={y} rx="7" ry="4" fill="#fde047" stroke="#ca8a04" strokeWidth="1.5" transform={`rotate(25 60 ${y})`} />
-                      </g>
-                    ))}
-                  </svg>
-                </div>
-                <h4 className="text-lg font-black text-amber-300 mt-2 uppercase font-mono tracking-wider">CROPS</h4>
-                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
-                  Plants grow and produce grains
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center group relative">
-                <span className="absolute -left-6 top-10 text-cyan-300 font-bold text-2xl hidden md:block">➔</span>
-                <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <svg className="w-24 h-22" viewBox="0 0 130 100">
-                    <circle cx="35" cy="28" r="10" fill="#fbcfe8" />
-                    <path d="M20,25 Q35,12 50,25" fill="#ca8a04" />
-                    <path d="M35,38 L35,68 M35,46 L16,58 M35,46 L54,58" stroke="#0284c7" strokeWidth="4" />
-                    <line x1="35" y1="68" x2="24" y2="88" stroke="#0284c7" strokeWidth="4" />
-                    <line x1="35" y1="68" x2="46" y2="88" stroke="#0284c7" strokeWidth="4" />
-                    <ellipse cx="82" cy="55" rx="18" ry="12" fill="#f8fafc" stroke="#64748b" strokeWidth="2.5" />
-                    <circle cx="102" cy="45" r="9.5" fill="#f8fafc" stroke="#64748b" strokeWidth="2.5" />
-                    <line x1="74" y1="67" x2="74" y2="86" stroke="#64748b" strokeWidth="3.5" />
-                    <line x1="90" y1="67" x2="90" y2="86" stroke="#64748b" strokeWidth="3.5" />
-                    <path d="M104,40 Q112,30 108,22" stroke="#334155" strokeWidth="3" fill="none" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-black text-cyan-300 mt-2 uppercase font-mono tracking-wider">HARVEST</h4>
-                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
-                  Farmers harvest the mature crops
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center group relative">
-                <span className="absolute -left-6 top-10 text-pink-300 font-bold text-2xl hidden md:block">➔</span>
-                <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <svg className="w-22 h-22" viewBox="0 0 100 100">
-                    <circle cx="50" cy="65" r="32" fill="#f43f5e" stroke="#fbbf24" strokeWidth="3" />
-                    <circle cx="50" cy="65" r="22" fill="#8b5cf6" stroke="#fbbf24" strokeWidth="2" />
-                    <circle cx="50" cy="65" r="11" fill="#10b981" />
-                    <polygon points="70,6 90,22 70,38 50,22" fill="#38bdf8" stroke="#0284c7" strokeWidth="2.5" />
-                    <line x1="70" y1="38" x2="80" y2="52" stroke="#f43f5e" strokeWidth="2.5" />
-                    <circle cx="30" cy="50" r="10" fill="#b45309" />
-                    <path d="M23,43 Q30,36 37,43" stroke="#fef08a" strokeWidth="3" fill="none" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-black text-pink-300 mt-2 uppercase font-mono tracking-wider">CELEBRATION</h4>
-                <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
-                  We celebrate with joy, rangoli, kites, feasts and gratitude
-                </p>
-              </div>
+              ))}
             </div>
 
             {/* Chalkboard Sub-Panels */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5 z-10 mt-6 pt-5 border-t-2 border-emerald-800/70">
               <div className="md:col-span-7 bg-[#051912]/95 border-2 border-emerald-600/50 rounded-2xl p-4 flex flex-col gap-2.5 shadow-inner">
                 <span className="text-sm font-black text-amber-300 font-mono tracking-wider text-center">
-                  HOW PLANTS MAKE FOOD?
+                  {ch.subBoxTitle}
                 </span>
-
-                <div className="flex items-center justify-around text-center text-xs pt-1">
-                  <div className="flex flex-col items-center">
-                    <span className="text-3xl">☀️</span>
-                    <span className="text-xs font-bold text-amber-200 mt-1">Sunlight</span>
-                  </div>
-                  <span className="text-amber-400 font-black text-lg">+</span>
-                  <div className="flex flex-col items-center">
-                    <span className="text-3xl">💧</span>
-                    <span className="text-xs font-bold text-cyan-200 mt-1">Water (H2O)</span>
-                  </div>
-                  <span className="text-amber-400 font-black text-lg">+</span>
-                  <div className="flex flex-col items-center">
-                    <span className="text-3xl">☁️</span>
-                    <span className="text-xs font-bold text-slate-200 mt-1">Carbon dioxide (CO2)</span>
-                  </div>
-                  <span className="text-emerald-400 font-black text-lg">➔</span>
-                  <div className="flex flex-col items-center">
-                    <span className="text-3xl">🌿</span>
-                    <span className="text-xs font-bold text-emerald-300 mt-1">Plant (Photosynthesis)</span>
-                  </div>
-                  <span className="text-amber-400 font-black text-lg">➔</span>
-                  <div className="flex flex-col items-center">
-                    <span className="text-3xl">🍞</span>
-                    <span className="text-xs font-bold text-amber-200 mt-1">Food (Glucose)</span>
-                  </div>
-                </div>
+                <p className="text-xs text-center font-mono text-emerald-200 font-bold">
+                  {ch.subBoxFormula}
+                </p>
               </div>
 
               <div className="md:col-span-5 bg-[#051912]/95 border-2 border-emerald-600/50 rounded-2xl p-4 flex flex-col justify-center gap-2 shadow-inner">
@@ -600,7 +465,7 @@ export function UniversalKnowledgeUniverseStudio({
                   💡 KEY IDEA
                 </span>
                 <p className="text-xs md:text-sm leading-relaxed text-emerald-50 font-sans font-medium">
-                  Plants use sunlight energy to make their own food through <strong className="text-amber-300">photosynthesis</strong>. This food helps the plant grow. When the grain is mature, farmers <strong className="text-amber-300">harvest</strong> it.
+                  {ch.keyIdea}
                 </p>
               </div>
             </div>
@@ -629,7 +494,7 @@ export function UniversalKnowledgeUniverseStudio({
             ))}
           </div>
 
-          {/* ASK EKAGURU (CONTEXT-AWARE QUESTIONING WITH INTERRUPTION) */}
+          {/* ASK EKAGURU (CONTEXT-AWARE QUESTIONING) */}
           <div className="bg-[#0b1222] border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-lg">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
@@ -644,7 +509,7 @@ export function UniversalKnowledgeUniverseStudio({
             <div className="relative flex items-center gap-3">
               <input
                 type="text"
-                placeholder="Ask any question in between — EKAGURU will expand without losing your place..."
+                placeholder={`Ask a question about ${ch.title} — EKAGURU will expand without losing your place...`}
                 value={askInput}
                 onChange={(e) => setAskInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -670,118 +535,30 @@ export function UniversalKnowledgeUniverseStudio({
                 <Sparkles className="w-4 h-4" /> Ask
               </button>
             </div>
-
-            {/* Quick Socratic Prompt Suggestions (Click to trigger interruption) */}
-            <div className="flex items-center gap-2.5 overflow-x-auto text-xs pt-1">
-              {[
-                "Why can't plants eat the soil?",
-                'Why do farmers thank the Sun?',
-                'How does photosynthesis work?',
-                'Why does the farmer wait until grain is mature?',
-              ].map((prompt, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleTriggerInterruption(prompt)}
-                  className="px-4 py-2 rounded-full bg-[#080d19] border border-slate-800 text-slate-300 hover:text-white hover:border-purple-500/50 whitespace-nowrap transition-colors text-xs font-medium"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
           </div>
         </main>
       </div>
 
-      {/* ==================================================================== */}
-      {/* 3. BOTTOM PROGRESSION & EVIDENCE CAPTURE BAR                         */}
-      {/* ==================================================================== */}
+      {/* 3. BOTTOM PROGRESSION BAR */}
       <footer className="h-14 px-6 bg-[#080d19] border-t border-slate-800/80 flex items-center justify-between z-30 shrink-0">
         <div className="flex items-center gap-2.5">
           <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Source Verified
           </span>
           <span className="text-xs text-slate-400 hidden sm:inline">
-            Content is verified from your textbook
+            Content is verified from {book?.title || 'your textbook'}
           </span>
-        </div>
-
-        <div className="flex items-center gap-3.5">
-          <div className="text-left hidden md:block">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xs font-black text-slate-200">Mastery Progress</span>
-              <div className="w-36 h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[66%]" />
-              </div>
-              <span className="text-xs font-black text-emerald-400">66%</span>
-            </div>
-            <span className="text-[10px] text-slate-400">3 of 5 key ideas understood</span>
-          </div>
-
-          <button className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">
-            View Evidence
-          </button>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
-            href="/learn"
+            href={`/learn/books/${book?.id || bookId}`}
             className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-300 flex items-center gap-2 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Chapters
           </Link>
-
-          <button className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all">
-            Continue to Next Lesson <ArrowRight className="w-4 h-4" />
-          </button>
         </div>
       </footer>
-
-      {/* Full Page Modal */}
-      {showFullPageModal && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1424] border border-slate-700 rounded-2xl max-w-xl w-full p-5 shadow-2xl flex flex-col gap-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-sm font-black text-white">📖 Textbook Page 2: Festivals of India</h3>
-              <button onClick={() => setShowFullPageModal(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-            <div className="p-4 bg-amber-50 text-slate-900 rounded-xl font-serif text-xs leading-relaxed max-h-96 overflow-y-auto">
-              <h4 className="font-bold text-rose-800 mb-2">Festivals of India</h4>
-              <p>India is a land of festivals. We celebrate different kinds of festivals in the country.</p>
-              <p className="mt-2">Sankranthi is a popular harvest festival. Many people make colourful muggu (rangoli) at the entrance of their houses. Many people also fly kites on Sankranthi.</p>
-            </div>
-            <button
-              onClick={() => setShowFullPageModal(false)}
-              className="py-2 px-4 rounded-xl bg-purple-600 text-white font-bold text-xs self-end"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Chapter Index Modal */}
-      {showIndexModal && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1424] border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-sm font-black text-white">📑 Unit 1: Chapter Index</h3>
-              <button onClick={() => setShowIndexModal(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-            <div className="flex flex-col gap-2 text-xs text-slate-300">
-              <div className="p-2 rounded bg-purple-950/50 border border-purple-500/40 text-purple-200 font-bold">1. Festivals of India (Page 2)</div>
-              <div className="p-2 rounded bg-slate-900 border border-slate-800">2. Harvest Festivals in India (Page 5)</div>
-              <div className="p-2 rounded bg-slate-900 border border-slate-800">3. Regional Festivals (Page 9)</div>
-              <div className="p-2 rounded bg-slate-900 border border-slate-800">4. Unity in Diversity (Page 13)</div>
-            </div>
-            <button
-              onClick={() => setShowIndexModal(false)}
-              className="py-2 px-4 rounded-xl bg-slate-800 text-white font-bold text-xs self-end"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
