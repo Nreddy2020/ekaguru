@@ -14,3 +14,5 @@ export * from './LearningTabs';
 export * from './LearningBottomNav';
 export * from './LearningOriginalBookViewer';
 export * from './LearningExplanationPanel';
+export * from './UniversalKnowledgeUniverseStudio';
+export * from './TopicKnowledgeUniverse';
