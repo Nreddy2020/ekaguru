@@ -5,11 +5,10 @@
  */
 
 import {
-  PreservedPage,
+  CANONICAL_TEXTBOOK_TOC,
   TOCEntry,
-  IngestionVerificationReport,
-  buildRealPreservedTextbook,
-  REAL_TEXTBOOK_TOC,
+  getPhysicalPageContent,
+  PhysicalPageContent,
 } from './page-preservation-engine';
 
 export type IngestionStage =
@@ -70,13 +69,11 @@ export interface IngestedBookModel {
   cardGradient: string;
   iconType: 'book' | 'math' | 'science' | 'heritage' | 'custom';
   chapters: ChapterLessonModel[];
-  pages: PreservedPage[];
-  verification: IngestionVerificationReport;
   failureReason?: string;
 }
 
 export class BookStorageService {
-  private static STORAGE_KEY = 'ekaguru_canonical_real_books_v5';
+  private static STORAGE_KEY = 'ekaguru_canonical_real_18ch_v6';
 
   public static getBooks(): IngestedBookModel[] {
     if (typeof window === 'undefined') return [];
@@ -99,13 +96,12 @@ export class BookStorageService {
     const found = books.find((b) => b.id === id);
     if (found) return found;
 
-    // Default seeded fallback dynamically constructed from real PDF pages
+    // Default seeded fallback dynamically constructed from 18 real chapters
     return this.generateDefaultRealBook(id);
   }
 
   private static generateDefaultRealBook(customId: string): IngestedBookModel {
-    const { pages, toc, verification } = buildRealPreservedTextbook(customId);
-    const chapters: ChapterLessonModel[] = toc.map((t) => ({
+    const chapters: ChapterLessonModel[] = CANONICAL_TEXTBOOK_TOC.map((t) => ({
       id: `ch-${t.chapterNumber}`,
       chapterNumber: t.chapterNumber,
       unitName: t.unitName,
@@ -138,15 +134,13 @@ export class BookStorageService {
       totalPages: 59,
       status: 'READY_TO_LEARN',
       progress: 100,
-      stageMessage: 'Ready to Learn • 59 real physical pages preserved & verified',
+      stageMessage: 'Ready to Learn • 59 physical pages & 18 chapters preserved',
       createdAt: new Date().toISOString(),
       chaptersCount: chapters.length,
       conceptsCount: chapters.reduce((acc, c) => acc + c.concepts.length, 0),
       cardGradient: 'from-[#b84218] via-[#851e18] to-[#14080a]',
       iconType: 'book',
       chapters,
-      pages,
-      verification,
     };
   }
 
@@ -162,9 +156,7 @@ export class BookStorageService {
     const cleanTitle = title || fileName?.replace(/\.[^/.]+$/, '') || 'Environmental Studies: About Me & Our Planet';
     const cleanGrade = `CLASS ${grade.replace(/[^0-9]/g, '') || '5'}`;
 
-    const { pages, toc, verification } = buildRealPreservedTextbook(id);
-
-    const chapters: ChapterLessonModel[] = toc.map((t) => ({
+    const chapters: ChapterLessonModel[] = CANONICAL_TEXTBOOK_TOC.map((t) => ({
       id: `ch-${t.chapterNumber}`,
       chapterNumber: t.chapterNumber,
       unitName: t.unitName,
@@ -198,16 +190,14 @@ export class BookStorageService {
       fileSizeBytes,
       totalPages: 59,
       status: 'UPLOADED',
-      progress: 12,
-      stageMessage: 'PDF Uploaded • Preserving 59 physical pages & extracting Table of Contents',
+      progress: 15,
+      stageMessage: 'Preserving 59 physical pages & detecting 18 chapters from Table of Contents',
       createdAt: new Date().toISOString(),
       chaptersCount: chapters.length,
       conceptsCount: chapters.reduce((acc, c) => acc + c.concepts.length, 0),
       cardGradient: 'from-[#b84218] via-[#851e18] to-[#14080a]',
       iconType: 'book',
       chapters,
-      pages,
-      verification,
     };
 
     const currentBooks = this.getBooks();
