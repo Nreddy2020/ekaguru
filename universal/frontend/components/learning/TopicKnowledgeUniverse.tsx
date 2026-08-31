@@ -9,15 +9,7 @@ export interface TopicKnowledgeUniverseProps {
 }
 
 export function TopicKnowledgeUniverse({
-  topicId = 'c-festivals-india',
   className = '',
 }: TopicKnowledgeUniverseProps) {
-  return (
-    <UniversalKnowledgeUniverseStudio
-      bookTitle="MY BODY & LIVING WORLD (EVS Class 5)"
-      chapterTitle="Festivals of India"
-      printedPage={2}
-      className={className}
-    />
-  );
+  return <UniversalKnowledgeUniverseStudio className={className} />;
 }
