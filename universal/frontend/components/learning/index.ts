@@ -1,6 +1,5 @@
 export * from './LearningShell';
 export * from './LearningLeftRail';
-export * from './LearningMain';
 export * from './LearningRightRail';
 export * from './LearningBreadcrumbs';
 export * from './LearningHeader';
