@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
+  UniversalKnowledgeUniverseStudio,
   LearningShell,
   LearningLeftRail,
   LearningHeader,
@@ -11182,42 +11183,15 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
         }
         footer={<LearningBottomNav />}
       >
-        {/* Main 2-Column Split: Original Book Viewer on Left + Cleared Workspace on Right (Full width, NO right action rail) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-[750px] w-full">
-          {/* Left Column: Original Book Content Viewer */}
-          <div className="lg:col-span-5 flex flex-col">
-            <LearningOriginalBookViewer
-              materialId={material.id}
-              sourcePage={activeSourcePage}
-              totalSourcePages={sourceSequence.length}
-              totalPdfPages={manifestData.material.physicalPdfPages || 59}
-              totalPrintedPages={manifestData.material.logicalPrintedPages || 116}
-              sectionTitle={activeSectionTitle}
-              sourceTitle={`${material.title || manifestData.material.bookTitle} – NCERT`}
-              extractedContent={activeSourcePage?.content || ''}
-              onPreviousPage={handlePrevSource}
-              onNextPage={handleNextSource}
-            />
-          </div>
-
-          {/* Right Column: Cleared Workspace (expanding across the remaining width) */}
-          <div className="lg:col-span-7 flex flex-col">
-            <LearningExplanationPanel
-              sectionId={struct.sectionId || activeSourcePage?.sourceId}
-              sectionTitle={activeSectionTitle}
-              conceptName={cleanConceptName}
-              description={activeSourcePage?.content || ''}
-              sourceAnchor={{
-                sourceId: activeSourcePage?.sourceId || 'src-0001',
-                sequenceIndex: safeSequenceIndex,
-                printedPage: activeSourcePage?.printed?.number || activeSourcePage?.printedPage || 1,
-                pdfPage: activeSourcePage?.physical?.pdfPage || 1,
-                side: activeSourcePage?.physical?.region || 'full',
-                snippetText: activeSourcePage?.content || '',
-                confidence: activeSourcePage?.forensic?.confidence || 0.98,
-              }}
-            />
-          </div>
+        {/* Full Desktop 3-Column EKAGURU Knowledge Universe Studio */}
+        <div className="w-full flex-1 min-h-screen">
+          <UniversalKnowledgeUniverseStudio
+            sectionId={struct.sectionId || activeSourcePage?.sourceId}
+            sectionTitle={activeSectionTitle}
+            conceptName={cleanConceptName}
+            description={activeSourcePage?.content || ''}
+            printedPage={activeSourcePage?.printed?.number || activeSourcePage?.printedPage || 2}
+          />
         </div>
       </LearningShell>
     );
