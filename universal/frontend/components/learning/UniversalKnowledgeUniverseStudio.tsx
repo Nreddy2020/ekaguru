@@ -12,23 +12,13 @@ import {
   TrendingUp,
   Settings,
   Users,
-  ShieldCheck,
   CheckCircle2,
   Volume2,
   Mic,
   ArrowRight,
   ArrowLeft,
   ChevronDown,
-  ChevronRight,
-  Lightbulb,
   Layers,
-  HelpCircle,
-  Sun,
-  Droplets,
-  Cloud,
-  Sprout,
-  Wheat,
-  Share2,
   Menu,
 } from 'lucide-react';
 
@@ -49,10 +39,8 @@ export function UniversalKnowledgeUniverseStudio({
   printedPage = 2,
   className = '',
 }: UniversalKnowledgeUniverseStudioProps) {
-  // State
   const [activeNav, setActiveNav] = useState<'home' | 'learn' | 'notebook' | 'progress' | 'settings'>('learn');
   const [activeDepth, setActiveDepth] = useState<'basis' | 'developing' | 'proficient' | 'advanced' | 'deep'>('developing');
-  const [teachingStyle, setTeachingStyle] = useState<'graphical_board' | 'socratic' | 'story'>('graphical_board');
   const [activeBoardTab, setActiveBoardTab] = useState<'teacher_explains' | 'visuals' | 'real_world' | 'key_points' | 'summary'>('teacher_explains');
   const [activeChapterIndex, setActiveChapterIndex] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -61,17 +49,13 @@ export function UniversalKnowledgeUniverseStudio({
   const [showFullPageModal, setShowFullPageModal] = useState<boolean>(false);
   const [showIndexModal, setShowIndexModal] = useState<boolean>(false);
 
-  const toggleAudio = () => {
-    setAudioPlaying(!audioPlaying);
-  };
-
   return (
     <div
       data-testid="universal-knowledge-universe-studio"
       className={`flex flex-col w-screen h-screen max-h-screen bg-[#070b14] text-slate-100 font-sans select-none overflow-hidden ${className}`}
     >
       {/* ==================================================================== */}
-      {/* 1. TOP HEADER NAVBAR                                                 */}
+      {/* 1. TOP NAVBAR HEADER                                                 */}
       {/* ==================================================================== */}
       <header className="h-14 px-4 bg-[#0a0f1d] border-b border-slate-800/80 flex items-center justify-between z-30 shrink-0">
         {/* Left: Hamburger & Brand */}
@@ -130,7 +114,7 @@ export function UniversalKnowledgeUniverseStudio({
 
           {/* User Profile */}
           <div className="flex items-center gap-2 pl-3 border-l border-slate-800/80">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-bold text-slate-950 text-xs shadow-md">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-bold text-slate-950 text-xs shadow-md ring-1 ring-emerald-300/30">
               A
             </div>
             <div className="text-left leading-tight hidden sm:block">
@@ -143,12 +127,10 @@ export function UniversalKnowledgeUniverseStudio({
       </header>
 
       {/* ==================================================================== */}
-      {/* 2. MAIN BODY: LEFT NAV + TEXTBOOK CARD + GRAPHICAL STAGE            */}
+      {/* 2. MAIN WORKSPACE                                                    */}
       {/* ==================================================================== */}
       <div className="flex-1 flex overflow-hidden">
-        {/* ------------------------------------------------------------------ */}
-        {/* GLOBAL MINI SIDEBAR NAV                                            */}
-        {/* ------------------------------------------------------------------ */}
+        {/* GLOBAL MINI SIDEBAR NAV */}
         <nav className="w-16 bg-[#080d19] border-r border-slate-800/80 flex flex-col items-center justify-between py-3 shrink-0 z-20">
           <div className="flex flex-col items-center gap-2">
             <button
@@ -213,10 +195,8 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
         </nav>
 
-        {/* ------------------------------------------------------------------ */}
-        {/* LEFT COLUMN: FROM YOUR TEXTBOOK + CHAPTER INDEX                    */}
-        {/* ------------------------------------------------------------------ */}
-        <aside className="w-[280px] lg:w-[300px] xl:w-[310px] bg-[#080d19] border-r border-slate-800/80 p-3.5 flex flex-col justify-between overflow-y-auto shrink-0 gap-3 custom-scrollbar">
+        {/* LEFT COLUMN: FROM YOUR TEXTBOOK + CHAPTER INDEX */}
+        <aside className="w-[300px] xl:w-[320px] bg-[#080d19] border-r border-slate-800/80 p-3.5 flex flex-col justify-between overflow-y-auto shrink-0 gap-3 custom-scrollbar">
           <div className="flex flex-col gap-3">
             {/* Header & Source Verified Pill */}
             <div className="flex items-center justify-between">
@@ -233,31 +213,80 @@ export function UniversalKnowledgeUniverseStudio({
 
             {/* High-Fidelity Textbook Card */}
             <div className="rounded-xl overflow-hidden border border-slate-700/80 bg-[#fffdfa] text-slate-900 p-3.5 shadow-xl relative">
-              {/* Blue circular page badge */}
+              {/* Blue circular page badge + Kite */}
               <div className="flex items-center justify-between mb-1.5">
                 <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center shadow">
                   2
                 </span>
-                <span className="text-base">🪁</span>
+                {/* SVG Kite */}
+                <svg className="w-6 h-6" viewBox="0 0 32 32">
+                  <polygon points="16,2 30,14 16,30 2,14" fill="#f43f5e" stroke="#be123c" strokeWidth="1" />
+                  <polygon points="16,2 30,14 16,14" fill="#fbbf24" />
+                  <polygon points="2,14 16,14 16,30" fill="#3b82f6" />
+                  <path d="M16,30 Q20,32 24,30" stroke="#f43f5e" strokeWidth="1.5" fill="none" />
+                </svg>
               </div>
 
               <h3 className="text-xs font-black text-rose-800 mb-1.5">
                 Festivals of India
               </h3>
 
-              <p className="text-[9px] leading-relaxed text-slate-700 font-serif mb-2">
+              <p className="text-[8.5px] leading-relaxed text-slate-700 font-serif mb-2">
                 India is a land of festivals. We celebrate different kinds of festivals in the country.
               </p>
-              <p className="text-[9px] leading-relaxed text-slate-700 font-serif mb-3">
+              <p className="text-[8.5px] leading-relaxed text-slate-700 font-serif mb-2.5">
                 <strong>Sankranthi</strong> is a popular harvest festival. Many people make colourful <em>muggulu (rangoli)</em> at the entrance of their houses. Many people also fly kites on Sankranthi. It is celebrated in many parts of India.
               </p>
 
-              {/* Illustration */}
-              <div className="w-full bg-amber-50 rounded-lg p-2 border border-amber-200/80 flex items-center justify-around text-2xl shadow-inner">
-                <span title="Rangoli">🌸</span>
-                <span title="Celebration">👩‍👧‍👦</span>
-                <span title="Pot">🍯</span>
-                <span title="Kite">🪁</span>
+              {/* Family & Rangoli Illustration Canvas */}
+              <div className="w-full bg-gradient-to-b from-amber-50 to-orange-100/60 rounded-lg p-2 border border-amber-200/80 flex flex-col items-center shadow-inner relative overflow-hidden">
+                {/* Family Row */}
+                <div className="flex items-end justify-center gap-1.5 mb-1 z-10">
+                  <div className="text-center">
+                    <span className="text-base block leading-none">👵</span>
+                    <span className="text-[6.5px] text-amber-900 font-bold">Dadi</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-lg block leading-none">👩</span>
+                    <span className="text-[6.5px] text-amber-900 font-bold">Amma</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-sm block leading-none">👧</span>
+                    <span className="text-[6.5px] text-amber-900 font-bold">Anu</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-lg block leading-none">👨</span>
+                    <span className="text-[6.5px] text-amber-900 font-bold">Appa</span>
+                  </div>
+                </div>
+
+                {/* Big Circular Rangoli & Pongal Pot */}
+                <div className="flex items-center justify-center gap-2 z-10">
+                  {/* SVG Rangoli Mandala */}
+                  <svg className="w-14 h-14" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="46" fill="#fef3c7" stroke="#f59e0b" strokeWidth="2" />
+                    <circle cx="50" cy="50" r="36" fill="#fbcfe8" stroke="#ec4899" strokeWidth="2" strokeDasharray="3 3" />
+                    <circle cx="50" cy="50" r="26" fill="#fed7aa" stroke="#ea580c" strokeWidth="2" />
+                    <circle cx="50" cy="50" r="16" fill="#bbf7d0" stroke="#16a34a" strokeWidth="2" />
+                    <circle cx="50" cy="50" r="6" fill="#f43f5e" />
+                    {/* Petals */}
+                    {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
+                      <circle
+                        key={i}
+                        cx={50 + 26 * Math.cos((angle * Math.PI) / 180)}
+                        cy={50 + 26 * Math.sin((angle * Math.PI) / 180)}
+                        r="4"
+                        fill="#6366f1"
+                      />
+                    ))}
+                  </svg>
+
+                  {/* Pongal Pot */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg leading-none">🏺</span>
+                    <span className="text-[6.5px] font-bold text-amber-900">Bonam</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -312,10 +341,8 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
         </aside>
 
-        {/* ------------------------------------------------------------------ */}
-        {/* CENTER & RIGHT: GRAPHICAL BOARD & INTERACTION STAGE                */}
-        {/* ------------------------------------------------------------------ */}
-        <main className="flex-1 flex flex-col p-4 bg-[#070b14] overflow-y-auto gap-3.5 custom-scrollbar">
+        {/* CENTER & RIGHT MAIN CHALKBOARD STAGE */}
+        <main className="flex-1 flex flex-col p-4 bg-[#070b14] overflow-y-auto gap-3 custom-scrollbar">
           {/* Top Row: Engine Analysis & Stats */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
@@ -399,15 +426,15 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
 
           {/* ================================================================ */}
-          {/* THE GRAPHICAL CHALKBOARD / BLACKBOARD VIEW                       */}
+          {/* THE GRAPHICAL CHALKBOARD (MATCHING media_1788201066995.jpg)      */}
           {/* ================================================================ */}
-          <div className="relative rounded-2xl bg-[#061e16] border-[6px] border-[#3f2e18] shadow-2xl p-5 overflow-hidden text-emerald-100 flex flex-col justify-between min-h-[380px]">
-            {/* Chalkboard Texture Overlay */}
-            <div className="absolute inset-0 bg-[radial-gradient(#143d2b_1px,transparent_1px)] [background-size:24px_24px] opacity-30 pointer-events-none" />
+          <div className="relative rounded-2xl bg-[#08221b] border-[6px] border-[#4a3419] shadow-2xl p-5 overflow-hidden text-emerald-100 flex flex-col justify-between min-h-[440px]">
+            {/* Wooden frame inner bevel line */}
+            <div className="absolute inset-1 border border-[#836336]/60 rounded-xl pointer-events-none" />
 
             {/* Sound Icon in Top Right */}
             <button
-              onClick={toggleAudio}
+              onClick={() => setAudioPlaying(!audioPlaying)}
               className={`absolute right-3.5 top-3.5 p-2 rounded-xl backdrop-blur-md transition z-20 ${
                 audioPlaying ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-300' : 'bg-slate-900/60 text-slate-300 hover:text-white'
               }`}
@@ -417,8 +444,8 @@ export function UniversalKnowledgeUniverseStudio({
             </button>
 
             {/* Chalkboard Titles */}
-            <div className="text-center z-10 mb-4">
-              <h2 className="text-lg md:text-xl font-black tracking-widest text-[#f7d070] font-mono drop-shadow">
+            <div className="text-center z-10 mb-3">
+              <h2 className="text-xl md:text-2xl font-black tracking-widest text-[#f5d061] font-mono drop-shadow">
                 SANKRANTHI – THE HARVEST FESTIVAL
               </h2>
               <p className="text-xs font-serif text-[#f294b4] mt-0.5 tracking-wide">
@@ -427,62 +454,124 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
 
             {/* 5-Step Visual Flowchart */}
-            <div className="grid grid-cols-5 gap-2 items-center text-center z-10 my-2">
+            <div className="grid grid-cols-5 gap-3 items-center text-center z-10 my-2">
               {/* STEP 1: SUN */}
               <div className="flex flex-col items-center group">
-                <div className="w-12 h-12 rounded-full bg-amber-400/20 border-2 border-amber-300 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform">
-                  ☀️
+                <div className="w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-14 h-14" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="22" fill="#fbbf24" stroke="#f59e0b" strokeWidth="3" />
+                    {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg, idx) => (
+                      <line
+                        key={idx}
+                        x1={50 + 26 * Math.cos((deg * Math.PI) / 180)}
+                        y1={50 + 26 * Math.sin((deg * Math.PI) / 180)}
+                        x2={50 + 40 * Math.cos((deg * Math.PI) / 180)}
+                        y2={50 + 40 * Math.sin((deg * Math.PI) / 180)}
+                        stroke="#f59e0b"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                    ))}
+                  </svg>
                 </div>
-                <h4 className="text-[11px] font-black text-amber-300 mt-1.5 uppercase font-mono">SUN</h4>
-                <p className="text-[8.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
+                <h4 className="text-xs font-black text-amber-300 mt-1 uppercase font-mono tracking-wider">SUN</h4>
+                <p className="text-[9.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
                   Gives us light and energy
                 </p>
               </div>
 
               {/* STEP 2: PLANTS */}
               <div className="flex flex-col items-center group relative">
-                <span className="absolute -left-3.5 top-3 text-purple-300 font-bold text-sm hidden md:block">→</span>
-                <div className="w-12 h-12 rounded-full bg-emerald-400/20 border-2 border-emerald-300 flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
-                  🌿
+                <span className="absolute -left-4 top-5 text-purple-300 font-bold text-base hidden md:block">➔</span>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-14 h-14" viewBox="0 0 100 100">
+                    {/* Soil base */}
+                    <path d="M20,80 Q50,75 80,80" stroke="#78350f" strokeWidth="4" fill="none" />
+                    {/* Stem */}
+                    <path d="M50,80 Q50,45 50,25" stroke="#15803d" strokeWidth="4" fill="none" strokeLinecap="round" />
+                    {/* Left Leaf */}
+                    <path d="M50,55 Q30,45 25,35 Q40,35 50,55" fill="#22c55e" stroke="#15803d" strokeWidth="1.5" />
+                    {/* Right Leaf */}
+                    <path d="M50,45 Q70,35 75,25 Q60,25 50,45" fill="#4ade80" stroke="#15803d" strokeWidth="1.5" />
+                    {/* Top Leaf */}
+                    <path d="M50,25 Q45,10 50,5 Q55,10 50,25" fill="#86efac" stroke="#15803d" strokeWidth="1.5" />
+                  </svg>
                 </div>
-                <h4 className="text-[11px] font-black text-emerald-300 mt-1.5 uppercase font-mono">PLANTS</h4>
-                <p className="text-[8.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
+                <h4 className="text-xs font-black text-emerald-300 mt-1 uppercase font-mono tracking-wider">PLANTS</h4>
+                <p className="text-[9.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
                   Use sunlight to make their own food (Photosynthesis)
                 </p>
               </div>
 
               {/* STEP 3: CROPS */}
               <div className="flex flex-col items-center group relative">
-                <span className="absolute -left-3.5 top-3 text-amber-300 font-bold text-sm hidden md:block">→</span>
-                <div className="w-12 h-12 rounded-full bg-amber-400/20 border-2 border-amber-300 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform">
-                  🌾
+                <span className="absolute -left-4 top-5 text-amber-300 font-bold text-base hidden md:block">➔</span>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-14 h-14" viewBox="0 0 100 100">
+                    {/* Wheat stalks */}
+                    <path d="M50,85 L50,15" stroke="#ca8a04" strokeWidth="3" strokeLinecap="round" />
+                    <path d="M50,85 L35,25" stroke="#ca8a04" strokeWidth="2.5" strokeLinecap="round" />
+                    <path d="M50,85 L65,25" stroke="#ca8a04" strokeWidth="2.5" strokeLinecap="round" />
+                    {/* Grains */}
+                    {[25, 35, 45, 55, 65].map((y, i) => (
+                      <g key={i}>
+                        <ellipse cx="44" cy={y} rx="5" ry="3" fill="#facc15" stroke="#ca8a04" strokeWidth="1" transform={`rotate(-25 44 ${y})`} />
+                        <ellipse cx="56" cy={y} rx="5" ry="3" fill="#fde047" stroke="#ca8a04" strokeWidth="1" transform={`rotate(25 56 ${y})`} />
+                      </g>
+                    ))}
+                  </svg>
                 </div>
-                <h4 className="text-[11px] font-black text-amber-300 mt-1.5 uppercase font-mono">CROPS</h4>
-                <p className="text-[8.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
+                <h4 className="text-xs font-black text-amber-300 mt-1 uppercase font-mono tracking-wider">CROPS</h4>
+                <p className="text-[9.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
                   Plants grow and produce grains
                 </p>
               </div>
 
               {/* STEP 4: HARVEST */}
               <div className="flex flex-col items-center group relative">
-                <span className="absolute -left-3.5 top-3 text-cyan-300 font-bold text-sm hidden md:block">→</span>
-                <div className="w-12 h-12 rounded-full bg-cyan-400/20 border-2 border-cyan-300 flex items-center justify-center text-2xl shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform">
-                  🧑‍🌾
+                <span className="absolute -left-4 top-5 text-cyan-300 font-bold text-base hidden md:block">➔</span>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-16 h-14" viewBox="0 0 120 100">
+                    {/* Farmer */}
+                    <circle cx="35" cy="35" r="8" fill="#fbcfe8" />
+                    <path d="M25,32 Q35,22 45,32" fill="#ca8a04" />
+                    <path d="M35,43 L35,70 M35,50 L22,60 M35,50 L48,60" stroke="#0284c7" strokeWidth="3" />
+                    <line x1="35" y1="70" x2="28" y2="85" stroke="#0284c7" strokeWidth="3" />
+                    <line x1="35" y1="70" x2="42" y2="85" stroke="#0284c7" strokeWidth="3" />
+                    {/* Oxen Pair */}
+                    <ellipse cx="75" cy="55" rx="14" ry="10" fill="#f8fafc" stroke="#64748b" strokeWidth="1.5" />
+                    <circle cx="90" cy="48" r="7" fill="#f8fafc" stroke="#64748b" strokeWidth="1.5" />
+                    <line x1="68" y1="65" x2="68" y2="80" stroke="#64748b" strokeWidth="2.5" />
+                    <line x1="82" y1="65" x2="82" y2="80" stroke="#64748b" strokeWidth="2.5" />
+                    {/* Horns */}
+                    <path d="M92,44 Q96,35 94,30" stroke="#334155" strokeWidth="2" fill="none" />
+                  </svg>
                 </div>
-                <h4 className="text-[11px] font-black text-cyan-300 mt-1.5 uppercase font-mono">HARVEST</h4>
-                <p className="text-[8.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
+                <h4 className="text-xs font-black text-cyan-300 mt-1 uppercase font-mono tracking-wider">HARVEST</h4>
+                <p className="text-[9.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
                   Farmers harvest the mature crops
                 </p>
               </div>
 
               {/* STEP 5: CELEBRATION */}
               <div className="flex flex-col items-center group relative">
-                <span className="absolute -left-3.5 top-3 text-pink-300 font-bold text-sm hidden md:block">→</span>
-                <div className="w-12 h-12 rounded-full bg-pink-400/20 border-2 border-pink-300 flex items-center justify-center text-2xl shadow-lg shadow-pink-500/20 group-hover:scale-110 transition-transform">
-                  🎉
+                <span className="absolute -left-4 top-5 text-pink-300 font-bold text-base hidden md:block">➔</span>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-14 h-14" viewBox="0 0 100 100">
+                    {/* Rangoli Base */}
+                    <circle cx="50" cy="60" r="28" fill="#f43f5e" stroke="#fbbf24" strokeWidth="2" />
+                    <circle cx="50" cy="60" r="18" fill="#8b5cf6" stroke="#fbbf24" strokeWidth="1.5" />
+                    <circle cx="50" cy="60" r="8" fill="#10b981" />
+                    {/* Flying Kite */}
+                    <polygon points="65,10 80,22 65,34 50,22" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.5" />
+                    <line x1="65" y1="34" x2="72" y2="45" stroke="#f43f5e" strokeWidth="1.5" />
+                    {/* Pongal Pot */}
+                    <circle cx="35" cy="50" r="8" fill="#b45309" />
+                    <path d="M30,45 Q35,40 40,45" stroke="#fef08a" strokeWidth="2" fill="none" />
+                  </svg>
                 </div>
-                <h4 className="text-[11px] font-black text-pink-300 mt-1.5 uppercase font-mono">CELEBRATION</h4>
-                <p className="text-[8.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
+                <h4 className="text-xs font-black text-pink-300 mt-1 uppercase font-mono tracking-wider">CELEBRATION</h4>
+                <p className="text-[9.5px] text-emerald-200/90 leading-tight mt-0.5 font-sans">
                   We celebrate with joy, rangoli, kites, feasts and gratitude
                 </p>
               </div>
@@ -491,45 +580,45 @@ export function UniversalKnowledgeUniverseStudio({
             {/* Chalkboard Sub-Panels (Bottom Row) */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 z-10 mt-3 pt-3 border-t border-emerald-800/60">
               {/* Left Sub-Box: HOW PLANTS MAKE FOOD? */}
-              <div className="md:col-span-7 bg-[#041610]/80 border border-emerald-600/40 rounded-xl p-2.5 flex flex-col gap-1.5">
-                <span className="text-[10px] font-black text-amber-300 font-mono tracking-wide text-center">
+              <div className="md:col-span-7 bg-[#051912]/90 border border-emerald-600/40 rounded-xl p-3 flex flex-col gap-1.5 shadow-inner">
+                <span className="text-[10.5px] font-black text-amber-300 font-mono tracking-wide text-center">
                   HOW PLANTS MAKE FOOD?
                 </span>
 
-                <div className="flex items-center justify-around text-center text-[8.5px] pt-1">
+                <div className="flex items-center justify-around text-center text-[9px] pt-1">
                   <div className="flex flex-col items-center">
-                    <span className="text-base">☀️</span>
+                    <span className="text-lg">☀️</span>
                     <span className="font-bold text-amber-200 mt-0.5">Sunlight</span>
                   </div>
-                  <span className="text-amber-400 font-bold text-xs">+</span>
+                  <span className="text-amber-400 font-bold text-sm">+</span>
                   <div className="flex flex-col items-center">
-                    <span className="text-base">💧</span>
+                    <span className="text-lg">💧</span>
                     <span className="font-bold text-cyan-200 mt-0.5">Water (H2O)</span>
                   </div>
-                  <span className="text-amber-400 font-bold text-xs">+</span>
+                  <span className="text-amber-400 font-bold text-sm">+</span>
                   <div className="flex flex-col items-center">
-                    <span className="text-base">☁️</span>
+                    <span className="text-lg">☁️</span>
                     <span className="font-bold text-slate-200 mt-0.5">Carbon dioxide (CO2)</span>
                   </div>
-                  <span className="text-emerald-400 font-bold text-xs">→</span>
+                  <span className="text-emerald-400 font-bold text-sm">➔</span>
                   <div className="flex flex-col items-center">
-                    <span className="text-base">🌿</span>
+                    <span className="text-lg">🌿</span>
                     <span className="font-bold text-emerald-300 mt-0.5">Plant (Photosynthesis)</span>
                   </div>
-                  <span className="text-amber-400 font-bold text-xs">→</span>
+                  <span className="text-amber-400 font-bold text-sm">➔</span>
                   <div className="flex flex-col items-center">
-                    <span className="text-base">🍞</span>
+                    <span className="text-lg">🍞</span>
                     <span className="font-bold text-amber-200 mt-0.5">Food (Glucose)</span>
                   </div>
                 </div>
               </div>
 
               {/* Right Sub-Box: KEY IDEA */}
-              <div className="md:col-span-5 bg-[#041610]/80 border border-emerald-600/40 rounded-xl p-2.5 flex flex-col justify-center gap-1">
-                <span className="text-[10px] font-black text-amber-300 font-mono tracking-wide flex items-center gap-1">
+              <div className="md:col-span-5 bg-[#051912]/90 border border-emerald-600/40 rounded-xl p-3 flex flex-col justify-center gap-1 shadow-inner">
+                <span className="text-[10.5px] font-black text-amber-300 font-mono tracking-wide flex items-center gap-1.5">
                   💡 KEY IDEA
                 </span>
-                <p className="text-[9.5px] leading-relaxed text-emerald-100 font-sans">
+                <p className="text-[10px] leading-relaxed text-emerald-100 font-sans">
                   Plants use sunlight energy to make their own food through <strong>photosynthesis</strong>. This food helps the plant grow. When the grain is mature, farmers harvest it.
                 </p>
               </div>
@@ -559,11 +648,8 @@ export function UniversalKnowledgeUniverseStudio({
             ))}
           </div>
 
-          {/* ================================================================ */}
-          {/* ASK EKAGURU ANYTHING AI+ PANEL                                   */}
-          {/* ================================================================ */}
+          {/* ASK EKAGURU ANYTHING AI+ PANEL */}
           <div className="bg-[#0b1222] border border-slate-800 rounded-2xl p-3.5 flex flex-col gap-2 shadow-lg">
-            {/* Header */}
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
                 <Sparkles className="w-3.5 h-3.5" />
@@ -574,7 +660,6 @@ export function UniversalKnowledgeUniverseStudio({
               </span>
             </div>
 
-            {/* Input Row */}
             <div className="relative flex items-center gap-2">
               <input
                 type="text"
