@@ -79,7 +79,9 @@ export default function BookChaptersPage({ params }: { params: { bookId: string 
                     {ch.title}
                   </h4>
                   <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-                    <span>Page {ch.printedPage}</span>
+                    <span className="font-mono text-purple-300 font-bold">{ch.pageRangeText}</span>
+                    <span>•</span>
+                    <span>{ch.sections.length} Lessons</span>
                     <span>•</span>
                     <span>{ch.concepts.join(', ')}</span>
                   </div>

@@ -19,14 +19,18 @@ import {
   ArrowRight,
   ArrowLeft,
   ChevronDown,
+  ChevronRight,
   Layers,
   Menu,
   MessageCircleQuestion,
+  ChevronLeft,
+  FileText as DocumentIcon,
 } from 'lucide-react';
 import {
   BookStorageService,
   IngestedBookModel,
   ChapterLessonModel,
+  LessonSectionModel,
 } from '../../lib/learning/book-storage.service';
 
 export interface UniversalKnowledgeUniverseStudioProps {
@@ -41,20 +45,34 @@ export interface UniversalKnowledgeUniverseStudioProps {
 
 export function UniversalKnowledgeUniverseStudio({
   bookId = 'evs-class-5',
-  sectionId = 'festivals-of-india',
+  sectionId = 'science-ch-1',
   className = '',
 }: UniversalKnowledgeUniverseStudioProps) {
   const [book, setBook] = useState<IngestedBookModel | undefined>(undefined);
   const [currentChapter, setCurrentChapter] = useState<ChapterLessonModel | undefined>(undefined);
+  const [activeSection, setActiveSection] = useState<LessonSectionModel | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState<number>(2);
+  const [expandedChapterIds, setExpandedChapterIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const loadedBook = BookStorageService.getBookById(bookId);
     setBook(loadedBook);
-    if (loadedBook) {
+    if (loadedBook && loadedBook.chapters.length > 0) {
       const foundCh = loadedBook.chapters.find((c) => c.id === sectionId) || loadedBook.chapters[0];
       setCurrentChapter(foundCh);
+      setCurrentPage(foundCh.startPage);
+      setActiveSection(foundCh.sections[0]);
+      // Expand current chapter by default
+      setExpandedChapterIds({ [foundCh.id]: true });
     }
   }, [bookId, sectionId]);
+
+  const toggleChapterExpand = (chId: string) => {
+    setExpandedChapterIds((prev) => ({
+      ...prev,
+      [chId]: !prev[chId],
+    }));
+  };
 
   // Teaching Depth: Basis -> Developing -> Proficient -> Advanced -> Deep
   const [activeDepth, setActiveDepth] = useState<'basis' | 'developing' | 'proficient' | 'advanced' | 'deep'>('developing');
@@ -73,13 +91,21 @@ export function UniversalKnowledgeUniverseStudio({
   };
 
   const ch = currentChapter || {
-    id: 'lesson-1',
+    id: 'ch-1',
     chapterNumber: 1,
-    title: 'Lesson 1: Foundations',
-    printedPage: 2,
-    concepts: ['Core Concepts', 'Mechanisms', 'Applications'],
+    title: 'Core Foundations',
+    startPage: 2,
+    endPage: 11,
+    pageRangeText: 'Pages 2–11',
+    sections: [
+      { id: 'sec-1-1', sectionNumber: '1.1', title: 'Introduction', page: 2 },
+      { id: 'sec-1-2', sectionNumber: '1.2', title: 'Observing the World', page: 4 },
+      { id: 'sec-1-3', sectionNumber: '1.3', title: 'Core Mechanisms', page: 7 },
+      { id: 'sec-1-4', sectionNumber: '1.4', title: 'Chapter Exercises', page: 10 },
+    ],
+    concepts: ['Foundational Concepts', 'Scientific Inquiry', 'Mechanisms'],
     boardTitle: 'FOUNDATIONS OF LEARNING',
-    boardSubtitle: 'A structured Socratic exploration grounded in verified textbook truth.',
+    boardSubtitle: 'Structured Socratic explanation grounded in verified textbook truth.',
     flowSteps: [
       { label: 'INPUT', icon: '☀️', description: 'Core observations and sensory inputs' },
       { label: 'PROCESS', icon: '🌿', description: 'Underlying biological/mathematical mechanism' },
@@ -90,8 +116,10 @@ export function UniversalKnowledgeUniverseStudio({
     subBoxTitle: 'HOW THE MECHANISM WORKS?',
     subBoxFormula: 'Observation + Reasoning ➔ Concept ➔ Verified Knowledge',
     keyIdea: 'Learning occurs when foundational observations connect with underlying mechanisms.',
-    textbookExcerpt: 'Source extracted directly from your verified textbook page.',
+    textbookExcerpt: 'Textbook page extracted. Look at the structured patterns described in this section.',
   };
+
+  const totalPages = book?.totalPages || 130;
 
   return (
     <div
@@ -127,7 +155,7 @@ export function UniversalKnowledgeUniverseStudio({
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder={`Ask EKAGURU about ${book?.title || 'this lesson'}...`}
+            placeholder={`Ask EKAGURU about ${ch.title}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-12 py-2 bg-[#0d1424] border border-slate-700/60 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
@@ -217,16 +245,17 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
         </nav>
 
-        {/* LEFT COLUMN: FROM YOUR TEXTBOOK (GROUNDED IN SELECTED BOOK) */}
-        <aside className="w-[320px] xl:w-[340px] bg-[#080d19] border-r border-slate-800/80 p-4 flex flex-col justify-between overflow-y-auto shrink-0 gap-4 custom-scrollbar">
+        {/* LEFT COLUMN: FROM YOUR TEXTBOOK + CHAPTERS ACCORDION */}
+        <aside className="w-[330px] xl:w-[350px] bg-[#080d19] border-r border-slate-800/80 p-4 flex flex-col justify-between overflow-y-auto shrink-0 gap-4 custom-scrollbar">
           <div className="flex flex-col gap-4">
+            {/* Header & Source Verified Pill */}
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-black uppercase tracking-wider text-white block">
                   FROM YOUR TEXTBOOK
                 </span>
                 <span className="text-xs text-slate-400">
-                  Page {ch.printedPage} • {book?.subject || 'Curriculum'}
+                  Page {currentPage} • {book?.subject || 'Curriculum'}
                 </span>
               </div>
               <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1">
@@ -234,17 +263,19 @@ export function UniversalKnowledgeUniverseStudio({
               </span>
             </div>
 
-            {/* Grounded Textbook Card */}
+            {/* OCR-Rendered Textbook Page Card */}
             <div className="rounded-2xl overflow-hidden border border-slate-700/80 bg-[#fffdfa] text-slate-900 p-4 shadow-2xl relative flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow">
-                  {ch.printedPage}
+                  {currentPage}
                 </span>
-                <span className="text-xs font-bold text-slate-500">{book?.curriculum || 'NCERT'}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {book?.curriculum || 'NCERT'}
+                </span>
               </div>
 
               <h3 className="text-base font-black text-rose-800 font-serif leading-tight">
-                {ch.title}
+                {activeSection ? `${activeSection.sectionNumber} ${activeSection.title}` : ch.title}
               </h3>
 
               <p className="text-xs leading-relaxed text-slate-800 font-serif">
@@ -252,13 +283,32 @@ export function UniversalKnowledgeUniverseStudio({
               </p>
 
               {/* Concepts discovered */}
-              <div className="w-full bg-slate-50 rounded-xl p-2.5 border border-slate-200 mt-1 flex flex-wrap gap-1.5">
-                {ch.concepts.map((c, i) => (
-                  <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 border border-purple-200">
+              <div className="w-full bg-slate-50 rounded-xl p-2 border border-slate-200 mt-1 flex flex-wrap gap-1.5">
+                {ch.concepts.slice(0, 3).map((c, i) => (
+                  <span key={i} className="text-[9.5px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 border border-purple-200">
                     {c}
                   </span>
                 ))}
               </div>
+            </div>
+
+            {/* Page Navigator [ ← ] Page X of Y [ → ] */}
+            <div className="flex items-center justify-between bg-[#0d1424] border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 shadow-inner">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="p-1 rounded hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="p-1 rounded hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
             <button
@@ -268,31 +318,82 @@ export function UniversalKnowledgeUniverseStudio({
               <BookOpen className="w-4 h-4 text-cyan-400" /> View Full Page
             </button>
 
-            {/* Chapter Index */}
-            <div className="flex flex-col gap-2 pt-1">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-400">
-                CHAPTERS IN THIS BOOK
-              </span>
-              <div className="flex flex-col gap-1.5">
-                {(book?.chapters || [ch]).map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/learn/books/${book?.id || bookId}/lessons/${c.id}`}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-left text-xs font-medium flex items-center justify-between transition-all ${
-                      c.id === ch.id
-                        ? 'bg-purple-950/60 border border-purple-500/50 text-purple-200 font-bold shadow-md'
-                        : 'text-slate-300 hover:bg-slate-800/60 hover:text-white border border-transparent'
-                    }`}
-                  >
-                    <span>{c.title}</span>
-                    {c.id === ch.id ? (
-                      <span className="w-2 h-2 rounded-full bg-purple-400 shadow-sm shadow-purple-400" />
-                    ) : (
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-                    )}
-                  </Link>
-                ))}
+            {/* Canonical Chapters Accordion with Page Ranges & Sub-Lessons */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-slate-800/80">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-purple-400" />
+                  CHAPTERS IN THIS BOOK ({(book?.chapters || []).length})
+                </span>
               </div>
+
+              <div className="flex flex-col gap-1.5 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">
+                {(book?.chapters || [ch]).map((chap) => {
+                  const isCurrent = chap.id === ch.id;
+                  const isExpanded = !!expandedChapterIds[chap.id];
+
+                  return (
+                    <div key={chap.id} className="flex flex-col rounded-xl overflow-hidden border border-slate-800/60 bg-[#0b101d]">
+                      <button
+                        onClick={() => {
+                          toggleChapterExpand(chap.id);
+                          setCurrentChapter(chap);
+                          setCurrentPage(chap.startPage);
+                          setActiveSection(chap.sections[0]);
+                        }}
+                        className={`w-full px-3 py-2.5 text-left text-xs flex items-center justify-between transition-all ${
+                          isCurrent
+                            ? 'bg-purple-950/80 text-purple-200 font-bold border-l-4 border-purple-500'
+                            : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden pr-1">
+                          {isExpanded ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          )}
+                          <span className="truncate">{chap.chapterNumber}. {chap.title}</span>
+                        </div>
+                        <span className="text-[9.5px] font-mono text-slate-400 shrink-0">
+                          {chap.pageRangeText}
+                        </span>
+                      </button>
+
+                      {/* Sub-lessons accordion dropdown */}
+                      {isExpanded && (
+                        <div className="pl-6 pr-2 py-1.5 bg-[#070c17] flex flex-col gap-1 border-t border-slate-800/50">
+                          {chap.sections.map((sec) => (
+                            <button
+                              key={sec.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveSection(sec);
+                                setCurrentPage(sec.page);
+                              }}
+                              className={`w-full py-1 px-2 text-left text-[11px] rounded-lg transition flex items-center justify-between ${
+                                activeSection?.id === sec.id
+                                  ? 'bg-purple-600/30 text-purple-300 font-bold'
+                                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                              }`}
+                            >
+                              <span className="truncate">{sec.sectionNumber} {sec.title}</span>
+                              <span className="text-[9px] font-mono text-slate-500">p.{sec.page}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setShowIndexModal(true)}
+                className="mt-1 w-full py-2 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Layers className="w-3.5 h-3.5 text-purple-400" /> View Full Book Index
+              </button>
             </div>
           </div>
         </aside>
