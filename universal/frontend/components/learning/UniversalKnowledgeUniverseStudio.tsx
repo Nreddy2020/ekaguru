@@ -186,6 +186,9 @@ export function UniversalKnowledgeUniverseStudio({
   };
 
   const openEvidenceInspector = (citation: EvidenceCitation) => {
+    if (citation?.physicalPage) {
+      setCurrentPageNum(citation.physicalPage);
+    }
     setSelectedCitation(citation);
     setShowEvidenceModal(true);
   };
