@@ -40,6 +40,7 @@ export function EkaguruLearnHome() {
   const [books, setBooks] = useState<IngestedBookModel[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showTaskInspector, setShowTaskInspector] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<IngestedBookModel | null>(null);
 
   // Upload Form State
@@ -254,13 +255,22 @@ export function EkaguruLearnHome() {
                 </p>
               </div>
 
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="px-6 py-3 rounded-2xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold text-xs flex items-center gap-2 shadow-xl shadow-purple-600/30 transition-all hover:scale-[1.02]"
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setShowTaskInspector(true)}
+                  className="px-5 py-3 rounded-2xl bg-[#0d1424] hover:bg-purple-950/40 border border-purple-500/50 text-purple-300 font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
+                >
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <span>Engine Task Review</span>
+                </button>
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="px-6 py-3 rounded-2xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold text-xs flex items-center gap-2 shadow-xl shadow-purple-600/30 transition-all hover:scale-[1.02]"
               >
                 <Plus className="w-4 h-4" />
                 <span>Upload New Book</span>
               </button>
+              </div>
             </div>
 
             {/* Upload Banner Box */}
@@ -708,6 +718,7 @@ export function EkaguruLearnHome() {
         </div>
       )}
   
+{showTaskInspector && <EnginePipelineTaskInspector onClose={() => setShowTaskInspector(false)} />}
 </div>
   );
 }

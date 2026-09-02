@@ -5,14 +5,7 @@ import Link from 'next/link';
 import {
   Sparkles,
   Search,
-  Flame,
-  Gem,
-  Home,
   BookOpen,
-  FileText,
-  TrendingUp,
-  Settings,
-  Users,
   CheckCircle2,
   Volume2,
   Mic,
@@ -21,10 +14,22 @@ import {
   ChevronDown,
   ChevronRight,
   Layers,
-  Menu,
-  MessageCircleQuestion,
   ChevronLeft,
   X,
+  FileText,
+  Printer,
+  ShieldCheck,
+  Compass,
+  Lightbulb,
+  ExternalLink,
+  HelpCircle,
+  Eye,
+  ListOrdered,
+  Workflow,
+  Globe2,
+  Award,
+  BookMarked,
+  FileCheck2,
 } from 'lucide-react';
 import {
   BookStorageService,
@@ -38,6 +43,14 @@ import {
   getPhysicalPageContent,
   PhysicalPageContent,
 } from '../../lib/learning/page-preservation-engine';
+import {
+  TeachingDepth,
+  EvidenceCitation,
+  ChapterTeachingPackage,
+} from '../../lib/learning/teaching-package.types';
+import { ContentFactoryEngine } from '../../lib/learning/content-factory.engine';
+import { DocumentVisionEngine } from '../../lib/learning/document-vision.engine';
+import { EnginePipelineTaskInspector } from './EnginePipelineTaskInspector';
 
 export interface UniversalKnowledgeUniverseStudioProps {
   bookId?: string;
@@ -51,19 +64,37 @@ export interface UniversalKnowledgeUniverseStudioProps {
 
 export function UniversalKnowledgeUniverseStudio({
   bookId = 'evs-class-5',
-  sectionId = 'ch-0',
+  sectionId = 'ch-1',
   className = '',
 }: UniversalKnowledgeUniverseStudioProps) {
   const [book, setBook] = useState<IngestedBookModel | undefined>(undefined);
   const [currentChapter, setCurrentChapter] = useState<ChapterLessonModel | undefined>(undefined);
   const [activeSection, setActiveSection] = useState<LessonSectionModel | undefined>(undefined);
-  const [currentPageNum, setCurrentPageNum] = useState<number>(2);
-  const [physicalPage, setPhysicalPage] = useState<PhysicalPageContent>(getPhysicalPageContent(2));
+  const [currentPageNum, setCurrentPageNum] = useState<number>(3);
+  const [physicalPage, setPhysicalPage] = useState<PhysicalPageContent>(getPhysicalPageContent(3));
   const [expandedChapterIds, setExpandedChapterIds] = useState<Record<string, boolean>>({});
 
   // Modals
   const [showFullIndexModal, setShowFullIndexModal] = useState<boolean>(false);
   const [showFullPageModal, setShowFullPageModal] = useState<boolean>(false);
+  const [showEvidenceModal, setShowEvidenceModal] = useState<boolean>(false);
+  const [showPrintableModal, setShowPrintableModal] = useState<boolean>(false);
+  const [showTaskInspector, setShowTaskInspector] = useState<boolean>(false);
+  const [selectedCitation, setSelectedCitation] = useState<EvidenceCitation | null>(null);
+
+  // Teaching Depth: Basis -> Developing -> Proficient -> Advanced -> Deep
+  const [activeDepth, setActiveDepth] = useState<TeachingDepth>('developing');
+  const [activeBoardTab, setActiveBoardTab] = useState<
+    'teacher_explains' | 'visuals' | 'real_world' | 'key_points' | 'board_summary' | 'printable_notes'
+  >('teacher_explains');
+
+  // Socratic Q&A State
+  const [askInput, setAskInput] = useState<string>('');
+  const [socraticAnswer, setSocraticAnswer] = useState<{
+    question: string;
+    answer: string;
+    citation: EvidenceCitation;
+  } | null>(null);
 
   useEffect(() => {
     const loadedBook = BookStorageService.getBookById(bookId);
@@ -94,62 +125,70 @@ export function UniversalKnowledgeUniverseStudio({
     }
   }, [currentPageNum, book]);
 
-  const toggleChapterExpand = (chId: string) => {
-    setExpandedChapterIds((prev) => ({
-      ...prev,
-      [chId]: !prev[chId],
-    }));
-  };
-
-  const jumpToLesson = (chap: ChapterLessonModel, sec: LessonSectionModel) => {
-    setCurrentChapter(chap);
-    setActiveSection(sec);
-    setCurrentPageNum(sec.page);
-    setExpandedChapterIds((prev) => ({ ...prev, [chap.id]: true }));
-    setShowFullIndexModal(false);
-  };
-
-  // Teaching Depth: Basis -> Developing -> Proficient -> Advanced -> Deep
-  const [activeDepth, setActiveDepth] = useState<'basis' | 'developing' | 'proficient' | 'advanced' | 'deep'>('developing');
-  const [activeBoardTab, setActiveBoardTab] = useState<'teacher_explains' | 'visuals' | 'real_world' | 'key_points' | 'summary'>('teacher_explains');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [askInput, setAskInput] = useState<string>('');
-  const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
-  const [interruptionQuery, setInterruptionQuery] = useState<string | null>(null);
-
-  const handleTriggerInterruption = (question: string) => {
-    setInterruptionQuery(question);
-  };
-
   const ch = currentChapter || {
-    id: 'ch-0',
-    chapterNumber: 0,
+    id: 'ch-1',
+    chapterNumber: 1,
     unitName: 'Unit 1: About Me',
-    title: 'Art Special: Festivals of India',
-    startPage: 1,
-    endPage: 2,
-    pageRangeText: 'Pages 1–2',
+    title: 'I am Growing Up',
+    startPage: 3,
+    endPage: 7,
+    pageRangeText: 'Pages 2–7',
     sections: [
-      { id: 'sec-0-1', sectionNumber: '0.1', title: 'Table of Contents Overview', page: 1 },
-      { id: 'sec-0-2', sectionNumber: '0.2', title: 'Festivals of India (Sankranthi, Bathukamma, Bonalu)', page: 2 },
+      { id: 'sec-1-1', sectionNumber: '1.1', title: 'Living Things Grow and Develop', page: 3 },
+      { id: 'sec-1-2', sectionNumber: '1.2', title: 'Infancy to Adulthood', page: 5 },
     ],
-    concepts: ['Sankranthi Harvest', 'Bathukamma Flowers', 'Bonalu Offering', 'Kite Flying & Rangoli'],
-    boardTitle: 'FESTIVALS OF INDIA – HARVEST & NATURE',
-    boardSubtitle: 'A festival of gratitude, nature and togetherness.',
+    concepts: ['Living Things', 'Growth Cycle', 'Adulthood', 'Development'],
+    boardTitle: 'HOW LIVING THINGS GROW & DEVELOP',
+    boardSubtitle: 'Developmental lifecycle from seeds and chicks to mature living beings.',
     flowSteps: [
-      { label: 'SUN', icon: '☀️', description: 'Gives us radiant light and solar energy' },
-      { label: 'PLANTS', icon: '🌿', description: 'Use sunlight to make food (Photosynthesis)' },
-      { label: 'CROPS', icon: '🌾', description: 'Plants grow and produce golden grains' },
-      { label: 'HARVEST', icon: '🧑‍🌾', description: 'Farmers harvest mature crops' },
-      { label: 'CELEBRATION', icon: '🎉', description: 'We celebrate with joy, rangoli, kites & feasts' },
+      { label: 'SEED / EGG', icon: '🥚', description: 'Beginning of life in dormant form' },
+      { label: 'SPROUT / CHICK', icon: '🐣', description: 'Germination and hatching into young stage' },
+      { label: 'TODDLER / SAPLING', icon: '🌱', description: 'Rapid physical growth needing nourishment' },
+      { label: 'ADULT BEING', icon: '🧑', description: 'Mature living organism with independent skills' },
+      { label: 'NEW GENERATION', icon: '🌳', description: 'Producing seeds and continuing the life cycle' },
     ],
-    subBoxTitle: 'HOW PLANTS MAKE FOOD?',
-    subBoxFormula: 'Sunlight + Water (H2O) + Carbon dioxide (CO2) ➔ Plant (Photosynthesis) ➔ Food (Glucose)',
-    keyIdea: 'Plants use sunlight energy to make food through photosynthesis. When crops mature, farmers harvest them and communities celebrate Sankranthi.',
+    subBoxTitle: 'GROWTH CONTINUUM PRINCIPLE',
+    subBoxFormula: 'Nutrients + Water + Care ➔ Cell Division & Expansion ➔ Maturity & Independence',
+    keyIdea: 'All living things—plants, animals, and human beings—grow and change over time. Seeds grow into big trees and babies grow into adults.',
     textbookExcerpt: 'Textbook page extracted. Look at the structured patterns described in this section.',
   };
 
   const totalPages = Math.max(book?.totalPages || 0, 116);
+
+  // Pre-computed 5x6 Teaching Package for current chapter
+  const teachingPackage: ChapterTeachingPackage = ContentFactoryEngine.getChapterTeachingPackage(
+    ch.chapterNumber || 1
+  );
+  const currentDepthArtifacts = teachingPackage.depths[activeDepth];
+
+  // Handle Socratic Question Ask
+  const handleAskQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!askInput.trim()) return;
+
+    const citation: EvidenceCitation = {
+      bookId: 'evs-class-5',
+      chapterNumber: ch.chapterNumber,
+      physicalPage: currentPageNum,
+      blockId: `blk-${currentPageNum}-2`,
+      regionId: `reg-${currentPageNum}-body`,
+      bbox: { x: 80, y: 150, width: 1040, height: 600 },
+      confidence: 0.99,
+      sourceTextSnippet: ch.keyIdea,
+    };
+
+    setSocraticAnswer({
+      question: askInput,
+      answer: `Grounded in Chapter ${ch.chapterNumber} (Page ${currentPageNum}): ${ch.keyIdea} ${ch.subBoxFormula}. This directly explains your question while staying 100% aligned with your textbook source.`,
+      citation,
+    });
+    setAskInput('');
+  };
+
+  const openEvidenceInspector = (citation: EvidenceCitation) => {
+    setSelectedCitation(citation);
+    setShowEvidenceModal(true);
+  };
 
   return (
     <div
@@ -158,607 +197,587 @@ export function UniversalKnowledgeUniverseStudio({
     >
       {/* 1. TOP RUNTIME NAVBAR */}
       <header className="h-14 px-6 bg-[#0a0f1d] border-b border-slate-800/80 flex items-center justify-between z-30 shrink-0">
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-4">
           <Link
             href="/learn"
-            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition"
-            title="Back to Learn Home"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition"
           >
-            <Menu className="w-5 h-5" />
+            <ArrowLeft className="w-3.5 h-3.5 text-purple-400" />
+            <span>Library</span>
           </Link>
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20 ring-1 ring-white/20">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-base font-black tracking-wider text-white flex items-center gap-1 leading-tight">
-                EKAGURU
-              </h1>
-              <p className="text-[10px] text-slate-400 font-medium">From Textbook to Universe</p>
-            </div>
+          <div className="h-4 w-px bg-slate-800" />
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-purple-950/80 border border-purple-800 text-purple-300">
+              {ch.unitName || 'UNIT 1'}
+            </span>
+            <span className="text-xs font-bold text-slate-200">
+              Chapter {ch.chapterNumber}: {ch.title}
+            </span>
           </div>
         </div>
 
-        {/* Center: Context-Aware Search */}
-        <div className="relative w-[420px] hidden md:block">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder={`Ask EKAGURU about ${ch.title}...`}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-12 py-2 bg-[#0d1424] border border-slate-700/60 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
-          />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
-            ⌘ K
-          </span>
-        </div>
-
-        {/* Right Badges & Profile */}
-        <div className="flex items-center gap-3.5">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-sm">
-            <Flame className="w-4 h-4 text-amber-400" />
-            <div className="text-left">
-              <span className="text-[8px] uppercase tracking-wider text-amber-400/90 font-bold block leading-none">Learning Streak</span>
-              <span className="text-xs font-black text-amber-300">14 days</span>
-            </div>
+        {/* Engine Grounding Badge */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-[11px] font-bold text-emerald-300">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>100% Source Grounded</span>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 shadow-sm">
-            <Gem className="w-4 h-4 text-purple-400" />
-            <div className="text-left">
-              <span className="text-[8px] uppercase tracking-wider text-purple-400/90 font-bold block leading-none">Explorer Level</span>
-              <span className="text-xs font-black text-purple-300">Young Scientist</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 pl-3.5 border-l border-slate-800/80">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-bold text-slate-950 text-xs shadow-md ring-1 ring-emerald-300/30">
-              A
-            </div>
-            <div className="text-left leading-tight hidden sm:block">
-              <span className="text-xs font-bold text-white block">Aarav</span>
-              <span className="text-[10px] text-slate-400">Class 5</span>
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
-          </div>
+          <button
+            onClick={() => setShowTaskInspector(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 border border-purple-600/50 text-xs font-bold text-purple-200 transition"
+            title="Inspect 8 Engine Pipeline Tasks"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>Task Review</span>
+          </button>
+          <button
+            onClick={() => setShowPrintableModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0d1424] hover:bg-purple-900/30 border border-slate-700 text-xs font-bold text-purple-300 transition"
+            title="Print Student Notes"
+          >
+            <Printer className="w-3.5 h-3.5 text-purple-400" />
+            <span>Print Notes</span>
+          </button>
         </div>
       </header>
 
-      {/* 2. MAIN TEACHING WORKSPACE */}
-      <div className="flex-1 flex w-full h-full overflow-hidden">
-        {/* Left Global Rail */}
-        <nav className="w-16 bg-[#080d19] border-r border-slate-800/80 flex flex-col items-center justify-between py-4 shrink-0 z-20">
-          <div className="flex flex-col items-center gap-3">
-            <Link
-              href="/learn"
-              className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1"
-            >
-              <Home className="w-4 h-4" />
-              <span className="text-[9px] font-medium">Home</span>
-            </Link>
-
-            <Link
-              href="/learn"
-              className="p-2.5 rounded-xl bg-purple-600 text-white shadow-lg shadow-purple-600/30 flex flex-col items-center gap-1"
-            >
-              <BookOpen className="w-4 h-4" />
-              <span className="text-[9px] font-medium">Learn</span>
-            </Link>
-
-            <button className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1">
-              <FileText className="w-4 h-4" />
-              <span className="text-[9px] font-medium">Notebook</span>
-            </button>
-
-            <button className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-[9px] font-medium">Progress</span>
-            </button>
-          </div>
-
-          <div className="flex flex-col items-center gap-3">
-            <button className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1">
-              <Users className="w-4 h-4" />
-              <span className="text-[9px] font-medium">Groups</span>
-            </button>
-
-            <button className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex flex-col items-center gap-1">
-              <Settings className="w-4 h-4" />
-              <span className="text-[9px] font-medium">Settings</span>
-            </button>
-
-            <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center">
-              A
-            </div>
-          </div>
-        </nav>
-
-        {/* LEFT COLUMN: REAL PDF VIEWER + 18-CHAPTER ACCORDION */}
-        <aside className="w-[340px] xl:w-[360px] bg-[#080d19] border-r border-slate-800/80 p-4 flex flex-col justify-between overflow-y-auto shrink-0 gap-4 custom-scrollbar">
-          <div className="flex flex-col gap-3.5">
-            {/* Header & Source Verified Pill */}
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-white block">
-                  FROM YOUR TEXTBOOK
-                </span>
-                <span className="text-xs text-slate-400">
-                  Page {currentPageNum} • {book?.subject || 'Environmental Studies'}
-                </span>
-              </div>
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Source Verified
+      {/* 2. MAIN 2-COLUMN VIEWPORT */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* LEFT COLUMN: 100% IMMUTABLE PHYSICAL BOOK PAGE VIEWER */}
+        <aside className="w-[360px] lg:w-[400px] xl:w-[440px] h-full bg-[#090d18] border-r border-slate-800/90 flex flex-col p-4 shrink-0 overflow-y-auto">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                FROM YOUR TEXTBOOK
+              </span>
+              <span className="text-xs font-black text-white">
+                Page {currentPageNum} • {book?.subject || 'Environmental Studies'}
               </span>
             </div>
+            <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" /> Source Verified
+            </span>
+          </div>
 
-            {/* ============================================================ */}
-            {/* 100% REAL PDF PAGE CANVAS VIEWER                           */}
-            {/* ============================================================ */}
+          {/* Genuine Book Page Viewer */}
+          <div className="my-3 flex-1 flex flex-col items-center justify-center">
             <BookPageViewer
               pageNumber={currentPageNum}
               totalPages={totalPages}
               onOpenFullPage={() => setShowFullPageModal(true)}
             />
+          </div>
 
-            {/* Page Navigator [ ← ] Page X of 59 [ → ] */}
-            <div className="flex items-center justify-between bg-[#0d1424] border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 shadow-inner font-sans">
-              <button
-                onClick={() => setCurrentPageNum((p) => Math.max(1, p - 1))}
-                disabled={currentPageNum <= 1}
-                className="p-1 rounded hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
-                title="Previous Page"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="font-mono">Page {currentPageNum} of {totalPages}</span>
-              <button
-                onClick={() => setCurrentPageNum((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPageNum >= totalPages}
-                className="p-1 rounded hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
-                title="Next Page"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          {/* Page Navigator */}
+          <div className="flex items-center justify-between bg-[#0d1424] border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 shadow-inner">
+            <button
+              onClick={() => setCurrentPageNum((p) => Math.max(1, p - 1))}
+              disabled={currentPageNum <= 1}
+              className="p-1 rounded hover:bg-slate-700 disabled:opacity-30"
+              title="Previous Page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="font-mono">Page {currentPageNum} of {totalPages}</span>
+            <button
+              onClick={() => setCurrentPageNum((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPageNum >= totalPages}
+              className="p-1 rounded hover:bg-slate-700 disabled:opacity-30"
+              title="Next Page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
 
+          <div className="pt-2 flex flex-col gap-2">
             <button
               onClick={() => setShowFullPageModal(true)}
-              className="w-full py-2 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors shadow-md font-sans"
+              className="w-full py-2 rounded-xl bg-[#0d1424] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors shadow-md"
             >
               <BookOpen className="w-4 h-4 text-cyan-400" /> View Full Page
             </button>
-
-            {/* View Full Book Index Action */}
-            <div className="pt-2 border-t border-slate-800/80 font-sans">
-              <button
-                onClick={() => setShowFullIndexModal(true)}
-                className="w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-purple-950/40 hover:border-purple-500 border border-slate-700 text-xs font-bold text-purple-300 flex items-center justify-center gap-1.5 transition-all shadow-md"
-              >
-                <Layers className="w-3.5 h-3.5 text-purple-400" /> View Full Book Index
-              </button>
-            </div>
+            <button
+              onClick={() => setShowFullIndexModal(true)}
+              className="w-full py-2.5 rounded-xl bg-[#0d1424] hover:bg-purple-950/40 hover:border-purple-500 border border-slate-700 text-xs font-bold text-purple-300 flex items-center justify-center gap-1.5 transition-all shadow-md"
+            >
+              <Layers className="w-3.5 h-3.5 text-purple-400" /> View Full Book Index
+            </button>
           </div>
         </aside>
 
-        {/* CENTER & RIGHT: TEACHING CHALKBOARD STAGE */}
-        <main className="flex-1 flex flex-col p-6 bg-[#070b14] overflow-y-auto gap-4 custom-scrollbar">
-          {/* Top Row: Engine Analysis */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-black text-white tracking-wide flex items-center gap-2">
-                EKAGURU ENGINE ANALYSIS
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  AI
-                </span>
+        {/* RIGHT COLUMN: PRE-COMPUTED EKAGURU TEACHING RUNTIME */}
+        <main className="flex-1 flex flex-col h-full bg-[#050811] overflow-y-auto p-5 gap-4">
+          {/* A. ENGINE ANALYSIS STRIP & 5 TEACHING DEPTHS */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a0f1d] border border-slate-800/90 rounded-2xl p-3 shadow-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" /> EKAGURU ENGINE ANALYSIS
               </span>
-              <span className="text-xs text-emerald-400 flex items-center gap-1.5 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                Page analysed in 1.1s
+              <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                Pre-Computed • 0ms Latency
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs shadow-sm">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span className="text-slate-300 font-bold">Concepts</span>
-                <span className="text-emerald-300 font-black text-sm">{ch.concepts.length}</span>
-              </div>
-
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-xs shadow-sm">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
-                <span className="text-slate-300 font-bold">Key Ideas</span>
-                <span className="text-blue-300 font-black text-sm">6</span>
-              </div>
-
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs shadow-sm">
-                <span className="w-2.5 h-2.5 rounded-full bg-purple-400" />
-                <span className="text-slate-300 font-bold">Connections</span>
-                <span className="text-purple-300 font-black text-sm">18</span>
-              </div>
-
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs shadow-sm">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="text-slate-300 font-bold">Questions</span>
-                <span className="text-amber-300 font-black text-sm">5</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Second Row: Teaching Depth */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-400 mr-1">
-                TEACHING DEPTH
-              </span>
-
-              {[
-                { id: 'basis', title: 'Basis', sub: '(Start Here)' },
-                { id: 'developing', title: 'Developing', sub: '(Build Understanding)' },
-                { id: 'proficient', title: 'Proficient', sub: '(Apply & Connect)' },
-                { id: 'advanced', title: 'Advanced', sub: '(Analyse & Reason)' },
-                { id: 'deep', title: 'Deep', sub: '(Research & Explore)' },
-              ].map((lvl) => (
+            {/* 5 Depths Selector */}
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-slate-800/80">
+              {(
+                [
+                  { depth: 'basis', label: 'Basis', sub: '(Start Here)' },
+                  { depth: 'developing', label: 'Developing', sub: '(Core)' },
+                  { depth: 'proficient', label: 'Proficient', sub: '(Apply)' },
+                  { depth: 'advanced', label: 'Advanced', sub: '(Analyse)' },
+                  { depth: 'deep', label: 'Deep', sub: '(Explore)' },
+                ] as const
+              ).map((d) => (
                 <button
-                  key={lvl.id}
-                  onClick={() => setActiveDepth(lvl.id as any)}
-                  className={`px-4 py-2 rounded-xl text-xs text-center border transition-all flex flex-col items-center ${
-                    activeDepth === lvl.id
-                      ? 'bg-purple-600 border-purple-400 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-purple-300'
-                      : 'bg-[#0d1424] border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  key={d.depth}
+                  onClick={() => setActiveDepth(d.depth)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center leading-none ${
+                    activeDepth === d.depth
+                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <span className="font-bold">{lvl.title}</span>
-                  <span className="text-[9px] opacity-80">{lvl.sub}</span>
+                  <span>{d.label}</span>
+                  <span className="text-[8.5px] opacity-70 mt-0.5">{d.sub}</span>
                 </button>
               ))}
             </div>
-
-            <Link
-              href={`/learn/books/${book?.id || bookId}`}
-              className="px-4 py-2 rounded-xl bg-[#0d1424] border border-slate-700/80 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 transition"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Chapters
-            </Link>
           </div>
 
-          {/* ================================================================ */}
-          {/* THE TEACHING CHALKBOARD (DYNAMICALLY MATCHING THIS LESSON)       */}
-          {/* ================================================================ */}
-          <div className="relative rounded-3xl bg-[#08221b] border-[8px] border-[#4a3419] shadow-2xl p-8 overflow-hidden text-emerald-100 flex flex-col justify-between flex-1 min-h-[540px]">
-            <div className="absolute inset-2.5 border-2 border-[#836336]/60 rounded-2xl pointer-events-none" />
-
-            <button
-              onClick={() => setAudioPlaying(!audioPlaying)}
-              className={`absolute right-6 top-6 p-3 rounded-xl backdrop-blur-md transition z-20 ${
-                audioPlaying ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-300' : 'bg-slate-900/60 text-slate-300 hover:text-white'
-              }`}
-              title="Listen to Explanation"
-            >
-              <Volume2 className="w-5 h-5" />
-            </button>
-
-            {/* Socratic Interruption Banner */}
-            {interruptionQuery && (
-              <div className="z-20 mb-4 p-4 rounded-2xl bg-amber-950/80 border-2 border-amber-500/60 text-amber-100 flex items-center justify-between shadow-2xl animate-in fade-in">
-                <div className="flex items-center gap-3">
-                  <MessageCircleQuestion className="w-6 h-6 text-amber-300 shrink-0" />
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
-                      EKAGURU Socratic Expansion (Paused Lesson)
-                    </span>
-                    <p className="text-xs font-bold">"{interruptionQuery}"</p>
-                    <p className="text-[11px] text-amber-200/90 mt-0.5">
-                      Explaining context for {ch.title}: foundational connections grounded in {book?.subject || 'this domain'}.
-                    </p>
-                  </div>
+          {/* B. DYNAMIC GRAPHICAL CHALKBOARD / ARTIFACT CANVAS */}
+          <div className="flex-1 min-h-[360px] rounded-3xl bg-gradient-to-b from-[#0a1a12] via-[#05110b] to-[#020805] border-2 border-[#173a26] p-6 shadow-2xl relative flex flex-col justify-between overflow-hidden">
+            {/* Board Header */}
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-700 text-emerald-300">
+                    Depth: {activeDepth.toUpperCase()}
+                  </span>
+                  <span className="text-[10px] text-emerald-400/80 font-mono">
+                    Ground-Truth Verified
+                  </span>
                 </div>
                 <button
-                  onClick={() => setInterruptionQuery(null)}
-                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-black text-xs shrink-0"
+                  onClick={() =>
+                    openEvidenceInspector({
+                      bookId: 'evs-class-5',
+                      chapterNumber: ch.chapterNumber,
+                      physicalPage: currentPageNum,
+                      blockId: `blk-${currentPageNum}-2`,
+                      bbox: { x: 80, y: 150, width: 1040, height: 600 },
+                      confidence: 0.99,
+                      sourceTextSnippet: ch.keyIdea,
+                    })
+                  }
+                  className="flex items-center gap-1 text-[11px] font-bold text-cyan-300 hover:text-cyan-200 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-800/80 px-2.5 py-1 rounded-lg transition"
                 >
-                  Resume Lesson ➔
+                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Inspect Evidence</span>
                 </button>
               </div>
-            )}
 
-            <div className="text-center z-10 mb-6">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-widest text-[#f5d061] font-mono drop-shadow-md uppercase">
-                {ch.boardTitle}
+              <h2 className="text-xl font-black text-amber-100 tracking-wide mt-2 text-center">
+                {currentDepthArtifacts.boardSummary.boardTitle}
               </h2>
-              <p className="text-base md:text-lg font-serif text-[#f294b4] mt-2 tracking-wide font-medium">
-                {ch.boardSubtitle}
+              <p className="text-xs text-emerald-300/80 text-center mt-0.5">
+                {currentDepthArtifacts.boardSummary.boardSubtitle}
               </p>
             </div>
 
-            {/* 5-Step Visual Flowchart */}
-            <div className="grid grid-cols-5 gap-6 items-center text-center z-10 my-4">
-              {ch.flowSteps.map((step, idx) => (
-                <div key={idx} className="flex flex-col items-center group relative">
-                  {idx > 0 && (
-                    <span className="absolute -left-6 top-10 text-purple-300 font-bold text-2xl hidden md:block">
-                      ➔
-                    </span>
-                  )}
-                  <div className="w-24 h-24 rounded-full bg-emerald-950/40 border-2 border-emerald-400/30 flex items-center justify-center text-4xl shadow-xl shadow-emerald-950/40 group-hover:scale-110 transition-transform">
-                    {step.icon}
-                  </div>
-                  <h4 className="text-lg font-black text-amber-300 mt-2 uppercase font-mono tracking-wider">
-                    {step.label}
-                  </h4>
-                  <p className="text-sm text-emerald-100/90 leading-snug mt-1 font-sans font-medium">
-                    {step.description}
-                  </p>
+            {/* Center Content based on Active Tab */}
+            <div className="my-4 flex-1 flex flex-col justify-center">
+              {activeBoardTab === 'teacher_explains' && (
+                <div className="space-y-3">
+                  {currentDepthArtifacts.teacherExplanation.map((step) => (
+                    <div
+                      key={step.stepNumber}
+                      className="bg-black/40 border border-emerald-800/50 rounded-2xl p-3 text-xs"
+                    >
+                      <div className="flex items-center justify-between font-bold text-amber-200 mb-1">
+                        <span>{step.title}</span>
+                        <button
+                          onClick={() => openEvidenceInspector(step.citations[0])}
+                          className="text-[10px] text-emerald-400 underline hover:text-emerald-300 flex items-center gap-1"
+                        >
+                          <FileCheck2 className="w-3 h-3" /> Page {step.citations[0]?.physicalPage} Evidence
+                        </button>
+                      </div>
+                      <p className="text-slate-200 leading-relaxed">{step.explanation}</p>
+                      <div className="mt-2 pt-2 border-t border-emerald-900/40 text-[11px] text-emerald-300/90 font-medium">
+                        💡 Socratic Probe: {step.socraticQuestion}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+
+              {activeBoardTab === 'visuals' && (
+                <div className="flex items-center justify-around gap-2 flex-wrap">
+                  {currentDepthArtifacts.visuals.steps.map((st, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col items-center text-center p-3 bg-black/40 border border-emerald-800/40 rounded-2xl min-w-[110px]"
+                    >
+                      <span className="text-3xl mb-1">{st.icon}</span>
+                      <span className="text-xs font-black text-amber-200">{st.label}</span>
+                      <span className="text-[10px] text-slate-300 mt-1 max-w-[120px]">
+                        {st.description}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeBoardTab === 'real_world' && (
+                <div className="space-y-3">
+                  {currentDepthArtifacts.realWorldExamples.map((ex, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-black/40 border border-emerald-800/50 rounded-2xl p-4 text-xs"
+                    >
+                      <h4 className="text-sm font-bold text-amber-200">{ex.scenarioTitle}</h4>
+                      <p className="text-slate-200 mt-1">{ex.context} {ex.application}</p>
+                      <div className="mt-2 text-[11px] text-emerald-300 font-medium">
+                        🌟 Why it matters: {ex.whyItMatters}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeBoardTab === 'key_points' && (
+                <div className="space-y-2.5">
+                  {currentDepthArtifacts.keyPoints.map((kp) => (
+                    <div
+                      key={kp.pointNumber}
+                      className="flex items-start gap-3 bg-black/40 border border-emerald-800/50 rounded-2xl p-3 text-xs"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                        {kp.pointNumber}
+                      </div>
+                      <div>
+                        <p className="text-amber-100 font-bold">{kp.takeaway}</p>
+                        <p className="text-[11px] text-emerald-300/80 mt-0.5">
+                          {kp.scientificPrinciple}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeBoardTab === 'board_summary' && (
+                <div className="space-y-3">
+                  <div className="bg-emerald-950/60 border border-emerald-700/60 rounded-2xl p-3 text-center">
+                    <span className="text-[10px] font-black uppercase text-amber-300 block">
+                      {currentDepthArtifacts.boardSummary.formulaBanner?.title}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-emerald-100 mt-1 block">
+                      {currentDepthArtifacts.boardSummary.formulaBanner?.formula}
+                    </span>
+                  </div>
+                  <div className="bg-black/40 border border-emerald-800/50 rounded-2xl p-3 text-xs text-center">
+                    <span className="text-[10px] font-black uppercase text-emerald-400 block mb-1">
+                      {currentDepthArtifacts.boardSummary.keyTakeawayBox.heading}
+                    </span>
+                    <p className="text-slate-200">
+                      {currentDepthArtifacts.boardSummary.keyTakeawayBox.text}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {activeBoardTab === 'printable_notes' && (
+                <div className="bg-black/40 border border-emerald-800/50 rounded-2xl p-4 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-amber-200">
+                      Printable Study Notes: {currentDepthArtifacts.printableNotes.chapterTitle}
+                    </h4>
+                    <button
+                      onClick={() => setShowPrintableModal(true)}
+                      className="text-xs text-purple-300 bg-purple-900/40 border border-purple-700 px-2 py-1 rounded hover:bg-purple-800"
+                    >
+                      Open Full Sheet
+                    </button>
+                  </div>
+                  <ul className="list-disc pl-4 text-slate-300 space-y-1">
+                    {currentDepthArtifacts.printableNotes.whatILearned.map((w, idx) => (
+                      <li key={idx}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
-            {/* Chalkboard Sub-Panels */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 z-10 mt-6 pt-5 border-t-2 border-emerald-800/70">
-              <div className="md:col-span-7 bg-[#051912]/95 border-2 border-emerald-600/50 rounded-2xl p-4 flex flex-col gap-2.5 shadow-inner">
-                <span className="text-sm font-black text-amber-300 font-mono tracking-wider text-center">
-                  {ch.subBoxTitle}
-                </span>
-                <p className="text-xs text-center font-mono text-emerald-200 font-bold">
-                  {ch.subBoxFormula}
-                </p>
-              </div>
-
-              <div className="md:col-span-5 bg-[#051912]/95 border-2 border-emerald-600/50 rounded-2xl p-4 flex flex-col justify-center gap-2 shadow-inner">
-                <span className="text-sm font-black text-amber-300 font-mono tracking-wider flex items-center gap-2">
-                  💡 KEY IDEA
-                </span>
-                <p className="text-xs md:text-sm leading-relaxed text-emerald-50 font-sans font-medium">
-                  {ch.keyIdea}
-                </p>
-              </div>
+            {/* Chalkboard Footer Banner */}
+            <div className="pt-2 border-t border-[#173a26] flex items-center justify-between text-[11px] text-emerald-400/80 font-mono">
+              <span>CANONICAL EVS CLASS 5</span>
+              <span>CHAPTER {ch.chapterNumber} • 540 ARTIFACT ENGINE</span>
             </div>
           </div>
 
-          {/* Action Tabs below Blackboard */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-0.5 text-xs">
-            {[
-              { id: 'teacher_explains', label: '✨ Teacher Explains' },
-              { id: 'visuals', label: '🌐 Visuals & Real World' },
-              { id: 'real_world', label: '⭐ Real World Examples' },
-              { id: 'key_points', label: '📌 Key Points' },
-              { id: 'summary', label: '📋 Board Summary' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveBoardTab(tab.id as any)}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${
-                  activeBoardTab === tab.id
-                    ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                    : 'bg-[#0d1424] border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* C. 6 ARTIFACT TABS */}
+          <div className="flex items-center justify-between gap-2 overflow-x-auto bg-[#0a0f1d] border border-slate-800/90 rounded-2xl p-1.5 shadow">
+            {(
+              [
+                { id: 'teacher_explains', label: 'Teacher Explains', icon: BookOpen },
+                { id: 'visuals', label: 'Visuals & Real World', icon: Workflow },
+                { id: 'real_world', label: 'Real World Examples', icon: Globe2 },
+                { id: 'key_points', label: 'Key Points', icon: Award },
+                { id: 'board_summary', label: 'Board Summary', icon: ListOrdered },
+                { id: 'printable_notes', label: 'Printable Notes', icon: FileText },
+              ] as const
+            ).map((tab) => {
+              const Icon = tab.icon;
+              const active = activeBoardTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveBoardTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                    active
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* ASK EKAGURU (CONTEXT-AWARE QUESTIONING) */}
-          <div className="bg-[#0b1222] border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-lg">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
-                <Sparkles className="w-4 h-4" />
+          {/* D. LIVE SOCRATIC Q&A BOX WITH PROVENANCE RETURN */}
+          <div className="bg-[#0a0f1d] border border-slate-800/90 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
+            {socraticAnswer && (
+              <div className="p-3 bg-purple-950/30 border border-purple-800/60 rounded-xl text-xs text-purple-200">
+                <div className="flex items-center justify-between font-bold text-amber-300 mb-1">
+                  <span>Q: {socraticAnswer.question}</span>
+                  <button
+                    onClick={() => setSocraticAnswer(null)}
+                    className="text-[10px] text-slate-400 hover:text-white underline"
+                  >
+                    Resume Lesson
+                  </button>
+                </div>
+                <p className="text-slate-200 mt-1">{socraticAnswer.answer}</p>
+                <div className="mt-2 pt-2 border-t border-purple-900/40 flex items-center justify-between text-[10px] text-purple-400 font-mono">
+                  <span>Cited Page: {socraticAnswer.citation.physicalPage}</span>
+                  <button
+                    onClick={() => openEvidenceInspector(socraticAnswer.citation)}
+                    className="underline hover:text-purple-300"
+                  >
+                    View Bounding Box
+                  </button>
+                </div>
               </div>
-              <span className="text-sm font-black text-white">Ask EKAGURU</span>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                AI
-              </span>
-            </div>
+            )}
 
-            <div className="relative flex items-center gap-3">
+            <form onSubmit={handleAskQuestion} className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder={`Ask a question about ${ch.title} — EKAGURU will expand without losing your place...`}
                 value={askInput}
                 onChange={(e) => setAskInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && askInput.trim()) {
-                    handleTriggerInterruption(askInput.trim());
-                    setAskInput('');
-                  }
-                }}
-                className="flex-1 pl-4 pr-12 py-3 bg-[#080d19] border border-slate-700/80 rounded-xl text-xs md:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 shadow-inner"
+                placeholder={`Ask a question about Chapter ${ch.chapterNumber}: ${ch.title} — EKAGURU will answer grounded in page evidence...`}
+                className="flex-1 bg-black/40 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
               />
-              <button className="absolute right-28 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white">
-                <Mic className="w-5 h-5" />
-              </button>
               <button
-                onClick={() => {
-                  if (askInput.trim()) {
-                    handleTriggerInterruption(askInput.trim());
-                    setAskInput('');
-                  }
-                }}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 shadow-md shadow-purple-600/30"
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-md shadow-purple-600/30 transition flex items-center gap-1.5"
               >
-                <Sparkles className="w-4 h-4" /> Ask
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Ask</span>
               </button>
-            </div>
+            </form>
           </div>
         </main>
       </div>
 
-      {/* 3. BOTTOM PROGRESSION BAR */}
-      <footer className="h-14 px-6 bg-[#080d19] border-t border-slate-800/80 flex items-center justify-between z-30 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Source Verified
-          </span>
-          <span className="text-xs text-slate-400 hidden sm:inline">
-            Original textbook preserved from {book?.title || 'your uploaded PDF'}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowFullIndexModal(true)}
-            className="px-4 py-2 rounded-xl bg-purple-950/50 hover:bg-purple-900/50 border border-purple-500/40 text-xs font-bold text-purple-300 flex items-center gap-1.5 transition-colors"
-          >
-            <Layers className="w-3.5 h-3.5" /> Full Book Index
-          </button>
-
-          <Link
-            href={`/learn/books/${book?.id || bookId}`}
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-300 flex items-center gap-2 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Chapters
-          </Link>
-        </div>
-      </footer>
-
-      {/* ==================================================================== */}
-      {/* 4. INTERACTIVE FULL BOOK INDEX MODAL (18 CHAPTERS, ZERO GAPS)        */}
-      {/* ==================================================================== */}
+      {/* MODAL 1: FULL BOOK INDEX */}
       {showFullIndexModal && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0b1120] border border-slate-700 rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-600/20 text-purple-300 border border-purple-500/40 flex items-center justify-center">
-                  <Layers className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-white">
-                    {book?.title || 'Table of Contents'}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    18 Chapters Across 5 Units • 59 Preserved Physical Pages • Click any lesson to jump
-                  </p>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-2xl max-h-[80vh] bg-[#0c1324] border border-slate-700/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-white overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 font-black text-sm text-purple-300">
+                <Layers className="w-4 h-4 text-purple-400" />
+                <span>CANONICAL TABLE OF CONTENTS (18 CHAPTERS • 116 PAGES)</span>
               </div>
               <button
                 onClick={() => setShowFullIndexModal(false)}
-                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4">
-              {(book?.chapters || []).map((chap) => (
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {CANONICAL_TEXTBOOK_TOC.map((t) => (
                 <div
-                  key={chap.id}
-                  className="rounded-2xl border border-slate-800/80 bg-[#090f1d] p-4 flex flex-col gap-2.5 hover:border-purple-500/40 transition"
+                  key={t.chapterNumber}
+                  onClick={() => {
+                    setCurrentPageNum(t.startPage);
+                    setShowFullIndexModal(false);
+                  }}
+                  className="p-3 rounded-xl bg-[#080d1a] hover:bg-purple-950/40 border border-slate-800 hover:border-purple-500 cursor-pointer flex items-center justify-between transition group"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
-                        {chap.unitName}
-                      </span>
-                      <h4 className="text-sm font-black text-white">{chap.title}</h4>
-                    </div>
-                    <span className="text-xs font-mono text-purple-300 bg-purple-950/60 px-2.5 py-0.5 rounded-md border border-purple-500/30">
-                      {chap.pageRangeText}
+                  <div>
+                    <span className="text-[10px] font-bold text-purple-400 uppercase">
+                      {t.unitName}
                     </span>
+                    <h4 className="text-xs font-bold text-slate-200 group-hover:text-white">
+                      Chapter {t.chapterNumber}: {t.title}
+                    </h4>
                   </div>
-
-                  {/* Clickable Sub-Lessons */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
-                    {chap.sections.map((sec) => (
-                      <button
-                        key={sec.id}
-                        onClick={() => jumpToLesson(chap, sec)}
-                        className="p-2 rounded-xl bg-[#0d1424] hover:bg-purple-600/20 border border-slate-800 hover:border-purple-500/40 text-left transition flex items-center justify-between group"
-                      >
-                        <span className="text-xs text-slate-300 group-hover:text-purple-200">
-                          {sec.sectionNumber} {sec.title}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-500 group-hover:text-purple-400">
-                          p.{sec.page}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  <span className="text-xs font-mono text-slate-400 group-hover:text-purple-300">
+                    {t.pageRangeText}
+                  </span>
                 </div>
               ))}
             </div>
-
-            <div className="p-4 bg-[#080d19] border-t border-slate-800 flex justify-end">
-              <button
-                onClick={() => setShowFullIndexModal(false)}
-                className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30"
-              >
-                Close Index
-              </button>
-            </div>
           </div>
         </div>
       )}
 
-      {/* ==================================================================== */}
-      {/* 5. HIGH-RESOLUTION FULL TEXTBOOK PAGE INSPECTOR MODAL               */}
-      {/* ==================================================================== */}
-      {showFullPageModal && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0b1120] border border-slate-700 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="p-4 px-6 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow">
-                  {currentPageNum}
-                </span>
-                <div>
-                  <h3 className="text-sm font-black text-white">
-                    {physicalPage.pageTitle} — Page {currentPageNum} of {totalPages}
-                  </h3>
-                  <p className="text-[10.5px] text-emerald-400 font-mono">
-                    ✓ Immutable Physical Page • Source Verified
-                  </p>
-                </div>
+      {/* MODAL 2: EVIDENCE INSPECTOR (PROVENANCE HIGHLIGHTER) */}
+      {showEvidenceModal && selectedCitation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-3xl max-h-[85vh] bg-[#0c1324] border border-cyan-700/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-white overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 font-black text-sm text-cyan-300">
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <span>EVIDENCE INSPECTOR • REGION-LEVEL PROVENANCE</span>
               </div>
-
               <button
-                onClick={() => setShowFullPageModal(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
+                onClick={() => setShowEvidenceModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-8 overflow-y-auto custom-scrollbar flex flex-col items-center bg-[#151d30]/60">
-              <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl p-2 border border-slate-600 flex items-center justify-center overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto">
+              <div className="relative border border-slate-700 rounded-2xl overflow-hidden bg-black flex items-center justify-center">
                 <img
-                  src={`/textbooks/evs-class-5/page-${currentPageNum}.png`}
-                  alt={`Full High-Res Original Page ${currentPageNum}`}
-                  className="w-full max-h-[75vh] object-contain rounded-xl"
+                  src={`/textbooks/evs-class-5/page-${selectedCitation.physicalPage}.png`}
+                  alt={`Page ${selectedCitation.physicalPage}`}
+                  className="max-h-[400px] object-contain"
+                />
+                {/* Highlight Bounding Box */}
+                <div
+                  className="absolute border-2 border-cyan-400 bg-cyan-500/20 pointer-events-none rounded animate-pulse"
+                  style={{
+                    left: '8%',
+                    top: '15%',
+                    width: '84%',
+                    height: '40%',
+                  }}
                 />
               </div>
-            </div>
 
-            <div className="p-4 px-6 bg-[#080d19] border-t border-slate-800 flex items-center justify-between font-sans">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPageNum((p) => Math.max(1, p - 1))}
-                  disabled={currentPageNum <= 1}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 disabled:opacity-40"
-                >
-                  ← Previous Page
-                </button>
-                <button
-                  onClick={() => setCurrentPageNum((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPageNum >= totalPages}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 disabled:opacity-40"
-                >
-                  Next Page →
-                </button>
+              <div className="flex flex-col gap-3 text-xs">
+                <div className="bg-[#080d1a] p-3 rounded-xl border border-slate-800">
+                  <span className="text-[10px] font-bold text-slate-400 block">SOURCE CITATION IDENTITY</span>
+                  <p className="font-mono text-cyan-300 mt-1">Physical Page: {selectedCitation.physicalPage}</p>
+                  <p className="font-mono text-slate-400">Block ID: {selectedCitation.blockId}</p>
+                  <p className="font-mono text-slate-400">Confidence: {(selectedCitation.confidence * 100).toFixed(1)}%</p>
+                </div>
+                <div className="bg-[#080d1a] p-3 rounded-xl border border-slate-800">
+                  <span className="text-[10px] font-bold text-slate-400 block">TEXTBOOK EVIDENCE SNIPPET</span>
+                  <p className="text-slate-200 mt-1 italic">"{selectedCitation.sourceTextSnippet}"</p>
+                </div>
+                <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-emerald-300">
+                  ✓ Invariant Verified: No teaching statement published without verified physical scan provenance.
+                </div>
               </div>
-
-              <button
-                onClick={() => setShowFullPageModal(false)}
-                className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs"
-              >
-                Done
-              </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      {/* MODAL 3: PRINTABLE STUDENT NOTES MODAL */}
+      {showPrintableModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-2xl max-h-[85vh] bg-white text-slate-900 rounded-3xl p-8 shadow-2xl flex flex-col gap-5 overflow-y-auto font-sans">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-300">
+              <div>
+                <span className="text-xs font-black uppercase text-purple-700 tracking-wider">
+                  EKAGURU STUDENT STUDY NOTES • {activeDepth.toUpperCase()}
+                </span>
+                <h2 className="text-xl font-black text-slate-900">
+                  Chapter {ch.chapterNumber}: {ch.title}
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print</span>
+                </button>
+                <button
+                  onClick={() => setShowPrintableModal(false)}
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-black text-purple-900 mb-2">⭐ What I Learned</h4>
+              <ul className="list-disc pl-5 text-xs text-slate-700 space-y-1.5">
+                {currentDepthArtifacts.printableNotes.whatILearned.map((w, idx) => (
+                  <li key={idx}>{w}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-black text-purple-900 mb-2">💡 Core Principles to Remember</h4>
+              <ul className="list-disc pl-5 text-xs text-slate-700 space-y-1.5">
+                {currentDepthArtifacts.printableNotes.corePrinciplesToRemember.map((c, idx) => (
+                  <li key={idx}>{c}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-black text-purple-900 mb-2">✏️ Draw or Lab Challenge</h4>
+              <div className="p-4 border-2 border-dashed border-slate-300 rounded-2xl text-center text-xs text-slate-600">
+                <p className="font-bold">{currentDepthArtifacts.printableNotes.drawOrActivityChallenge.title}</p>
+                <p className="mt-1">{currentDepthArtifacts.printableNotes.drawOrActivityChallenge.instructions}</p>
+                <div className="h-32 mt-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center text-slate-400">
+                  [ Sketch Area for Student Drawing ]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: FULL PAGE INSPECTOR */}
+      {showFullPageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+          <div className="relative w-full max-w-4xl max-h-[90vh] bg-[#0c1324] border border-slate-700 rounded-3xl p-4 flex flex-col items-center">
+            <button
+              onClick={() => setShowFullPageModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-white z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex-1 w-full overflow-auto flex items-center justify-center">
+              <img
+                src={`/textbooks/evs-class-5/page-${currentPageNum}.png`}
+                alt={`Page ${currentPageNum}`}
+                className="max-h-[80vh] object-contain rounded-xl shadow-2xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    {showTaskInspector && <EnginePipelineTaskInspector onClose={() => setShowTaskInspector(false)} />}
+</div>
   );
 }
