@@ -109,7 +109,7 @@ export function BookPageViewer({
         <span className="flex items-center gap-1 text-emerald-400 font-bold">
           <CheckCircle2 className="w-3 h-3" /> Original Scanned Page
         </span>
-        <span className="font-mono text-slate-500">Immutable Source • 59 Pages</span>
+        <span className="font-mono text-slate-500">Immutable Source • {totalPages} Pages</span>
       </div>
     </div>
   );

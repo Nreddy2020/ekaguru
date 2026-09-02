@@ -149,7 +149,7 @@ export function UniversalKnowledgeUniverseStudio({
     textbookExcerpt: 'Textbook page extracted. Look at the structured patterns described in this section.',
   };
 
-  const totalPages = book?.totalPages || 59;
+  const totalPages = book?.totalPages || 116;
 
   return (
     <div
