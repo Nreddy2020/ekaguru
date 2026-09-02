@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { VitalisEnvironment } from '../../lib/vitalis/domain/types';
+import { VitalisEnvironment } from '../../../lib/vitalis/domain/types';
 
 interface VitalisContextHeaderProps {
   environment: VitalisEnvironment;

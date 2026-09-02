@@ -64,6 +64,8 @@ import { TutorSafetyGateService } from './session/tutor-safety-gate.service';
 import { TutorOrchestratorService } from './session/tutor-orchestrator.service';
 import { KnowledgeActivatorService } from './knowledge/knowledge-activator.service';
 import { MisconceptionClassifierService } from './mastery/misconception-classifier.service';
+import { PersonalLearningEngineService } from './learning-engine/personal-learning-engine.service';
+import { PersonalLearningEngineController } from './learning-engine/personal-learning-engine.controller';
 
 @Module({
   controllers: [
@@ -77,6 +79,7 @@ import { MisconceptionClassifierService } from './mastery/misconception-classifi
     CurriculumController,
     MasteryController,
     SessionController,
+    PersonalLearningEngineController,
   ],
   providers: [
     PedagogicalContextAssemblerService,
@@ -128,6 +131,7 @@ import { MisconceptionClassifierService } from './mastery/misconception-classifi
     TutorOrchestratorService,
     KnowledgeActivatorService,
     MisconceptionClassifierService,
+    PersonalLearningEngineService,
   ],
   exports: [
     PedagogicalContextAssemblerService,

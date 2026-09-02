@@ -37,7 +37,10 @@ import { ObserveModule } from './observe/observe.module';
 
 @Module({
     imports: [
-        ConfigModule.forRoot(),
+        ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: ['universal/backend/.env', '.env'],
+        }),
         HttpModule,
         ThrottlerModule.forRoot([{
             name: 'short',

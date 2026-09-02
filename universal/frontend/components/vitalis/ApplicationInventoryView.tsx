@@ -16,10 +16,10 @@ export const ApplicationInventoryView: React.FC<ApplicationInventoryViewProps> =
     if (search.trim()) {
       const q = search.toLowerCase();
       return (
-        item.name.toLowerCase().includes(q) ||
-        item.businessService.toLowerCase().includes(q) ||
-        item.owner.toLowerCase().includes(q) ||
-        item.tier.toLowerCase().includes(q)
+        (item.name?.toLowerCase().includes(q) ?? false) ||
+        (item.businessService?.toLowerCase().includes(q) ?? false) ||
+        (item.owner?.toLowerCase().includes(q) ?? false) ||
+        (item.tier?.toLowerCase().includes(q) ?? false)
       );
     }
     return true;

@@ -56,6 +56,7 @@ describe('ExtractionOrchestratorService M2 Security, Idempotency & Batched Persi
         update: jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...mockMaterialStored, ...data })),
       },
       document: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'doc-123', status: DocumentStatus.PROCESSING }),
         create: jest.fn().mockResolvedValue({ id: 'doc-123', status: DocumentStatus.PROCESSING }),
         update: jest.fn().mockResolvedValue({ id: 'doc-123', status: DocumentStatus.READY }),
       },
@@ -65,7 +66,9 @@ describe('ExtractionOrchestratorService M2 Security, Idempotency & Batched Persi
         concept: { upsert: jest.fn().mockResolvedValue({ id: 'concept-1' }) },
         contentChunk: { deleteMany: jest.fn(), create: jest.fn().mockResolvedValue({ id: 'chunk-1' }) },
         contentTopic: { deleteMany: jest.fn(), create: jest.fn().mockResolvedValue({ id: 'topic-1' }) },
+        contentSpecialSection: { deleteMany: jest.fn(), create: jest.fn().mockResolvedValue({ id: 'spec-1' }) },
         contentChapter: { deleteMany: jest.fn(), create: jest.fn().mockResolvedValue({ id: 'chap-1' }) },
+        contentUnit: { deleteMany: jest.fn(), create: jest.fn().mockResolvedValue({ id: 'unit-1' }) },
         documentPage: { deleteMany: jest.fn(), create: jest.fn() },
         document: { update: jest.fn() },
         learningMaterial: { update: jest.fn() },
@@ -95,7 +98,13 @@ describe('ExtractionOrchestratorService M2 Security, Idempotency & Batched Persi
     structureDetector = {
       processStructure: jest.fn().mockReturnValue({
         pages: [{ pageNumber: 1, rawText: 'algebra text' }],
-        chapters: [{ title: 'Chapter 1: Foundations', orderIndex: 1, topics: [] }],
+        chapters: [
+          {
+            title: 'Chapter 1: Foundations',
+            orderIndex: 1,
+            topics: [{ title: '1.1 Basic Operations', orderIndex: 1, description: 'Foundations of algebra' }],
+          },
+        ],
         chunks: [{ sequenceNumber: 1, content: 'algebra text', pageStart: 1, pageEnd: 1 }],
       }),
     };

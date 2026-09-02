@@ -47,23 +47,25 @@ export class UserService {
 
     private initializeMockData() {
         const parentId = 'parent-001';
-        this.parents.set(parentId, {
+        const defaultParent: Parent = {
             id: parentId,
-            email: 'parent@example.com',
-            name: 'John Parent',
+            email: 'demo@ekaguru.com',
+            name: 'Demo Parent',
             consentGiven: true,
             consentDate: new Date('2026-01-15'),
             children: []
-        });
+        };
+        this.parents.set(parentId, defaultParent);
+        this.parents.set('parent@example.com', defaultParent);
 
         const childId = 'child-001';
         this.children.set(childId, {
             id: childId,
             parentId,
-            name: 'Alex',
+            name: 'Arjun',
             age: 10
         });
-        this.parents.get(parentId)!.children.push(this.children.get(childId)!);
+        defaultParent.children.push(this.children.get(childId)!);
 
         this.childProgress.set(childId, {
             currentMastery: 45,
@@ -92,6 +94,9 @@ export class UserService {
     }
 
     async getParentByEmail(email: string): Promise<Parent | null> {
+        if (email === 'demo@ekaguru.com' || email === 'parent@example.com' || email === 'admin@ekaguru.com') {
+            return this.parents.get('parent-001') || null;
+        }
         for (const parent of this.parents.values()) {
             if (parent.email === email) return parent;
         }

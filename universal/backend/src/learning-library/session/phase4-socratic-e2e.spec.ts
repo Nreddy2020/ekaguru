@@ -136,6 +136,7 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
       }
     });
 
+    await prisma.curriculumStructure.deleteMany({ where: { version: 10001 } }).catch(() => {});
     await prisma.curriculumStructure.create({
       data: { id: structureId, domain: 'Mathematics', version: 10001, status: CurriculumStatus.PUBLISHED }
     });
@@ -200,8 +201,12 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
     // Call Socratic start
     const startRes = await request(app.getHttpServer())
       .post(`/api/v2/sessions/${sessionId}/tutor/start`)
-      .set('Authorization', `Bearer ${tokenUser}`)
-      .expect(200);
+      .set('Authorization', `Bearer ${tokenUser}`);
+    
+    if (startRes.status !== 200) {
+      console.error('TUTOR START ERROR:', startRes.status, startRes.body);
+    }
+    expect(startRes.status).toBe(200);
 
     expect(startRes.body.data.statement).toContain('problem');
     expect(startRes.body.data.options).toContain('2/5 (Add numerators and denominators directly)');

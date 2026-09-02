@@ -667,10 +667,10 @@ export function UniversalKnowledgeUniverseStudio({
                 <div
                   className="absolute border-2 border-cyan-400 bg-cyan-500/20 pointer-events-none rounded animate-pulse"
                   style={{
-                    left: '8%',
-                    top: '15%',
-                    width: '84%',
-                    height: '40%',
+                    left: `${(activeEvidenceCitation?.bbox?.x || 80) / 12}%`,
+                    top: `${(activeEvidenceCitation?.bbox?.y || 150) / 16.8}%`,
+                    width: `${(activeEvidenceCitation?.bbox?.width || 980) / 12}%`,
+                    height: `${(activeEvidenceCitation?.bbox?.height || 550) / 16.8}%`,
                   }}
                 />
               </div>

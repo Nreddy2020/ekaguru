@@ -29,7 +29,7 @@ export class UploadService {
     dto: UploadMaterialDto,
     file: Express.Multer.File,
     user?: any,
-  ): Promise<{ data: any }> {
+  ): Promise<{ data: any; duplicate?: boolean; message?: string }> {
     if (!file || (!file.path && !file.buffer)) {
       throw new BadRequestException('No file attached to upload request.');
     }
@@ -102,6 +102,38 @@ export class UploadService {
       );
 
       storageKey = storageResult.storageKey;
+
+      // Duplicate detection check
+      const isForceNew = dto.forceNewVersion === 'true' || dto.forceNewVersion === true;
+      if (!isForceNew && this.prisma.learningMaterial?.findFirst) {
+        const existingMaterial = await this.prisma.learningMaterial.findFirst({
+          where: {
+            learnerId,
+            title: dto.title.trim(),
+            status: { not: MaterialStatus.ARCHIVED },
+            originalFileName: file.originalname,
+            fileSizeBytes: BigInt(storageResult.fileSizeBytes),
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (existingMaterial) {
+          this.logger.log(`Duplicate file detected for learner ${learnerId}: '${file.originalname}' matches material ${existingMaterial.id}`);
+          // Clean up newly written duplicate storage file
+          await this.storageService.deleteFile(storageResult.storageKey).catch(() => {});
+          return {
+            duplicate: true,
+            message: 'This material has already been uploaded.',
+            data: {
+              id: existingMaterial.id,
+              title: existingMaterial.title,
+              processingStatus: existingMaterial.processingStatus,
+              originalFileName: existingMaterial.originalFileName,
+              fileSizeBytes: Number(existingMaterial.fileSizeBytes || 0),
+            },
+          };
+        }
+      }
 
       // 4. Create LearningMaterial & Document DB records with transaction rollback protection
       const material = await this.prisma.learningMaterial.create({

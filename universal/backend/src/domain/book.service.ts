@@ -70,7 +70,7 @@ export class BookService {
                 .slice(0, 16);
 
             // 1. Stage 1: Page Truth Engine & Quality Gate
-            const extractedDoc = await this.pdfExtractor.extract(filePath, originalName, deterministicDocId);
+            const extractedDoc = await this.pdfExtractor.extract(filePath, originalName);
 
             // 2. Stage 2: Structure & Hierarchy Engine (Decoupled Heading Scoring & Hierarchy)
             const structure = this.structureDetector.processStructure(extractedDoc);

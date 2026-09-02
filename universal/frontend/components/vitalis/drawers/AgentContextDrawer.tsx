@@ -80,10 +80,10 @@ export const AgentContextDrawer: React.FC<AgentContextDrawerProps> = ({
             </p>
             <div className="pt-2 border-t border-[#14233c] space-y-1 font-mono text-[11px]">
               <span className="text-slate-400 block font-bold">Suspected Code Location:</span>
-              {pkg.affectedCodeAreas.map((area, i) => (
+              {pkg.affectedCodeAreas?.map((area: any, i: number) => (
                 <div key={i} className="p-2 rounded bg-[#040811] text-teal-300">
                   <div className="font-bold text-white">{area.component} ➔ {area.suspectedOperation}</div>
-                  <div className="text-slate-400 mt-0.5">{area.suspectedFiles.join(', ')}</div>
+                  <div className="text-slate-400 mt-0.5">{area.suspectedFiles?.join(', ')}</div>
                   <div className="text-amber-300 text-[10px] mt-0.5">{area.reason}</div>
                 </div>
               ))}
@@ -96,7 +96,7 @@ export const AgentContextDrawer: React.FC<AgentContextDrawerProps> = ({
               Supporting Evidence References
             </span>
             <div className="space-y-1.5">
-              {pkg.supportingEvidenceChecklist.map((item, idx) => (
+              {pkg.supportingEvidenceChecklist?.map((item: any, idx: number) => (
                 <div key={idx} className="p-2.5 rounded-lg bg-[#070E1B] border border-[#14233c] flex items-center gap-2">
                   <span className="text-emerald-400 font-bold">✓</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#14233c] text-teal-300 font-bold">{item.evidenceId}</span>
@@ -112,7 +112,7 @@ export const AgentContextDrawer: React.FC<AgentContextDrawerProps> = ({
               Recommended Investigation Steps for Agent
             </span>
             <div className="space-y-1 font-mono text-[11px] text-slate-200">
-              {pkg.recommendedInvestigation.map((step, i) => (
+              {pkg.recommendedInvestigation?.map((step: any, i: number) => (
                 <div key={i} className="leading-relaxed">{step}</div>
               ))}
             </div>

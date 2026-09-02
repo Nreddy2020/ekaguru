@@ -300,6 +300,10 @@ export interface VitalisCommandCenterOverview {
 export interface VitalisInventoryItem {
   id: string;
   name: string;
+  type?: string;
+  businessService?: string;
+  owner?: string;
+  tier?: string;
   runtime: string;
   version: string;
   environment: VitalisEnvironment;
@@ -308,4 +312,36 @@ export interface VitalisInventoryItem {
   p95LatencyMs: number;
   signalsFreshnessSec: number;
   collectors: string[];
+}
+
+export interface VitalisAgentDiagnosticPackage {
+  packageId?: string;
+  incidentId?: string;
+  application?: string;
+  environment?: string;
+  severity?: string;
+  request?: any;
+  journey?: any[];
+  subsystemEvidence?: any[];
+  agentActionSuggestions?: any[];
+  generatedAt?: string;
+  anomalySummary?: string;
+  rootCauseHypothesis?: string;
+  confidenceScore?: number;
+  suggestedRemediation?: string;
+  evidenceItems?: {
+    key: string;
+    source: string;
+    value: string | number;
+    timestamp: string;
+  }[];
+  [key: string]: any;
+}
+
+export interface VitalisFixVerificationResult {
+  fixId?: string;
+  verified?: boolean;
+  score?: number;
+  checks?: any[];
+  [key: string]: any;
 }

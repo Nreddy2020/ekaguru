@@ -300,10 +300,31 @@ export class LearningMaterialService {
       throw new NotFoundException(`LearningMaterial with ID '${id}' not found.`);
     }
 
-    const [chaptersCount, topicsCount, conceptsCount] = await Promise.all([
-      this.prisma.contentChapter.count({ where: { document: { materialId: material.id } } }),
-      this.prisma.contentTopic.count({ where: { chapter: { document: { materialId: material.id } } } }),
-      this.prisma.concept.count({
+    const [unitsList, specialSectionsList, chaptersCount, topicsCount, conceptsCount, chaptersList, conceptsList, relationshipsList] = await Promise.all([
+      this.prisma.contentUnit?.findMany ? this.prisma.contentUnit.findMany({
+        where: { document: { materialId: material.id } },
+        orderBy: { orderIndex: 'asc' },
+        include: {
+          chapters: {
+            orderBy: { orderIndex: 'asc' },
+            include: {
+              topics: {
+                orderBy: { orderIndex: 'asc' },
+              },
+            },
+          },
+          specialSections: {
+            orderBy: { orderIndex: 'asc' },
+          },
+        },
+      }) : Promise.resolve([]),
+      this.prisma.contentSpecialSection?.findMany ? this.prisma.contentSpecialSection.findMany({
+        where: { document: { materialId: material.id } },
+        orderBy: { orderIndex: 'asc' },
+      }) : Promise.resolve([]),
+      this.prisma.contentChapter?.count ? this.prisma.contentChapter.count({ where: { document: { materialId: material.id } } }) : Promise.resolve(0),
+      this.prisma.contentTopic?.count ? this.prisma.contentTopic.count({ where: { chapter: { document: { materialId: material.id } } } }) : Promise.resolve(0),
+      this.prisma.concept?.count ? this.prisma.concept.count({
         where: {
           sourceChunks: {
             some: {
@@ -315,17 +336,62 @@ export class LearningMaterialService {
             },
           },
         },
-      }),
+      }) : Promise.resolve(0),
+      this.prisma.contentChapter?.findMany ? this.prisma.contentChapter.findMany({
+        where: { document: { materialId: material.id } },
+        orderBy: { orderIndex: 'asc' },
+        include: {
+          topics: {
+            orderBy: { orderIndex: 'asc' },
+          },
+        },
+      }) : Promise.resolve([]),
+      this.prisma.concept?.findMany ? this.prisma.concept.findMany({
+        where: {
+          OR: [
+            {
+              sourceChunks: {
+                some: {
+                  chunk: {
+                    document: {
+                      materialId: material.id,
+                    },
+                  },
+                },
+              },
+            },
+            { domain: material.subjectName || 'Science' },
+          ],
+        },
+        take: 200,
+        orderBy: { canonicalName: 'asc' },
+      }) : Promise.resolve([]),
+      this.prisma.conceptRelationship?.findMany ? this.prisma.conceptRelationship.findMany({
+        take: 300,
+        include: {
+          source: { select: { id: true, canonicalName: true, domain: true } },
+          target: { select: { id: true, canonicalName: true, domain: true } },
+        },
+      }) : Promise.resolve([]),
     ]);
+
+    const resolvedConceptsCount = conceptsCount > 0 ? conceptsCount : conceptsList.length;
 
     const sanitized = {
       ...material,
       fileSizeBytes: material.fileSizeBytes ? Number(material.fileSizeBytes) : null,
       progress: this.calculateProgress(material.processingStatus),
       stage: this.mapStatusToStage(material.processingStatus),
+      unitsCount: unitsList.length,
+      specialSectionsCount: specialSectionsList.length,
       chaptersCount,
       topicsCount,
-      conceptsCount,
+      conceptsCount: resolvedConceptsCount,
+      units: unitsList,
+      specialSections: specialSectionsList,
+      chapters: chaptersList,
+      concepts: conceptsList,
+      relationships: relationshipsList,
     };
 
     return { data: sanitized };

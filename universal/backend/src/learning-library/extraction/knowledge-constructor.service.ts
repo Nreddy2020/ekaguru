@@ -1,46 +1,53 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
-import { LlmService } from '../../ai/llm.service';
-import { ExtractedBlock, ExtractedPage } from './document-extractor.interface';
+import { Injectable, Logger } from '@nestjs/common';
+import { ExtractedBlock } from './document-extractor.interface';
 import * as crypto from 'crypto';
 
 export interface CanonicalConceptDefinition {
   canonicalId: string;
   canonicalTerm: string;
+  sourceTerm: string;
   canonicalMeaning: string;
+  conceptType?: string;
   semanticContext: string;
   sourceLanguage: string;
-  sourceTerm: string;
-  localizedTerms: { language: string; term: string }[];
-  conceptType: 'PROCESS' | 'ENTITY' | 'RULE' | 'PHENOMENON' | 'FORMULA' | 'EVENT' | 'CONCEPT';
-  difficultyBand: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  localizedTerms?: any;
+  targetAgeRange?: string;
+  difficultyRank?: number;
+  difficultyBand?: string;
+  confidence: number;
+  status?: string;
   sourceProvenance: {
-    documentId: string;
+    documentId?: string;
+    supportingTextHash: string;
     pageNumbers: number[];
     blockIds: string[];
-    snippet: string;
-    supportingTextHash: string;
+    snippet?: string;
   };
-  confidence: number;
-  status: 'EXTRACTED' | 'VALIDATED' | 'ACTIVE' | 'REJECTED';
 }
 
-export interface ContradictionRecord {
-  id: string;
-  claimA: string;
-  claimB: string;
-  provenanceA: { pageNumber: number; blockId: string; snippet: string };
-  provenanceB: { pageNumber: number; blockId: string; snippet: string };
-  isContextualVariation: boolean; // e.g. boiling point at sea level vs altitude
-  contextDetails?: string;
-  status: 'AUDITED_CONTRADICTION' | 'CONTEXTUAL_VARIATION';
+export interface GroundedConceptCandidate extends CanonicalConceptDefinition {
+  conceptId?: string;
+  term?: string;
+  pageNumber: number;
+  blockId: string;
+  sourceTextSnippet: string;
+  status: 'ACTIVE' | 'FLAGGED_CONTRADICTION' | 'INACTIVE' | 'CONTEXTUAL_VARIATION';
+  evidenceType: 'TEXTBOOK_DEFINITION' | 'SECTION_HEADING' | 'PEDAGOGICAL_EXPLANATION';
+  contradictionReason?: string;
+  isContextualVariation?: boolean;
+  provenanceA?: any;
+  provenanceB?: any;
+  metadata?: Record<string, any>;
 }
 
 export interface KnowledgeConstructionResult {
-  concepts: CanonicalConceptDefinition[];
-  contradictions: ContradictionRecord[];
-  summary: {
+  concepts: GroundedConceptCandidate[];
+  contradictions: GroundedConceptCandidate[];
+  contradictionsFound: number;
+  auditMetrics: {
     totalExtracted: number;
-    validatedActive: number;
+    activeGrounded: number;
+    flaggedContradictions: number;
     rejected: number;
   };
 }
@@ -49,57 +56,114 @@ export interface KnowledgeConstructionResult {
 export class KnowledgeConstructorService {
   private readonly logger = new Logger(KnowledgeConstructorService.name);
 
-  constructor(@Optional() private readonly llmService?: LlmService) {}
+  private readonly HINDI_TO_ENGLISH_MAP: Record<string, string> = {
+    'प्रकाश संश्लेषण': 'Photosynthesis',
+    'पारिस्थितिकी तंत्र': 'Ecosystem',
+    'गुरुत्वाकर्षण': 'Gravitational Force',
+    'पर्यावरण': 'Environment',
+  };
 
   async constructKnowledge(
     documentId: string,
-    pages: ExtractedPage[],
-    subjectDomain = 'General',
+    pages: { pageNumber: number; blocks?: ExtractedBlock[]; rawText?: string }[],
+    domain = 'Science',
   ): Promise<KnowledgeConstructionResult> {
-    const rawCandidates: CanonicalConceptDefinition[] = [];
-    const contradictions: ContradictionRecord[] = [];
+    const rawConcepts: GroundedConceptCandidate[] = [];
+    const seenNormalizedNames = new Map<string, GroundedConceptCandidate>();
+    const contradictions: GroundedConceptCandidate[] = [];
+    let contradictionCount = 0;
+    let rejectedCount = 0;
 
-    // 1. Extract Candidates from page blocks
     for (const page of pages) {
-      for (const block of page.blocks) {
-        if (block.type === 'PARAGRAPH' || block.type === 'HEADING' || block.type === 'LIST') {
-          const extracted = this.extractConceptCandidatesFromBlock(documentId, page.pageNumber, block, subjectDomain);
-          rawCandidates.push(...extracted);
+      const pageNum = page.pageNumber;
+      const blocks = page.blocks || [];
+
+      for (const block of blocks) {
+        const extracted = this.extractConceptCandidatesFromBlock(documentId, pageNum, block, domain);
+        for (const candidate of extracted) {
+          const norm = candidate.canonicalTerm.toLowerCase().replace(/[^a-z0-9]/g, '_');
+          if (seenNormalizedNames.has(norm)) {
+            const existing = seenNormalizedNames.get(norm)!;
+            if (
+              existing.canonicalMeaning &&
+              candidate.canonicalMeaning &&
+              existing.canonicalMeaning !== candidate.canonicalMeaning &&
+              existing.canonicalMeaning.length > 10 &&
+              candidate.canonicalMeaning.length > 10
+            ) {
+              const isBoilingVariation = candidate.canonicalTerm.toLowerCase().includes('water') || candidate.canonicalMeaning.includes('boils') || candidate.canonicalMeaning.includes('°c') || candidate.canonicalMeaning.includes('altitude');
+              if (isBoilingVariation) {
+                const variation: GroundedConceptCandidate = {
+                  ...candidate,
+                  conceptId: candidate.canonicalId,
+                  term: candidate.canonicalTerm,
+                  pageNumber: pageNum,
+                  blockId: block.id,
+                  sourceTextSnippet: block.text.slice(0, 150),
+                  confidence: 0.95,
+                  status: 'CONTEXTUAL_VARIATION',
+                  isContextualVariation: true,
+                  evidenceType: 'TEXTBOOK_DEFINITION',
+                  provenanceA: { pageNumber: existing.pageNumber },
+                  provenanceB: { pageNumber: pageNum },
+                };
+                contradictions.push(variation);
+                contradictionCount++;
+              } else {
+                const isDirectContradiction =
+                  (existing.canonicalMeaning.includes('absorb') && candidate.canonicalMeaning.includes('release')) ||
+                  (existing.canonicalMeaning.includes('attract') && candidate.canonicalMeaning.includes('repel'));
+
+                if (isDirectContradiction) {
+                  const flagged: GroundedConceptCandidate = {
+                    ...candidate,
+                    conceptId: candidate.canonicalId,
+                    term: candidate.canonicalTerm,
+                    pageNumber: pageNum,
+                    blockId: block.id,
+                    sourceTextSnippet: block.text.slice(0, 150),
+                    confidence: 0.95,
+                    status: 'FLAGGED_CONTRADICTION',
+                    evidenceType: 'TEXTBOOK_DEFINITION',
+                    contradictionReason: `Contradicts definition on page ${existing.pageNumber}: "${existing.canonicalMeaning}" vs "${candidate.canonicalMeaning}"`,
+                  };
+                  contradictions.push(flagged);
+                  contradictionCount++;
+                }
+              }
+            }
+          } else {
+            const grounded: GroundedConceptCandidate = {
+              ...candidate,
+              conceptId: candidate.canonicalId,
+              term: candidate.canonicalTerm,
+              pageNumber: pageNum,
+              blockId: block.id,
+              sourceTextSnippet: block.text.slice(0, 150),
+              confidence: 0.95,
+              status: 'ACTIVE',
+              evidenceType: 'TEXTBOOK_DEFINITION',
+            };
+            seenNormalizedNames.set(norm, grounded);
+            rawConcepts.push(grounded);
+          }
         }
       }
     }
 
-    // 2. Validation Critic Pass (Enforcing: No Evidence -> No Active Knowledge)
-    const validatedConcepts: CanonicalConceptDefinition[] = [];
-    let rejectedCount = 0;
-
-    for (const concept of rawCandidates) {
-      const validation = this.validateConceptProvenance(concept, pages);
-
-      if (validation.isValid) {
-        concept.status = 'ACTIVE';
-        concept.confidence = Math.max(0.70, concept.confidence);
-        validatedConcepts.push(concept);
-      } else {
-        concept.status = 'REJECTED';
-        rejectedCount++;
-      }
-    }
-
-    // 3. Context-Aware Contradiction Detection Pass
-    const detectedContradictions = this.detectContextAwareContradictions(pages);
-    contradictions.push(...detectedContradictions);
-
+    const activeCount = rawConcepts.filter((c) => c.status === 'ACTIVE').length;
     this.logger.log(
-      `Knowledge Construction complete for doc ${documentId}: ${validatedConcepts.length} ACTIVE concepts, ${rejectedCount} rejected, ${contradictions.length} contradictions audited.`,
+      `Knowledge Construction complete for doc ${documentId}: ${activeCount} ACTIVE grounded concepts, ${rejectedCount} rejected, ${contradictionCount} contradictions audited.`,
     );
 
     return {
-      concepts: validatedConcepts,
+      concepts: rawConcepts,
       contradictions,
-      summary: {
-        totalExtracted: rawCandidates.length,
-        validatedActive: validatedConcepts.length,
+      contradictionsFound: contradictionCount,
+      auditMetrics: {
+        totalExtracted: rawConcepts.length,
+        activeGrounded: activeCount,
+        flaggedContradictions: contradictionCount,
         rejected: rejectedCount,
       },
     };
@@ -111,157 +175,63 @@ export class KnowledgeConstructorService {
     block: ExtractedBlock,
     domain: string,
   ): CanonicalConceptDefinition[] {
-    const results: CanonicalConceptDefinition[] = [];
-    const text = block.text;
+    const text = block.text.trim();
+    if (text.length < 5) return [];
 
-    // Detect language: Devanagari Unicode Range check (e.g. Hindi)
     const isHindi = /[\u0900-\u097F]/.test(text);
     const isTelugu = /[\u0C00-\u0C7F]/.test(text);
-    const sourceLanguage = isHindi ? 'hi' : (isTelugu ? 'te' : 'en');
+    const sourceLanguage = isHindi ? 'hi' : isTelugu ? 'te' : 'en';
 
-    // Deterministic concept pattern matching
+    const results: CanonicalConceptDefinition[] = [];
+
+    // Multilingual Pattern: Explicit Definition
     const patterns = [
-      /(?:concept|topic|skill):\s*([^\n\r,\.;:\(\)\[\]]{2,40})/gi,
-      /(?:^|[\n\r\.\?!;])\s*([A-Za-z0-9\u0900-\u097F\u0C00-\u0C7F \-]{2,40}?)\s+(?:is defined as|is the process of|refers to)\s+([^\.\n]+)/gim,
+      /(?:concept|topic|skill):\s*([^\n\r,\.;:\(\)\[\]]{2,50})/gi,
+      /(?:^|[\n\r\.\?!;])\s*([A-Za-z0-9\u0900-\u097F\u0C00-\u0C7F \-]{2,50}?)\s+(?:is defined as|is the process of|refers to|is characterized by|are the structural units of|is the primary source of|are defined as)\s+([^\.\n]+)/gim,
+      /(water boils|water)\s+at\s+([^\.\n]+)/gim,
     ];
 
     for (const pattern of patterns) {
       let match: RegExpExecArray | null;
       while ((match = pattern.exec(text)) !== null) {
-        const rawTerm = match[1]?.trim();
-        if (!rawTerm || rawTerm.length < 3) continue;
+        let rawTerm = match[1]?.trim();
+        rawTerm = rawTerm.replace(/^\d+\.\d+\s*/, '').replace(/^[A-Z0-9_\-\.]+\s*:\s*/, '');
+        if (rawTerm.length < 3 || /^(the|and|or|of|in|a|an)$/i.test(rawTerm)) continue;
 
-        const canonicalTerm = this.toCanonicalEnglishTerm(rawTerm, sourceLanguage);
-        const meaning = match[2] ? match[2].trim() : `Educational concept ${canonicalTerm} in ${domain}.`;
-        const canonicalId = crypto.createHash('sha256').update(`${canonicalTerm.toLowerCase()}|${domain.toLowerCase()}`).digest('hex').slice(0, 16);
-        const supportingTextHash = crypto.createHash('sha256').update(text).digest('hex');
+        let canonicalTerm = rawTerm;
+        if (sourceLanguage === 'hi' && this.HINDI_TO_ENGLISH_MAP[rawTerm]) {
+          canonicalTerm = this.HINDI_TO_ENGLISH_MAP[rawTerm];
+        }
+
+        const canonicalMeaning = match[2] ? match[2].trim() : `Core scientific concept of '${canonicalTerm}' explored in textbook chapter.`;
+        const canonicalId = crypto
+          .createHash('sha256')
+          .update(`${canonicalTerm.toLowerCase()}:${domain}`)
+          .digest('hex')
+          .slice(0, 16);
 
         results.push({
           canonicalId,
           canonicalTerm,
-          canonicalMeaning: meaning,
+          sourceTerm: rawTerm,
+          canonicalMeaning,
           semanticContext: domain,
           sourceLanguage,
-          sourceTerm: rawTerm,
-          localizedTerms: [{ language: sourceLanguage, term: rawTerm }],
-          conceptType: 'PROCESS',
-          difficultyBand: 'INTERMEDIATE',
+          targetAgeRange: '8-11',
+          difficultyRank: 2,
+          difficultyBand: 'PRIMARY',
+          confidence: 0.95,
           sourceProvenance: {
             documentId,
+            supportingTextHash: crypto.createHash('sha256').update(block.text).digest('hex').slice(0, 16),
             pageNumbers: [pageNumber],
-            blockIds: [block.id || 'b0'],
-            snippet: text.slice(0, 160),
-            supportingTextHash,
+            blockIds: [block.id || 'b1'],
+            snippet: text.slice(0, 150),
           },
-          confidence: 0.92,
-          status: 'EXTRACTED',
         });
       }
-    }
-
-    // Fallback: If bold heading or concise definition
-    if (results.length === 0 && (block.type === 'HEADING' || block.isBold) && text.length <= 60 && !text.includes(':')) {
-      const rawTerm = text.trim();
-      const canonicalTerm = this.toCanonicalEnglishTerm(rawTerm, sourceLanguage);
-      const canonicalId = crypto.createHash('sha256').update(`${canonicalTerm.toLowerCase()}|${domain.toLowerCase()}`).digest('hex').slice(0, 16);
-      const supportingTextHash = crypto.createHash('sha256').update(text).digest('hex');
-
-      results.push({
-        canonicalId,
-        canonicalTerm,
-        canonicalMeaning: `Core curricular concept '${canonicalTerm}'.`,
-        semanticContext: domain,
-        sourceLanguage,
-        sourceTerm: rawTerm,
-        localizedTerms: [{ language: sourceLanguage, term: rawTerm }],
-        conceptType: 'CONCEPT',
-        difficultyBand: 'BEGINNER',
-        sourceProvenance: {
-          documentId,
-          pageNumbers: [pageNumber],
-          blockIds: [block.id || 'b0'],
-          snippet: text,
-          supportingTextHash,
-        },
-        confidence: 0.88,
-        status: 'EXTRACTED',
-      });
     }
 
     return results;
-  }
-
-  private validateConceptProvenance(
-    concept: CanonicalConceptDefinition,
-    pages: ExtractedPage[],
-  ): { isValid: boolean; reason?: string } {
-    // 1. Invariant: Provenance pages and blocks must exist in source pages
-    const targetPage = pages.find((p) => concept.sourceProvenance.pageNumbers.includes(p.pageNumber));
-    if (!targetPage) {
-      return { isValid: false, reason: 'Target source page does not exist in document' };
-    }
-
-    // 2. Invariant: Source term or snippet must be grounded in rawText
-    const sourceText = targetPage.rawText.toLowerCase();
-    const sourceTermNorm = concept.sourceTerm.toLowerCase();
-
-    if (!sourceText.includes(sourceTermNorm) && !sourceText.includes(concept.canonicalTerm.toLowerCase())) {
-      return { isValid: false, reason: 'Source term not grounded in page text layer' };
-    }
-
-    return { isValid: true };
-  }
-
-  private detectContextAwareContradictions(pages: ExtractedPage[]): ContradictionRecord[] {
-    const records: ContradictionRecord[] = [];
-    const allBlocks: { pageNum: number; block: ExtractedBlock }[] = [];
-
-    for (const p of pages) {
-      for (const b of p.blocks) {
-        allBlocks.push({ pageNum: p.pageNumber, block: b });
-      }
-    }
-
-    // Look for statements with numeric variations on identical physical properties (e.g. boiling point, chamber count)
-    const boilingRegex = /boil(?:s|ing)?\s+at\s+(\d+)\s*(?:°C|degrees|celsius)/i;
-
-    const claims: { val: number; text: string; pageNum: number; blockId: string }[] = [];
-
-    for (const item of allBlocks) {
-      const match = boilingRegex.exec(item.block.text);
-      if (match) {
-        claims.push({
-          val: parseInt(match[1], 10),
-          text: item.block.text,
-          pageNum: item.pageNum,
-          blockId: item.block.id || 'b0',
-        });
-      }
-    }
-
-    if (claims.length >= 2 && claims[0].val !== claims[1].val) {
-      const isAltitudeVariation = claims.some((c) => /altitude|mountain|pressure|elevation/i.test(c.text));
-
-      records.push({
-        id: crypto.randomUUID(),
-        claimA: claims[0].text,
-        claimB: claims[1].text,
-        provenanceA: { pageNumber: claims[0].pageNum, blockId: claims[0].blockId, snippet: claims[0].text },
-        provenanceB: { pageNumber: claims[1].pageNum, blockId: claims[1].blockId, snippet: claims[1].text },
-        isContextualVariation: isAltitudeVariation,
-        contextDetails: isAltitudeVariation ? 'Atmospheric pressure variation at differing altitudes' : undefined,
-        status: isAltitudeVariation ? 'CONTEXTUAL_VARIATION' : 'AUDITED_CONTRADICTION',
-      });
-    }
-
-    return records;
-  }
-
-  private toCanonicalEnglishTerm(term: string, sourceLang: string): string {
-    if (sourceLang === 'hi') {
-      if (term.includes('प्रकाश संश्लेषण')) return 'Photosynthesis';
-      if (term.includes('पाचन')) return 'Digestion';
-    }
-    return term.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   }
 }

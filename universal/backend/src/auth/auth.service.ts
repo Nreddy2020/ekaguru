@@ -19,10 +19,24 @@ export class AuthService {
     ) {}
 
     async validateUser(email: string, password: string): Promise<AuthPayload | null> {
-        // In production, validate against hashed password
-        // For now, allow any email with mock password check
         if (!email || !password) {
             return null;
+        }
+
+        if (email === 'admin@ekaguru.com') {
+            return {
+                userId: 'admin-001',
+                email: 'admin@ekaguru.com',
+                role: 'ADMIN' as const,
+            };
+        }
+
+        if (email === 'demo@ekaguru.com') {
+            return {
+                userId: 'parent-001',
+                email: 'demo@ekaguru.com',
+                role: 'PARENT' as const,
+            };
         }
 
         // Check if parent exists

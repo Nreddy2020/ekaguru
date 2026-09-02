@@ -2,7 +2,7 @@ import {
   VitalisDataProvider,
   VitalisLiveRequestsFilter,
   VitalisInvestigationRequest,
-} from './interface';
+} from './vitalis-data-provider.interface';
 import {
   VitalisCommandCenterOverview,
   VitalisRequest,

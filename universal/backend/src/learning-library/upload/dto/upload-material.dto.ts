@@ -47,4 +47,7 @@ export class UploadMaterialDto {
   @IsOptional()
   @IsString()
   language?: string;
+
+  @IsOptional()
+  forceNewVersion?: string | boolean;
 }

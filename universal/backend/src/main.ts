@@ -3,9 +3,12 @@ import { ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { AppModule } from './app.module';
+import { TraceInterceptor } from './observe/trace.interceptor';
 
 // Load .env file
-dotenv.config({ path: path.join(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'universal/backend/.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
@@ -23,6 +26,10 @@ async function bootstrap() {
             transform: true,
         }),
     );
+
+    // Global Trace Interceptor for VITALIS Observability
+    const traceInterceptor = app.get(TraceInterceptor);
+    app.useGlobalInterceptors(traceInterceptor);
 
     // Load environment variables
     await app.init();

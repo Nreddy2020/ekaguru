@@ -42,7 +42,10 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async dispatchPendingEvents(): Promise<void> {
-    const pendingEvents = await this.prisma.notificationEvent.findMany({
+    if (!(this.prisma as any).notificationEvent) {
+      return;
+    }
+    const pendingEvents = await (this.prisma as any).notificationEvent.findMany({
       where: {
         status: { in: ['PENDING', 'FAILED'] },
         attempts: { lt: 3 },

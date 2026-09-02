@@ -7,8 +7,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    super();
-    this.registerTraceMiddleware();
+    super({
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/cognitive_memory',
+        },
+      },
+    });
+    // this.registerTraceMiddleware();
   }
 
   private registerTraceMiddleware() {
@@ -45,7 +51,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    this.logger.log('Connecting to database via Prisma Client...');
+    this.logger.log(`Connecting to database via Prisma Client with URL: ${process.env.DATABASE_URL}...`);
     try {
       await this.$connect();
       this.logger.log('Prisma Client connected successfully');

@@ -549,7 +549,9 @@ model Document {
   extractedText  String?
 
   pages          DocumentPage[]
+  units          ContentUnit[]
   chapters       ContentChapter[]
+  specialSections ContentSpecialSection[]
   chunks         ContentChunk[]
 
   createdAt      DateTime @default(now())
@@ -567,7 +569,7 @@ model DocumentPage {
   id               String   @id @default(uuid())
 
   documentId       String
-  document         Document @relation(fields: [documentId], references: [id])
+  document         Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   pageNumber       Int
   text             String?
@@ -582,27 +584,94 @@ model DocumentPage {
 }
 
 // ------------------------------------------------------------
+// Content Unit (Top-Level Pedagogical Theme)
+// ------------------------------------------------------------
+
+model ContentUnit {
+  id              String                  @id @default(uuid())
+
+  documentId      String
+  document        Document                @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  unitNumber      Int
+  title           String
+  orderIndex      Int
+  description     String?
+
+  chapters        ContentChapter[]
+  specialSections ContentSpecialSection[]
+
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@unique([documentId, unitNumber])
+  @@index([documentId])
+}
+
+// ------------------------------------------------------------
+// Content Special Section (Non-Chapter Co-Curricular Material)
+// ------------------------------------------------------------
+
+enum SpecialSectionType {
+  ART_SPECIAL
+  FITNESS_SPECIAL
+  STORYTIME
+  ASSESSMENT
+  TEST_PAPER
+  GENERAL
+}
+
+model ContentSpecialSection {
+  id          String             @id @default(uuid())
+
+  documentId  String
+  document    Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  unitId      String?
+  unit        ContentUnit?       @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  title       String
+  sectionType SpecialSectionType @default(GENERAL)
+  pageStart   Int?
+  pageEnd     Int?
+  orderIndex  Int
+  content     String?
+
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([documentId])
+  @@index([unitId])
+}
+
+// ------------------------------------------------------------
 // Content Chapter
 // ------------------------------------------------------------
 
 model ContentChapter {
-  id            String   @id @default(uuid())
+  id            String          @id @default(uuid())
 
   documentId    String
-  document      Document @relation(fields: [documentId], references: [id])
+  document      Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  unitId        String?
+  unit          ContentUnit?    @relation(fields: [unitId], references: [id], onDelete: SetNull)
 
   title         String
   chapterNumber Int?
   orderIndex    Int
+  pageStart     Int?
+  pageEnd       Int?
 
   topics        ContentTopic[]
   chunks        ContentChunk[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   @@unique([documentId, orderIndex])
   @@index([documentId])
+  @@index([unitId])
 }
 
 // ------------------------------------------------------------
@@ -613,15 +682,20 @@ model ContentTopic {
   id          String         @id @default(uuid())
 
   chapterId   String
-  chapter     ContentChapter @relation(fields: [chapterId], references: [id])
+  chapter     ContentChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
+  topicNumber String?
   title       String
   orderIndex  Int
+  pageStart   Int?
+  pageEnd     Int?
+  content     String?
+  evidenceId  String?
 
   chunks      ContentChunk[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   @@unique([chapterId, orderIndex])
   @@index([chapterId])

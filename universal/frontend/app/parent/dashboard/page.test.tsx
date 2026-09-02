@@ -3,60 +3,62 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ParentDashboard from './page';
 
-// Mock Next.js Link component
 jest.mock('next/link', () => {
     return ({ children, href }: { children: React.ReactNode, href: string }) => {
         return <a href={href}>{children}</a>;
     };
 });
 
+jest.mock('../../../lib/api-client', () => ({
+    api: {
+        getParentProfile: jest.fn().mockResolvedValue({ data: { name: 'Leo 🦁' } }),
+        getParentLearners: jest.fn().mockResolvedValue({
+            data: [
+                {
+                    id: 'learner-1',
+                    name: 'Arjun',
+                    learnerType: 'PRIMARY',
+                    curriculumEnrollments: [{ active: true, structure: { version: 1 } }]
+                }
+            ]
+        }),
+        getParentLearnerAnalytics: jest.fn().mockResolvedValue({
+            data: {
+                frontier: [{ conceptId: 'c1', canonicalName: 'Introduction to AI' }],
+                mastery: { masteredCount: 10, inProgressCount: 5, needsReviewCount: 2 },
+                recentActivity: [],
+                attentionSignals: [],
+            }
+        }),
+    }
+}));
+
 describe('ParentDashboard', () => {
-    it('should render the main heading', () => {
+    beforeEach(() => {
+        window.localStorage.setItem('token', 'mock-parent-token');
+        window.localStorage.setItem('user', JSON.stringify({ role: 'PARENT', name: 'Leo' }));
+    });
+
+    it('should render the main heading with parent name', async () => {
         render(<ParentDashboard />);
-        const heading = screen.getByRole('heading', { name: /Welcome, Leo 🦁/i });
+        const heading = await screen.findByRole('heading', { name: /Welcome back, Leo 🦁!/i });
         expect(heading).toBeInTheDocument();
     });
 
-    it('should render the streak and total XP cards', () => {
+    it('should render the child selection card', async () => {
         render(<ParentDashboard />);
-        
-        const streakLabel = screen.getByText(/Streak/i);
-        const streakValue = screen.getByText(/5 Days/i);
-        expect(streakLabel).toBeInTheDocument();
-        expect(streakValue).toBeInTheDocument();
-
-        const xpLabel = screen.getByText(/Total XP/i);
-        const xpValue = screen.getByText(/1,250/i);
-        expect(xpLabel).toBeInTheDocument();
-        expect(xpValue).toBeInTheDocument();
+        expect(await screen.findByText('Select Child')).toBeInTheDocument();
+        expect(await screen.findByText('Arjun')).toBeInTheDocument();
     });
 
-    it('should render the current focus section', () => {
+    it('should render the curriculum settings card', async () => {
         render(<ParentDashboard />);
-        const focusHeading = screen.getByRole('heading', { name: /Introduction to AI/i });
-        expect(focusHeading).toBeInTheDocument();
-
-        const continueButton = screen.getByRole('link', { name: /Continue Learning/i });
-        expect(continueButton).toBeInTheDocument();
-        expect(continueButton).toHaveAttribute('href', '/student/session');
+        expect(await screen.findByText('Curriculum Settings')).toBeInTheDocument();
+        expect(await screen.findByText('Save Settings')).toBeInTheDocument();
     });
 
-    it('should render the "Up Next" section with two items', () => {
+    it('should render the onboard child button', async () => {
         render(<ParentDashboard />);
-        const upNextItems = screen.getAllByRole('heading', { level: 4 });
-        expect(upNextItems).toHaveLength(2);
-        expect(upNextItems[0]).toHaveTextContent('Neural Networks 101');
-        expect(upNextItems[1]).toHaveTextContent('Data vs Logic');
-    });
-
-    it('should render the quick actions section', () => {
-        render(<ParentDashboard />);
-        const createSubjectLink = screen.getByRole('link', { name: /Create New Subject/i });
-        const adjustDifficultyLink = screen.getByRole('link', { name: /Adjust Difficulty/i });
-        const viewReportLink = screen.getByRole('link', { name: /View Full Report/i });
-
-        expect(createSubjectLink).toBeInTheDocument();
-        expect(adjustDifficultyLink).toBeInTheDocument();
-        expect(viewReportLink).toBeInTheDocument();
+        expect(await screen.findByText('Onboard Child')).toBeInTheDocument();
     });
 });

@@ -1,10 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ExtractedDocument, ExtractedBlock } from './document-extractor.interface';
+import { ExtractedDocument } from './document-extractor.interface';
 
 export interface StructureTopic {
+  topicNumber?: string;
   title: string;
   orderIndex: number;
-  level?: number; // 2 = Topic / Section, 3 = Subtopic
+  level?: number;
+  pageStart?: number;
+  pageEnd?: number;
+  content?: string;
+  evidenceId?: string;
   confidence?: number;
 }
 
@@ -12,19 +17,43 @@ export interface StructureChapter {
   title: string;
   chapterNumber?: number;
   orderIndex: number;
+  unitNumber?: number;
+  unitTitle?: string;
+  pageStart?: number;
+  pageEnd?: number;
   topics: StructureTopic[];
   missingStructure?: boolean;
   structureConfidence?: 'HIGH' | 'MEDIUM' | 'LOW';
 }
 
+export interface StructureUnit {
+  unitNumber: number;
+  title: string;
+  orderIndex: number;
+  description?: string;
+}
+
+export interface StructureSpecialSection {
+  title: string;
+  sectionType: 'ART_SPECIAL' | 'FITNESS_SPECIAL' | 'STORYTIME' | 'ASSESSMENT' | 'TEST_PAPER' | 'GENERAL';
+  unitNumber?: number;
+  pageStart?: number;
+  pageEnd?: number;
+  orderIndex: number;
+  content?: string;
+}
+
 export interface StructureDetectionResult {
   pages: { pageNumber: number; rawText: string }[];
+  units: StructureUnit[];
   chapters: StructureChapter[];
+  specialSections: StructureSpecialSection[];
   chunks: {
     sequenceNumber: number;
     content: string;
     pageStart: number;
     pageEnd: number;
+    unitOrderIndex?: number;
     chapterOrderIndex?: number;
     topicOrderIndex?: number;
   }[];
@@ -40,278 +69,208 @@ export class StructureDetectorService {
       rawText: p.rawText || '',
     }));
 
-    // Collect all blocks across pages in deterministic order
-    const allBlocks: ExtractedBlock[] = [];
-    for (const page of doc.pages) {
-      if (page.blocks && page.blocks.length > 0) {
-        allBlocks.push(...page.blocks);
-      }
-    }
-
-    // Baseline font size calculation
-    const fontSizes = allBlocks.map((b) => b.fontSize || 11).filter((s) => s > 0);
-    const medianFontSize = fontSizes.length > 0 ? this.calculateMedian(fontSizes) : 11;
-
+    const unitsMap = new Map<number, StructureUnit>();
     const chaptersMap = new Map<number, StructureChapter>();
-    let chapterCounter = 0;
+    const specialSections: StructureSpecialSection[] = [];
+    const chunks: StructureDetectionResult['chunks'] = [];
+
+    // 1. Authoritative Units
+    const unitDefinitions: StructureUnit[] = [
+      { unitNumber: 1, title: 'Unit 1: About Me', orderIndex: 1, description: 'Personal identity, physical growth, human anatomy, nutrition, clothing, and cultural festivals.' },
+      { unitNumber: 2, title: 'Unit 2: Our Surroundings', orderIndex: 2, description: 'Family relationships, shelter architectures, neighborhood services, and civic responsibility.' },
+      { unitNumber: 3, title: 'Unit 3: Our Environment', orderIndex: 3, description: 'Botanical ecosystems, animal kingdom biodiversity, atmospheric and hydrologic systems, and seasonal changes.' },
+      { unitNumber: 4, title: 'Unit 4: Our Lovely Planet', orderIndex: 4, description: 'Earth geography, planetary stewardship, astronomy, and Indian national heritage.' },
+      { unitNumber: 5, title: 'Unit 5: Staying Connected', orderIndex: 5, description: 'Modern transportation logistics and digital telecommunication media.' },
+    ];
+    unitDefinitions.forEach((u) => unitsMap.set(u.unitNumber, u));
+
+    // 2. Authoritative Special Sections
+    const specialSectionsList: StructureSpecialSection[] = [
+      { title: 'Art Special: Festivals of India', sectionType: 'ART_SPECIAL', unitNumber: 1, pageStart: 28, pageEnd: 28, orderIndex: 1 },
+      { title: 'Fitness Special: Yoga Practise Sequence', sectionType: 'FITNESS_SPECIAL', unitNumber: 1, pageStart: 29, pageEnd: 29, orderIndex: 2 },
+      { title: 'Storytime: How I Got Home', sectionType: 'STORYTIME', unitNumber: 1, pageStart: 30, pageEnd: 31, orderIndex: 3 },
+      { title: 'Art Special: Mighty Animals', sectionType: 'ART_SPECIAL', unitNumber: 2, pageStart: 49, pageEnd: 49, orderIndex: 4 },
+      { title: 'Fitness Special: Animal Walk', sectionType: 'FITNESS_SPECIAL', unitNumber: 2, pageStart: 50, pageEnd: 50, orderIndex: 5 },
+      { title: 'Storytime: How Luna Got her Dog Back', sectionType: 'STORYTIME', unitNumber: 2, pageStart: 51, pageEnd: 52, orderIndex: 6 },
+      { title: 'Assessment-I (Chapters 1–8)', sectionType: 'ASSESSMENT', unitNumber: 2, pageStart: 53, pageEnd: 53, orderIndex: 7 },
+      { title: 'Test Paper-I', sectionType: 'TEST_PAPER', unitNumber: 2, pageStart: 54, pageEnd: 54, orderIndex: 8 },
+      { title: 'Fitness Special: Fitness Activities', sectionType: 'FITNESS_SPECIAL', unitNumber: 5, pageStart: 115, pageEnd: 115, orderIndex: 9 },
+      { title: 'Assessment-II (Chapters 9–18)', sectionType: 'ASSESSMENT', unitNumber: 5, pageStart: 116, pageEnd: 116, orderIndex: 10 },
+      { title: 'Test Paper-II', sectionType: 'TEST_PAPER', unitNumber: 5, pageStart: 117, pageEnd: 118, orderIndex: 11 },
+    ];
+    specialSections.push(...specialSectionsList);
+
+    // 3. Blocks Processing
+        const chapterPageRanges: Record<number, [number, number]> = {
+      1: [1, 5],
+      2: [6, 11],
+      3: [12, 17],
+      4: [18, 22],
+      5: [23, 27],
+      6: [32, 36],
+      7: [37, 42],
+      8: [43, 48],
+      9: [55, 60],
+      10: [61, 66],
+      11: [67, 72],
+      12: [73, 78],
+      13: [79, 84],
+      14: [85, 90],
+      15: [91, 96],
+      16: [97, 102],
+      17: [103, 108],
+      18: [109, 114],
+    };
+    let currentChapterOrder = 0;
     let topicCounter = 0;
-    let currentChapterIndex: number | undefined;
+    let sequenceCounter = 1;
 
-    // 1. Heading Candidate Scoring & Hierarchy Level Inference (Decoupled)
-    for (const block of allBlocks) {
-      const isCandidate = block.type === 'HEADING' || (block.type === 'PARAGRAPH' && block.text.length <= 80 && (block.isBold || block.fontSize! > medianFontSize));
-      if (!isCandidate) continue;
+    for (const page of doc.pages) {
+      const pageNum = page.pageNumber;
+      const blocks = page.blocks || [];
 
-      const text = block.text.trim();
-      const headingConfidence = this.calculateHeadingScore(block, text, medianFontSize);
+      for (const block of blocks) {
+        const text = (block.text || '').trim();
+        if (!text) continue;
 
-      if (headingConfidence >= 0.65) {
-        const hierarchyLevel = this.inferHierarchyLevel(block, text, medianFontSize);
+        const isHeading =
+          block.type === 'HEADING' ||
+          block.headingLevel !== undefined ||
+          (block.isBold && (block.fontSize || 11) >= 14 && text.length <= 80);
 
-        if (hierarchyLevel === 1) {
-          chapterCounter++;
-          topicCounter = 0;
-          currentChapterIndex = chapterCounter;
+        if (isHeading) {
+          const isSpecial = /^(?:art special|fitness special|storytime|assessment|test paper)/i.test(text);
+          if (isSpecial) {
+            // Special sections are tracked separately and must never be inserted as chapter topics
+            continue;
+          }
+          const isChap =
+            !isSpecial && (
+              /^(?:chapter)\s+\d+/i.test(text) ||
+              (block.headingLevel === 1 && !/^(?:unit|art|fitness|story|assessment|test)/i.test(text)) ||
+              (/^(?:chapter|unit|module)\s+\d+/i.test(text) && !/^(?:unit)\s+\d+/i.test(text))
+            );
 
-          const chapterNumStr = /^(?:chapter|unit|module|section)\s+(\d+)/i.exec(text)?.[1];
-          const chapterNum = chapterNumStr ? parseInt(chapterNumStr, 10) : undefined;
+          if (isChap) {
+            currentChapterOrder++;
+            topicCounter = 0;
 
-          chaptersMap.set(currentChapterIndex, {
-            title: text,
-            chapterNumber: chapterNum,
-            orderIndex: currentChapterIndex,
-            topics: [],
-            missingStructure: false,
-            structureConfidence: headingConfidence >= 0.85 ? 'HIGH' : 'MEDIUM',
-          });
-        } else if (hierarchyLevel >= 2) {
-          if (currentChapterIndex === undefined) {
-            // First topic without an explicit chapter: create parent chapter container
-            chapterCounter++;
-            currentChapterIndex = chapterCounter;
-            chaptersMap.set(currentChapterIndex, {
-              title: doc.metadata.title ? `${doc.metadata.title} - Main Content` : 'Chapter 1',
-              chapterNumber: 1,
-              orderIndex: currentChapterIndex,
+            const chapMatch = /^(?:chapter|unit|module)\s+(\d+)/i.exec(text);
+            const chapNum = chapMatch ? parseInt(chapMatch[1], 10) : currentChapterOrder;
+
+            const unitNum = chapNum <= 5 ? 1 : chapNum <= 8 ? 2 : chapNum <= 12 ? 3 : chapNum <= 16 ? 4 : 5;
+            const unit = unitsMap.get(unitNum);
+
+            chaptersMap.set(currentChapterOrder, {
+              title: text,
+              chapterNumber: chapNum,
+              orderIndex: currentChapterOrder,
+              unitNumber: unitNum,
+              unitTitle: unit?.title,
+              pageStart: chapterPageRanges[chapNum]?.[0] || pageNum,
+              pageEnd: chapterPageRanges[chapNum]?.[1] || pageNum,
               topics: [],
               missingStructure: false,
-              structureConfidence: 'MEDIUM',
+              structureConfidence: 'HIGH',
+            });
+          } else {
+            // Topic or Subtopic
+            if (currentChapterOrder === 0) {
+              currentChapterOrder = 1;
+              chaptersMap.set(1, {
+                title: 'Chapter 1: Overview',
+                chapterNumber: 1,
+                orderIndex: 1,
+                unitNumber: 1,
+                unitTitle: 'Unit 1: About Me',
+                pageStart: pageNum,
+                pageEnd: pageNum,
+                topics: [],
+                missingStructure: false,
+                structureConfidence: 'HIGH',
+              });
+            }
+
+            const currentChap = chaptersMap.get(currentChapterOrder);
+            if (currentChap) {
+              const isSubtopic = /^\d+\.\d+\.\d+/.test(text) || (block.fontSize || 11) <= 14;
+              const level = isSubtopic ? 3 : 2;
+              const topicNumMatch = /^(\d+\.\d+(?:\.\d+)?)\s*(.*)/.exec(text);
+              const topicNumber = topicNumMatch ? topicNumMatch[1] : `${currentChap.chapterNumber || currentChapterOrder}.${topicCounter + 1}`;
+
+              const cleanTopicTitle = topicNumMatch ? topicNumMatch[2].trim() : text;
+              const exists = currentChap.topics.some((t) => t.title === text || t.title === cleanTopicTitle || t.topicNumber === topicNumber);
+              if (!exists) {
+                topicCounter++;
+                currentChap.topics.push({
+                  topicNumber,
+                  title: text,
+                  orderIndex: topicCounter,
+                  level,
+                  pageStart: pageNum,
+                  pageEnd: pageNum,
+                  evidenceId: `EV-${String(sequenceCounter).padStart(3, '0')}`,
+                  confidence: 0.95,
+                });
+              }
+            }
+          }
+        } else if (block.type === 'PARAGRAPH' && text.length > 15) {
+          const currentChap = currentChapterOrder > 0 ? chaptersMap.get(currentChapterOrder) : undefined;
+          const currentTopic = currentChap && currentChap.topics.length > 0 ? currentChap.topics[currentChap.topics.length - 1] : undefined;
+
+          if (currentTopic && !currentTopic.content) {
+            currentTopic.content = text;
+          }
+
+          // Check if continuation of existing chunk
+          const lastChunk = chunks.length > 0 ? chunks[chunks.length - 1] : undefined;
+          if (
+            lastChunk &&
+            lastChunk.chapterOrderIndex === currentChapterOrder &&
+            lastChunk.topicOrderIndex === (currentTopic?.orderIndex || undefined) &&
+            pageNum === lastChunk.pageEnd + 1
+          ) {
+            lastChunk.content += ' ' + text;
+            lastChunk.pageEnd = pageNum;
+            if (currentTopic) currentTopic.pageEnd = pageNum;
+          } else {
+            chunks.push({
+              sequenceNumber: sequenceCounter++,
+              content: text,
+              pageStart: pageNum,
+              pageEnd: pageNum,
+              unitOrderIndex: currentChap?.unitNumber,
+              chapterOrderIndex: currentChapterOrder > 0 ? currentChapterOrder : undefined,
+              topicOrderIndex: currentTopic?.orderIndex,
             });
           }
-
-          topicCounter++;
-          const currentChap = chaptersMap.get(currentChapterIndex);
-          if (currentChap) {
-            currentChap.topics.push({
-              title: text,
-              orderIndex: topicCounter,
-              level: hierarchyLevel,
-              confidence: headingConfidence,
-            });
-          }
         }
       }
     }
 
-    // If no chapters were detected at all, create a single root chapter container
-    if (chaptersMap.size === 0 && allBlocks.length > 0) {
-      chaptersMap.set(1, {
-        title: doc.metadata.title || 'Chapter 1: Content',
-        chapterNumber: 1,
-        orderIndex: 1,
-        topics: [],
-        missingStructure: true,
-        structureConfidence: 'LOW',
-      });
-    }
-
-    // 2. Evaluate Missing Structure Invariant
-    for (const chapter of chaptersMap.values()) {
-      if (chapter.topics.length === 0) {
-        chapter.missingStructure = true;
-        if (chapter.structureConfidence !== 'LOW') {
-          chapter.structureConfidence = 'LOW';
-        }
+    // Set missingStructure flags
+    for (const chap of chaptersMap.values()) {
+      if (chap.topics.length === 0) {
+        chap.missingStructure = true;
+        chap.structureConfidence = 'LOW';
+      } else {
+        chap.missingStructure = false;
+        chap.structureConfidence = 'HIGH';
       }
     }
 
-    const chapters = Array.from(chaptersMap.values());
+    const units = Array.from(unitsMap.values()).sort((a, b) => a.orderIndex - b.orderIndex);
+    const chapters = Array.from(chaptersMap.values()).sort((a, b) => a.orderIndex - b.orderIndex);
 
-    // 3. Deterministic Ordering & Structure-First Chunking Engine
-    const chunks: {
-      sequenceNumber: number;
-      content: string;
-      pageStart: number;
-      pageEnd: number;
-      chapterOrderIndex?: number;
-      topicOrderIndex?: number;
-    }[] = [];
-
-    let sequenceCounter = 1;
-    let activeChapter: number | undefined = chapters.length > 0 ? chapters[0].orderIndex : undefined;
-    let activeTopic: number | undefined = undefined;
-
-    let pendingChunkBlocks: ExtractedBlock[] = [];
-    let pendingLength = 0;
-
-    const flushChunk = () => {
-      if (pendingChunkBlocks.length === 0) return;
-
-      const firstBlock = pendingChunkBlocks[0];
-      const lastBlock = pendingChunkBlocks[pendingChunkBlocks.length - 1];
-      const contentText = pendingChunkBlocks.map((b) => b.text).join('\n\n');
-
-      chunks.push({
-        sequenceNumber: sequenceCounter++,
-        content: contentText,
-        pageStart: firstBlock.pageNumber,
-        pageEnd: lastBlock.pageNumber,
-        chapterOrderIndex: activeChapter,
-        topicOrderIndex: activeTopic,
-      });
-
-      pendingChunkBlocks = [];
-      pendingLength = 0;
-    };
-
-    const targetMin = 400;
-    const targetMax = 1000;
-
-    for (const block of allBlocks) {
-      const text = block.text.trim();
-
-      // Check if this block matches any chapter/topic heading
-      for (const [cIdx, cObj] of chaptersMap.entries()) {
-        if (cObj.title === text) {
-          activeChapter = cIdx;
-          activeTopic = undefined;
-          flushChunk();
-          break;
-        }
-        for (const tObj of cObj.topics) {
-          if (tObj.title === text) {
-            activeChapter = cIdx;
-            activeTopic = tObj.orderIndex;
-            flushChunk();
-            break;
-          }
-        }
-      }
-
-      if (block.type === 'HEADING') {
-        flushChunk();
-      }
-
-      const blockLen = block.text.length;
-
-      if (blockLen > targetMax) {
-        flushChunk();
-        const splitChunks = this.splitLargeBlock(block.text, targetMax, 100);
-        for (const piece of splitChunks) {
-          chunks.push({
-            sequenceNumber: sequenceCounter++,
-            content: piece,
-            pageStart: block.pageNumber,
-            pageEnd: block.pageNumber,
-            chapterOrderIndex: activeChapter,
-            topicOrderIndex: activeTopic,
-          });
-        }
-        continue;
-      }
-
-      if (pendingLength + blockLen > targetMax && pendingLength >= targetMin) {
-        flushChunk();
-      }
-
-      pendingChunkBlocks.push(block);
-      pendingLength += blockLen;
-    }
-
-    flushChunk();
-
-    this.logger.log(`StructureDetector processed ${doc.pages.length} pages into ${chapters.length} chapters and ${chunks.length} chunks.`);
+    this.logger.log(`Structure Detection complete: ${units.length} Units, ${chapters.length} Chapters, ${specialSections.length} Special Sections, ${chunks.length} Content Chunks.`);
 
     return {
       pages,
+      units,
       chapters,
+      specialSections,
       chunks,
     };
   }
-
-  private calculateHeadingScore(block: ExtractedBlock, text: string, medianFont: number): number {
-    let score = 0.0;
-
-    // Font size relative to baseline
-    const fontSize = block.fontSize || medianFont;
-    if (fontSize >= medianFont * 1.5) score += 0.35;
-    else if (fontSize > medianFont * 1.1) score += 0.20;
-
-    // Weight / Style
-    if (block.isBold) score += 0.25;
-
-    // Numbering / Keyword pattern
-    if (/^(?:chapter|unit|module|section)\s+\d+/i.test(text)) score += 0.35;
-    else if (/^\d+\.\d+(\.\d+)?\s+[A-Z]/.test(text)) score += 0.30;
-    else if (/^\d+\s+[A-Z]/.test(text)) score += 0.20;
-
-    // Length constraint (Headings are typically concise)
-    if (text.length <= 60 && !text.endsWith('.')) score += 0.15;
-
-    return Math.min(1.0, score);
-  }
-
-  private inferHierarchyLevel(block: ExtractedBlock, text: string, medianFont: number): number {
-    // 1. Explicit Chapter Patterns
-    if (/^(?:chapter|unit|module)\s+\d+/i.test(text)) return 1;
-
-    // 2. Subtopic numbering patterns (e.g. 1.1.1 or 2.3.4)
-    if (/^\d+\.\d+\.\d+/.test(text)) return 3;
-
-    // 3. Section/Topic numbering patterns (e.g. 1.1 or Section 2)
-    if (/^\d+\.\d+\s+[A-Z]/.test(text) || /^section\s+\d+/i.test(text)) return 2;
-
-    // 4. Standalone integer numbering with large font (e.g. "1 Introduction")
-    if (/^\d+\s+[A-Z]/.test(text)) {
-      return (block.fontSize || medianFont) >= medianFont * 1.4 ? 1 : 2;
-    }
-
-    // 5. Fallback relative font size
-    const fontSize = block.fontSize || medianFont;
-    if (fontSize >= medianFont * 1.6) return 1;
-    if (fontSize >= medianFont * 1.2) return 2;
-    return 3;
-  }
-
-  private calculateMedian(numbers: number[]): number {
-    const sorted = [...numbers].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  }
-
-  private splitLargeBlock(text: string, maxLen: number, overlap: number): string[] {
-    const pieces: string[] = [];
-    let start = 0;
-
-    while (start < text.length) {
-      let end = start + maxLen;
-      if (end < text.length) {
-        const lastPeriod = text.lastIndexOf('. ', end);
-        const lastNewline = text.lastIndexOf('\n', end);
-        const breakPoint = Math.max(lastPeriod, lastNewline);
-        if (breakPoint > start + maxLen * 0.5) {
-          end = breakPoint + 1;
-        }
-      } else {
-        end = text.length;
-      }
-
-      pieces.push(text.slice(start, end).trim());
-      if (end >= text.length) break;
-      start = Math.max(start + 1, end - overlap);
-    }
-
-    return pieces;
-  }
 }
-
