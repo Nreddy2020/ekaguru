@@ -200,14 +200,14 @@ export function UniversalKnowledgeUniverseStudio({
 
   // Authoritative Page-Grounded Guru Lesson for active physical page & depth
   const guruLesson = GuruTeachingEngine.getGuruLessonForPage(currentPageNum, activeDepth);
+  const teacherSteps = guruLesson.steps;
+  const activeStep: any = guruLesson.steps[currentTeacherStepIdx] || guruLesson.steps[0];
   
   // Pre-computed 5x6 Teaching Package for current chapter
   const teachingPackage: ChapterTeachingPackage = ContentFactoryEngine.getChapterTeachingPackage(
     ch.chapterNumber || 1
   );
   const currentDepthArtifacts = teachingPackage.depths[activeDepth];
-  const teacherSteps = currentDepthArtifacts.teacherExplanation;
-  const activeStep: any = teacherSteps[currentTeacherStepIdx] || teacherSteps[0];
 
   const handleAskQuestion = (e: React.FormEvent) => {
     e.preventDefault();
@@ -495,10 +495,8 @@ export function UniversalKnowledgeUniverseStudio({
                     onClick={() => {
                       const speech =
                         activeBoardTab === 'teacher_explains'
-                          ? activeStep.teacherSpeech
-                          : currentDepthArtifacts.boardSummary.boardTitle +
-                            '. ' +
-                            currentDepthArtifacts.boardSummary.boardSubtitle;
+                          ? activeStep.guruSpeech || activeStep.teacherSpeech
+                          : guruLesson.boardMainTitle + '. ' + guruLesson.boardSubtitle;
                       playStepSpeech(speech);
                     }}
                     className={`p-1.5 rounded-full border transition flex items-center gap-1 text-xs font-bold px-3 ${
@@ -616,10 +614,10 @@ export function UniversalKnowledgeUniverseStudio({
                   <div className="bg-black/50 border border-emerald-800/70 rounded-2xl p-4 text-xs shadow-lg backdrop-blur-sm space-y-2.5">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-black text-amber-200 flex items-center gap-2">
-                        <span>👩‍🏫 Teacher Explains:</span> {activeStep.title}
+                        <span>👩‍🏫 Guru Explains:</span> {activeStep.stepTitle || activeStep.title}
                       </h3>
                       <button
-                        onClick={() => playStepSpeech(activeStep.teacherSpeech)}
+                        onClick={() => playStepSpeech(activeStep.guruSpeech || activeStep.teacherSpeech)}
                         className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-bold underline"
                       >
                         <Volume2 className="w-3.5 h-3.5" /> Read Aloud
@@ -627,7 +625,7 @@ export function UniversalKnowledgeUniverseStudio({
                     </div>
 
                     <p className="text-slate-100 text-xs md:text-[13.5px] leading-relaxed font-medium bg-emerald-950/30 p-3 rounded-xl border border-emerald-900/50">
-                      "{activeStep.teacherSpeech}"
+                      "{activeStep.guruSpeech || activeStep.teacherSpeech}"
                     </p>
 
                     {/* Chalk Highlight Keywords */}
@@ -651,7 +649,7 @@ export function UniversalKnowledgeUniverseStudio({
                     <div className="pt-2 border-t border-emerald-900/60 text-[11.5px] text-emerald-300 font-medium flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
                         <span>💡 Socratic Probe:</span>
-                        <span className="italic text-emerald-200">{activeStep.socraticQuestion}</span>
+                        <span className="italic text-emerald-200">{activeStep.socraticPrompt || activeStep.socraticQuestion}</span>
                       </div>
                       <button
                         onClick={() => {
