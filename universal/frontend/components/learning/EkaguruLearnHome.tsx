@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  Trash2,
   Sparkles,
   Flame,
   Gem,
@@ -39,6 +40,7 @@ export function EkaguruLearnHome() {
   const [books, setBooks] = useState<IngestedBookModel[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [bookToDelete, setBookToDelete] = useState<IngestedBookModel | null>(null);
 
   // Upload Form State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -351,9 +353,21 @@ export function EkaguruLearnHome() {
                       <div>
                         {/* Top Pills */}
                         <div className="flex items-center justify-between mb-4">
-                          <span className="text-[10px] font-black tracking-wider bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur text-white/90">
-                            {book.grade}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black tracking-wider bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur text-white/90">
+                              {book.grade}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setBookToDelete(book);
+                              }}
+                              className="p-1 rounded-lg bg-black/30 hover:bg-rose-600/80 text-white/60 hover:text-white transition-all"
+                              title="Delete Book"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
 
                           {book.status === 'READY_TO_LEARN' ? (
                             <span className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center gap-1 backdrop-blur">
@@ -658,6 +672,42 @@ export function EkaguruLearnHome() {
           </div>
         </div>
       )}
-    </div>
+    
+      {/* Delete Confirmation Modal */}
+      {bookToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#0e172a] border border-slate-700/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-white">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-black">Delete Textbook?</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Are you sure you want to delete <span className="text-white font-bold">{bookToDelete.title}</span>? This will permanently remove its 116 pages, OCR index, and knowledge graph.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                onClick={() => setBookToDelete(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  BookStorageService.deleteBook(bookToDelete.id);
+                  setBooks(BookStorageService.getBooks());
+                  setBookToDelete(null);
+                }}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-lg shadow-rose-600/30 transition"
+              >
+                Delete Book
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+  
+</div>
   );
 }

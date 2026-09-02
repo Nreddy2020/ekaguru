@@ -231,4 +231,10 @@ export class BookStorageService {
       this.saveBooks(books);
     }
   }
+
+  public static deleteBook(id: string): void {
+    if (typeof window === 'undefined') return;
+    const books = this.getBooks().filter((b) => b.id !== id);
+    this.saveBooks(books);
+  }
 }
