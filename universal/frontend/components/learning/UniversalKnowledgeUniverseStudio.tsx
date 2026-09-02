@@ -1,4 +1,5 @@
 'use client';
+import { GuruTeachingEngine } from '../../lib/learning/guru-teaching-engine';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -197,6 +198,9 @@ export function UniversalKnowledgeUniverseStudio({
 
   const totalPages = Math.max(book?.totalPages || 0, 116);
 
+  // Authoritative Page-Grounded Guru Lesson for active physical page & depth
+  const guruLesson = GuruTeachingEngine.getGuruLessonForPage(currentPageNum, activeDepth);
+  
   // Pre-computed 5x6 Teaching Package for current chapter
   const teachingPackage: ChapterTeachingPackage = ContentFactoryEngine.getChapterTeachingPackage(
     ch.chapterNumber || 1
@@ -532,11 +536,11 @@ export function UniversalKnowledgeUniverseStudio({
               {/* Main Blackboard Chalk Title & Subtitle */}
               <div className="text-center mt-2">
                 <h2 className="text-2xl md:text-3xl font-black text-[#ffea79] tracking-wider font-serif uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                  {currentDepthArtifacts.boardSummary.boardTitle}
+                  {guruLesson.boardMainTitle}
                 </h2>
                 <div className="h-0.5 w-48 bg-[#ffea79]/40 mx-auto mt-1 rounded-full" />
                 <p className="text-xs md:text-sm text-pink-300 italic mt-1 font-medium tracking-wide">
-                  {currentDepthArtifacts.boardSummary.boardSubtitle}
+                  {guruLesson.boardSubtitle}
                 </p>
               </div>
             </div>
