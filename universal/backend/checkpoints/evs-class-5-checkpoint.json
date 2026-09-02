@@ -1,5 +1,5 @@
 {
-  "bookId": "test-async-book",
+  "bookId": "evs-class-5",
   "totalPages": 50,
   "processedPages": [
     1,
@@ -56,406 +56,406 @@
   "pageCheckpoints": {
     "1": {
       "physicalPageNumber": 1,
-      "imageHash": "d0cf55ca399c9cac3265f9a84fd8737f05a6f15b1653cc158fad13d12dce04a7",
+      "imageHash": "a571a294564553afcf70c9186bbfd99e4f308cac6096bccdb1908f53fab4145e",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.537Z"
+      "processedAt": "2026-09-02T15:44:17.684Z"
     },
     "2": {
       "physicalPageNumber": 2,
-      "imageHash": "b85d0e3dac3644d1a8b35678e7c17748156b7af3d6640e58062b5a8dd4d60527",
+      "imageHash": "5332fbe411f803b2a8f0883a35ca41198e842e4d6ccb19b7e63927f5d77cf6ea",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.538Z"
+      "processedAt": "2026-09-02T15:44:17.685Z"
     },
     "3": {
       "physicalPageNumber": 3,
-      "imageHash": "6381a549be5aa20304a47b9b1e945ba7cc61f180d7ecadbb2a4ae02289afb589",
+      "imageHash": "7fbe5f02ef68e0bf88982433ed249b2d666f5a285948ec7b9695c5ce7c9ea8a6",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.539Z"
+      "processedAt": "2026-09-02T15:44:17.687Z"
     },
     "4": {
       "physicalPageNumber": 4,
-      "imageHash": "1f0bd81f38b12b206fb5bd3690980817e061814e636c1c72f03a9973a84331ec",
+      "imageHash": "71e5ae54f83f28202f1eae9cd54ae5b4d927bf5a8b70c2a04bed17c16891e759",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.541Z"
+      "processedAt": "2026-09-02T15:44:17.688Z"
     },
     "5": {
       "physicalPageNumber": 5,
-      "imageHash": "e3b15d29acd3041d34714febb77ad06a2767363c2e9f7ddcfb05c779d0f70ab7",
+      "imageHash": "e887d7364df96c4047b647fdbe4fcb65a6bb98842d25522af15e593eb742cbc5",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.542Z"
+      "processedAt": "2026-09-02T15:44:17.689Z"
     },
     "6": {
       "physicalPageNumber": 6,
-      "imageHash": "f2d579123a1defbfa082c2814738182c5063ff0d2d64e4711f5070edccaa8386",
+      "imageHash": "effbc3aeefde0dcb256a06c0fa24208e98beb7345f892306de45e849572990fe",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.543Z"
+      "processedAt": "2026-09-02T15:44:17.691Z"
     },
     "7": {
       "physicalPageNumber": 7,
-      "imageHash": "990121415f96485b07aab2672cc083be5fe5a4af54e3e3759e2f4d11e314bb2b",
+      "imageHash": "f1facdec2539f43ceda02666393839980df50c03d8bca3313476b8dd8bb15174",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.544Z"
+      "processedAt": "2026-09-02T15:44:17.692Z"
     },
     "8": {
       "physicalPageNumber": 8,
-      "imageHash": "d89b9640e0de59c8f85a7d04de445781891074412bf6e8e034190e2d9c888532",
+      "imageHash": "df32ae09e936e8cd73fc1ed458dd7e9b3631695cdd0c5d8cb07df5da2c2ff019",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.545Z"
+      "processedAt": "2026-09-02T15:44:17.693Z"
     },
     "9": {
       "physicalPageNumber": 9,
-      "imageHash": "fda758d56cf31e397d2c0ee8cca409251a271e53a330d87227fe0e685115a74f",
+      "imageHash": "edbff4daba62e80e15ae7ccf8df4b728f5c69220c59d86c1d9113f188f0b0b02",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.546Z"
+      "processedAt": "2026-09-02T15:44:17.694Z"
     },
     "10": {
       "physicalPageNumber": 10,
-      "imageHash": "90b14e3d790d6fabde7a6c6ff3d6e5974568a51beaa795f9ac126ff425ac57dd",
+      "imageHash": "500222c9a8485be2a51de6e7892c974a5a0e57e55a2f196c13d654e52674f818",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.547Z"
+      "processedAt": "2026-09-02T15:44:17.695Z"
     },
     "11": {
       "physicalPageNumber": 11,
-      "imageHash": "03afea8886bf15f3fca57f4d7d681558533852f286968a3e2439780d26c4ea45",
+      "imageHash": "500477541ffa02a0a67f8b989e69888a74873b187cdae09704de0a986cab897e",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.548Z"
+      "processedAt": "2026-09-02T15:44:17.696Z"
     },
     "12": {
       "physicalPageNumber": 12,
-      "imageHash": "a5cd608618e358f425e6d2d006273cd41087fe7e9e39149d073f87a468641ab7",
+      "imageHash": "406759ebbcfcfbcd21691f18d86341e8bc1d97c633ccdc11e8653f260db6b5f4",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.549Z"
+      "processedAt": "2026-09-02T15:44:17.697Z"
     },
     "13": {
       "physicalPageNumber": 13,
-      "imageHash": "bc2d05351e9a5e81a9fbd033a4b007d9cb3e79badf35dd229c5d3325b0f94020",
+      "imageHash": "aad45b5d32d972e86d136607b41f9ba5ca7c78de040bd8b93ffc4dd3dcec7da8",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.550Z"
+      "processedAt": "2026-09-02T15:44:17.698Z"
     },
     "14": {
       "physicalPageNumber": 14,
-      "imageHash": "ded678a83d1716d5cf2ddaa7f5741de100cc7116afb83d01b53465acee1e1a45",
+      "imageHash": "b413c831271005a093e8eb1fb25adf6643d41dba56889074c9cf4c8395cb54e6",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.551Z"
+      "processedAt": "2026-09-02T15:44:17.699Z"
     },
     "15": {
       "physicalPageNumber": 15,
-      "imageHash": "d4580d677d619fc04bd4774e286b987223df65e3301fe2f6ca26600e5665993f",
+      "imageHash": "5e8b0daf4781207edea03a033108c94398e36abf677e859a6391728287681339",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.552Z"
+      "processedAt": "2026-09-02T15:44:17.700Z"
     },
     "16": {
       "physicalPageNumber": 16,
-      "imageHash": "ab0d9dbb46d60ae4e774db3ec68e91c1a36cbd91f1a70cfbebc9903f97b5bfdb",
+      "imageHash": "73d9c6a83e1efb1cbffe4695c7060a863fedd14092a5308ead02ad4b42400473",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.553Z"
+      "processedAt": "2026-09-02T15:44:17.701Z"
     },
     "17": {
       "physicalPageNumber": 17,
-      "imageHash": "fb79b9b1ea64d1d9700f62075ed9b8c225d4eff80519711c56f1a4635dbb1069",
+      "imageHash": "9819a2aa674adca29ea17e2e8eeb71657e7327fd9d8fe145d5804a2c637bc230",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.554Z"
+      "processedAt": "2026-09-02T15:44:17.702Z"
     },
     "18": {
       "physicalPageNumber": 18,
-      "imageHash": "06d086ae07c248238b5e475a9b57462dba4afbcd450e352565ef92a9be4e3408",
+      "imageHash": "1bf21ccea63bcf4f71238c20d781a806eb7305a7bd060fb227e7aab40128aebd",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.555Z"
+      "processedAt": "2026-09-02T15:44:17.703Z"
     },
     "19": {
       "physicalPageNumber": 19,
-      "imageHash": "3890be581ceb7538a07ab649ac729a4bb79d774c0659871be8c5097ca8c2a276",
+      "imageHash": "9852b360c6f0c1837e60bd2f27297692995acb3689d21ccb3715256d2cd9a7cb",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.556Z"
+      "processedAt": "2026-09-02T15:44:17.704Z"
     },
     "20": {
       "physicalPageNumber": 20,
-      "imageHash": "bbf571b6253ec4e92c129d7a9e8b784e8fad1c8dfd57e18b33bfe00ca132c224",
+      "imageHash": "40f9c828472f798d84ff7ae82d7e2dc09b34e0285a851d091defad15cd8bcd73",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.557Z"
+      "processedAt": "2026-09-02T15:44:17.706Z"
     },
     "21": {
       "physicalPageNumber": 21,
-      "imageHash": "3caa9e99282499f58a25e5d1722a5cfd1f9e94615359d48cb93d46fc9593a332",
+      "imageHash": "22c981770659eeb417e4a72b16e7a37d2918bbdf734b67221c6549af032acf04",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.559Z"
+      "processedAt": "2026-09-02T15:44:17.707Z"
     },
     "22": {
       "physicalPageNumber": 22,
-      "imageHash": "4eec5434e758c65300f75fc15142193d1c706ee2984bef685a25a070a23b33e0",
+      "imageHash": "29cd2779714cb82197a182e447fdfe403c866af438996b78d19e38019d7d0645",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.559Z"
+      "processedAt": "2026-09-02T15:44:17.709Z"
     },
     "23": {
       "physicalPageNumber": 23,
-      "imageHash": "cfffe39168754bbbb18c7b42d2814ef8c4dda01d180a1a1ece60fd14b7da1996",
+      "imageHash": "99ac6d6e7f07e07d21a0ce613a62c0155bd549d982378f0b5f114f45ba11fbe7",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.560Z"
+      "processedAt": "2026-09-02T15:44:17.710Z"
     },
     "24": {
       "physicalPageNumber": 24,
-      "imageHash": "f219d628b77ba1e97e6905b0d0dae19baa11914d496bbeb45f36b6da17784eb2",
+      "imageHash": "1de5a8fb2d9c3c749e97c8feace3a532148b2c0a65313e5743ae44bdef5bc86e",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.561Z"
+      "processedAt": "2026-09-02T15:44:17.711Z"
     },
     "25": {
       "physicalPageNumber": 25,
-      "imageHash": "b502d8e8fa45b54f567ae928fac481b5df49abfd3d4bad352d9d688cb3472ca8",
+      "imageHash": "8bee629354db3dfb8e3d113f8855926acdc1b9f42066c4f151b1c0af4f861435",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.562Z"
+      "processedAt": "2026-09-02T15:44:17.712Z"
     },
     "26": {
       "physicalPageNumber": 26,
-      "imageHash": "869cbfd2b623d91d68a3ab874ee2716357858f8397dad5d9427e94df25aec254",
+      "imageHash": "b69f9a5402a6fcfea17a1967e9621baef5fe583b27474a97d41c61b6c3c0d5bc",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.563Z"
+      "processedAt": "2026-09-02T15:44:17.713Z"
     },
     "27": {
       "physicalPageNumber": 27,
-      "imageHash": "7e3d0c24f7ebd879d7e7f1145415e900f74ceb4eaf6d82012894b17c14be8ad6",
+      "imageHash": "44973807b3065a18548ca4c83f7ae192235f6952d3541d9619fc721ef9279216",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.564Z"
+      "processedAt": "2026-09-02T15:44:17.714Z"
     },
     "28": {
       "physicalPageNumber": 28,
-      "imageHash": "b5be7ac8686d56418a210499135a9f110ec33ccd29bc7a3b391e8467d5939989",
+      "imageHash": "2a20958806c928c41bfd0b6a7bfebddaa47876fdacc0e1b9d54c68d00f4064e6",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.565Z"
+      "processedAt": "2026-09-02T15:44:17.715Z"
     },
     "29": {
       "physicalPageNumber": 29,
-      "imageHash": "e9a5365848cb0c6d8edb2c24093aa3986ec89c6b99e9278afbbfd16372cb8c37",
+      "imageHash": "7974496c7ad2063c7339349252537a781e596d23a8e2c49ea7d151e24aa990da",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.566Z"
+      "processedAt": "2026-09-02T15:44:17.716Z"
     },
     "30": {
       "physicalPageNumber": 30,
-      "imageHash": "f4931cd082bd0507175dbb61aed4b759d3e21736105f6f1330a0ca8fa5a849a2",
+      "imageHash": "3ad8538d162b7a6597536fa0bcbc7c706f4d50cdcd4afbbbc384dd800d37637d",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.567Z"
+      "processedAt": "2026-09-02T15:44:17.717Z"
     },
     "31": {
       "physicalPageNumber": 31,
-      "imageHash": "1c7b963d67d50c1123004b27e8d005dea807935f658239e4810c8accfe5d8baa",
+      "imageHash": "69d562361181a156477608037ff3445b60f20808686c7b72b74c809cb8b87dbf",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.568Z"
+      "processedAt": "2026-09-02T15:44:17.718Z"
     },
     "32": {
       "physicalPageNumber": 32,
-      "imageHash": "9c11f8f5d02315b2c5cad8635db80cd4919488a0432ef1c1bd4f2414890b7fbc",
+      "imageHash": "f26f74478f41c3fa233124fa8e9be72f3ffbc8b8e3c1fc1d728c0e5222eb3b38",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.569Z"
+      "processedAt": "2026-09-02T15:44:17.719Z"
     },
     "33": {
       "physicalPageNumber": 33,
-      "imageHash": "8b9b2d01762ed6fec230582f339bd18b936bdfba94564b8ca311fa18f7700bd8",
+      "imageHash": "5ff35e5706c90ebaec4adcc44ab29bd8f00a5d78f0290ca700ab4663e84ef71b",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.570Z"
+      "processedAt": "2026-09-02T15:44:17.720Z"
     },
     "34": {
       "physicalPageNumber": 34,
-      "imageHash": "ea3536818ebfd4ad5d77851666350f1e1c3a99cfa8a54f8f3ebe8f1c67816ffc",
+      "imageHash": "afb429f01fd1aa1762020a74c7efa5254783573fe46e8d9bf4de39a9f93bebfe",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.572Z"
+      "processedAt": "2026-09-02T15:44:17.721Z"
     },
     "35": {
       "physicalPageNumber": 35,
-      "imageHash": "317641a50e1ca00e9423516c1f6bdec724e9a906b789f117514afac6b3f6db12",
+      "imageHash": "b0c083f4c623995e94a01cff1736ea55486143e50981e0da67818b8f20d66f89",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.573Z"
+      "processedAt": "2026-09-02T15:44:17.722Z"
     },
     "36": {
       "physicalPageNumber": 36,
-      "imageHash": "107be890d98b1e63f74f4eb3fe2afb768b8893afee25f27493e0e1f48857704a",
+      "imageHash": "a0a66aa1b7686c36d57e0a8f60aa0acd75d3d3d4b4ae1b926eeb5e76186ca686",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.574Z"
+      "processedAt": "2026-09-02T15:44:17.723Z"
     },
     "37": {
       "physicalPageNumber": 37,
-      "imageHash": "c993eb309c8f4b2e00634623747655ea6a1d0bdedd3aa08dddb7741753d697f3",
+      "imageHash": "66b5aa5ea2f03b461a1df9c4e89d0e759fe0dd46c9df785e9a4221d30f5328d6",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.575Z"
+      "processedAt": "2026-09-02T15:44:17.724Z"
     },
     "38": {
       "physicalPageNumber": 38,
-      "imageHash": "fc2d6ef829d4173e5164d509fafc556c866f77a1eb71f28cd8528f7b29059fb3",
+      "imageHash": "609a23714d7c63c687f281125d826feb4b817c4a353d0b2717c5e4a2bf8e44cc",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.576Z"
+      "processedAt": "2026-09-02T15:44:17.725Z"
     },
     "39": {
       "physicalPageNumber": 39,
-      "imageHash": "60f71d91ef05f350745079c6474cae63789585b943cd4fa4e5289263eed966f7",
+      "imageHash": "76f9cf5cb015ac2a4a0fdce149ac0daeb53a8d98498c07debdf3e7943de56515",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.577Z"
+      "processedAt": "2026-09-02T15:44:17.726Z"
     },
     "40": {
       "physicalPageNumber": 40,
-      "imageHash": "d6650bd91dcb6872a07fdcfed424fa555ae064767dc72b82f03b31ab84b4a091",
+      "imageHash": "119eca08c5e7f48f00bc7fb6f2de273be5ef69fcc2d1b9f34cb107c62881cd06",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.578Z"
+      "processedAt": "2026-09-02T15:44:17.727Z"
     },
     "41": {
       "physicalPageNumber": 41,
-      "imageHash": "676c45cc4eda48a719944df4b75e475a83762adbc2a8c319b61cc5b6ef4dc00a",
+      "imageHash": "97c0942315adfb4e2d5b1ad2f74d827ce7a85aeafcc537c32591e9e0a6819411",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.579Z"
+      "processedAt": "2026-09-02T15:44:17.728Z"
     },
     "42": {
       "physicalPageNumber": 42,
-      "imageHash": "fcf4ac8ff4bbc9f6fc1aa99fa75339553db273f6cfcc1b7fd8f84bbce6d8ba64",
+      "imageHash": "b66a431bd6f4cafdfd01c4994456d1e3607d742b1d36d9b911004c75f0cf9473",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.580Z"
+      "processedAt": "2026-09-02T15:44:17.729Z"
     },
     "43": {
       "physicalPageNumber": 43,
-      "imageHash": "20582bdd2f58748c2100990c055c9de108235eea71198eaaca8f47dab915c238",
+      "imageHash": "623d0877b5c825c789c4f339d28e88f68afe5e1f7ef5f78633664416c20373fd",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.581Z"
+      "processedAt": "2026-09-02T15:44:17.730Z"
     },
     "44": {
       "physicalPageNumber": 44,
-      "imageHash": "35edd60ec77e6a836e34374662cdeb411a3ee01387f832f008e5abc7e80722f5",
+      "imageHash": "ec19c569c970b507b7d00bd8ac9cdbc95c8d57c13ed797550e45e5b170a4147f",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.582Z"
+      "processedAt": "2026-09-02T15:44:17.731Z"
     },
     "45": {
       "physicalPageNumber": 45,
-      "imageHash": "e2054c665ca5bc129ae2335f13b9e0cb8cfbab80f1b1f552597a8914aa92ee66",
+      "imageHash": "eb503700a91ff98c25fa7222998f149b07557a3a6ef8ac14f45c01be9de4282a",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.583Z"
+      "processedAt": "2026-09-02T15:44:17.732Z"
     },
     "46": {
       "physicalPageNumber": 46,
-      "imageHash": "90d374753ef38cbf18e27fa0b7ad717ef0fd241d19f1d1757ff09115e8b7f8db",
+      "imageHash": "c1bfefe2a3c48af2d6939ac315030bc0fe606aaf90443231678bf8c14502d868",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.584Z"
+      "processedAt": "2026-09-02T15:44:17.733Z"
     },
     "47": {
       "physicalPageNumber": 47,
-      "imageHash": "7566153db3787b073a62f6ef84b9a6aa57b8a244e4ccb63d4af1a105e85e7914",
+      "imageHash": "88c61c48f948d7922509d7428d3847f39c52ffea5fe2e27de9e218abf1bfe138",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.585Z"
+      "processedAt": "2026-09-02T15:44:17.734Z"
     },
     "48": {
       "physicalPageNumber": 48,
-      "imageHash": "015ef5b5325f5c072ebbdd068d3a357b23d10b74efac4b7c1fe89bec95cbac47",
+      "imageHash": "ba38b3d5daf4264cd6b0ee1d6ea9b8825d1db7247568730fef8ea4fe67252903",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.586Z"
+      "processedAt": "2026-09-02T15:44:17.735Z"
     },
     "49": {
       "physicalPageNumber": 49,
-      "imageHash": "db13ccd762cd8b177fea22778d0bad9cd03f331dd8bc461bf719f466f470df78",
+      "imageHash": "f08f2f3e223191ee676d1b3a5e95cd24ccd94aa4d22afae662de9d88d3eebfff",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.587Z"
+      "processedAt": "2026-09-02T15:44:17.736Z"
     },
     "50": {
       "physicalPageNumber": 50,
-      "imageHash": "08cc2f56249ba7645a66b4f5202d16232cd04380fe95c2df036243ccd019d386",
+      "imageHash": "d03d9d77475ca17d2bbad1f497419da9098b63399ed2a89c1e5e7ce54df19005",
       "wordCount": 85,
       "confidence": 0.94,
       "qualityStatus": "VERIFIED",
-      "processedAt": "2026-09-02T15:44:16.588Z"
+      "processedAt": "2026-09-02T15:44:17.736Z"
     }
   },
   "stage": "COMPLETED",
   "completed": true,
-  "updatedAt": "2026-09-02T15:44:16.590Z"
+  "updatedAt": "2026-09-02T15:44:17.739Z"
 }
