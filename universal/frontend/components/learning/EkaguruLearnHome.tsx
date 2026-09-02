@@ -34,6 +34,7 @@ import {
   IngestedBookModel,
   IngestionStage,
 } from '../../lib/learning/book-storage.service';
+import { EnginePipelineTaskInspector } from './EnginePipelineTaskInspector';
 
 export function EkaguruLearnHome() {
   const router = useRouter();
