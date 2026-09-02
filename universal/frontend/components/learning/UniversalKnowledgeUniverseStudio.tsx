@@ -120,6 +120,9 @@ export function UniversalKnowledgeUniverseStudio({
   const [myRole, setMyRole] = useState<'EXPLORER' | 'ANALYST' | 'SCRIBE'>('EXPLORER');
   const [handRaised, setHandRaised] = useState<boolean>(false);
   const [selectedSocraticOption, setSelectedSocraticOption] = useState<string | null>(null);
+  const [revealedElementIdx, setRevealedElementIdx] = useState<number>(3);
+  const [isDrawingProgressive, setIsDrawingProgressive] = useState<boolean>(false);
+  const [reteachMode, setReteachMode] = useState<boolean>(false);
   const [socraticFeedback, setSocraticFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
   const [highlightedBbox, setHighlightedBbox] = useState<boolean>(false);
   const [socraticAnswer, setSocraticAnswer] = useState<{
@@ -204,6 +207,8 @@ export function UniversalKnowledgeUniverseStudio({
   useEffect(() => {
     setSelectedSocraticOption(null);
     setSocraticFeedback(null);
+    setRevealedElementIdx(3);
+    setReteachMode(false);
   }, [currentTeacherStepIdx]);
 
   const totalPages = Math.max(book?.totalPages || 0, 116);
@@ -580,38 +585,75 @@ export function UniversalKnowledgeUniverseStudio({
                     </button>
                   </div>
 
-                  {/* A. Center Chalkboard Drawing Box for Active Step */}
+                  
+                  {/* A. Center Chalkboard Drawing Box for Active Step with Progressive Drawing Animation */}
                   {activeStep.drawingScene && (
-                    <div className="bg-black/60 border-2 border-emerald-600/60 rounded-2xl p-4 shadow-xl text-center">
+                    <div className="bg-black/60 border-2 border-emerald-600/60 rounded-2xl p-4 shadow-xl text-center relative overflow-hidden">
                       <div className="flex items-center justify-between pb-2 border-b border-emerald-900/60">
-                        <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
                           🎨 {activeStep.drawingScene.title}
+                          {isDrawingProgressive && (
+                            <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/40 animate-pulse">
+                              ✏️ Guru Drawing...
+                            </span>
+                          )}
                         </span>
-                        <span className="text-[10px] text-amber-300 font-mono">
-                          {activeStep.drawingScene.badge}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setIsDrawingProgressive(true);
+                              setRevealedElementIdx(0);
+                              let step = 0;
+                              const interval = setInterval(() => {
+                                step++;
+                                if (step >= activeStep.drawingScene.elements.length) {
+                                  clearInterval(interval);
+                                  setIsDrawingProgressive(false);
+                                  setRevealedElementIdx(activeStep.drawingScene.elements.length - 1);
+                                } else {
+                                  setRevealedElementIdx(step);
+                                }
+                              }, 700);
+                            }}
+                            className="text-[10px] bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 px-2 py-0.5 rounded-md font-bold transition flex items-center gap-1"
+                            title="Play Progressive Chalk Drawing Animation"
+                          >
+                            <span>✏️ Draw Step-by-Step</span>
+                          </button>
+                          <span className="text-[10px] text-amber-300 font-mono">
+                            {activeStep.drawingScene.badge}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Visual Drawing Elements */}
+                      {/* Visual Drawing Elements with Progressive Chalk Reveal */}
                       <div className="flex items-center justify-center gap-3 md:gap-5 flex-wrap my-3">
-                        {activeStep.drawingScene.elements.map((el: any, idx: number) => (
-                          <div
-                            key={idx}
-                            className={`flex flex-col items-center text-center p-3 rounded-2xl min-w-[110px] max-w-[140px] shadow transition transform hover:scale-105 ${
-                              el.highlight
-                                ? 'bg-emerald-950/80 border-2 border-amber-400/80 shadow-[0_0_12px_rgba(251,191,36,0.3)]'
-                                : 'bg-black/50 border border-emerald-800/60'
-                            }`}
-                          >
-                            <span className="text-3xl md:text-4xl mb-1.5 drop-shadow">{el.icon}</span>
-                            <span className="text-[11.5px] font-black text-amber-300 tracking-wide">
-                              {el.label}
-                            </span>
-                            <span className="text-[10px] text-emerald-200/90 mt-1 leading-snug">
-                              {el.subtext}
-                            </span>
-                          </div>
-                        ))}
+                        {activeStep.drawingScene.elements.map((el: any, idx: number) => {
+                          const isVisible = idx <= revealedElementIdx;
+                          const isActivelyDrawing = idx === revealedElementIdx && isDrawingProgressive;
+                          return (
+                            <div
+                              key={idx}
+                              className={`flex flex-col items-center text-center p-3 rounded-2xl min-w-[110px] max-w-[140px] shadow transition-all duration-500 transform ${
+                                isVisible ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'
+                              } ${
+                                isActivelyDrawing
+                                  ? 'ring-2 ring-amber-400 bg-amber-950/40 animate-bounce'
+                                  : el.highlight || (reteachMode && idx === 0)
+                                  ? 'bg-emerald-950/80 border-2 border-amber-400/80 shadow-[0_0_12px_rgba(251,191,36,0.3)]'
+                                  : 'bg-black/50 border border-emerald-800/60'
+                              }`}
+                            >
+                              <span className="text-3xl md:text-4xl mb-1.5 drop-shadow">{el.icon}</span>
+                              <span className="text-[11.5px] font-black text-amber-300 tracking-wide">
+                                {el.label}
+                              </span>
+                              <span className="text-[10px] text-emerald-200/90 mt-1 leading-snug">
+                                {el.subtext}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <p className="text-[11px] text-slate-300 italic">
