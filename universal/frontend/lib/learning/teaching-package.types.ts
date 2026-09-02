@@ -249,8 +249,8 @@ export interface ChalkboardNode {
   label: string;
   subLabel?: string;
   icon?: string;
-  x: number;
-  y: number;
+  x?: number;
+  y?: number;
 }
 
 export interface ChalkboardEdge {
@@ -289,6 +289,8 @@ export interface PrintableNotesDocument {
 }
 
 // Single Depth Package (Contains all 6 artifacts)
+export type DepthArtifacts = DepthTeachingArtifacts;
+
 export interface DepthTeachingArtifacts {
   depth: TeachingDepth;
   teacherExplanation: TeacherExplanationItem[];
@@ -297,8 +299,8 @@ export interface DepthTeachingArtifacts {
   keyPoints: KeyPointItem[];
   boardSummary: BoardSummaryPlan;
   printableNotes: PrintableNotesDocument;
-  misconceptionAlerts: MisconceptionNode[];
-  socraticQuestions: SocraticQuestionNode[];
+  misconceptionAlerts?: MisconceptionNode[];
+  socraticQuestions?: SocraticQuestionNode[];
 }
 
 // Complete 5-Depth Teaching Package for a Chapter

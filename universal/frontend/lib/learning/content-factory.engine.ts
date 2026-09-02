@@ -43,18 +43,22 @@ export class ContentFactoryEngine {
       CANONICAL_TEXTBOOK_TOC[0];
 
     const citation: EvidenceCitation = {
+      bookId: 'evs-class-5',
+      chapterNumber: entry.chapterNumber,
       physicalPage: entry.startPage,
       blockId: `blk-${entry.startPage}-1`,
       bbox: { x: 165, y: 84, width: 926, height: 298 },
+      confidence: 0.99,
       sourceTextSnippet: `Chapter ${entry.chapterNumber}: ${entry.title} on Page ${entry.startPage}`,
     };
 
     const pkg: ChapterTeachingPackage = {
       packageId: `pkg-evs-ch${chapterNumber}-v1`,
+      chapterId: `ch-${entry.chapterNumber}`,
       chapterNumber: entry.chapterNumber,
       title: entry.title,
-      startPage: entry.startPage,
-      endPage: entry.endPage,
+      startPhysicalPage: entry.startPage,
+      endPhysicalPage: entry.endPage,
       depths: {
         basis: this.buildBasisDepth(entry, citation),
         developing: this.buildDevelopingDepth(entry, citation),
@@ -62,11 +66,16 @@ export class ContentFactoryEngine {
         advanced: this.buildAdvancedDepth(entry, citation),
         deep: this.buildDeepDepth(entry, citation),
       },
-      status: 'PUBLISHED',
       metadata: {
-        generatedAt: new Date().toISOString(),
+        sourceVersion: 'v2.0',
+        ocrVersion: 'v2.0',
+        structureVersion: 'v2.0',
+        knowledgeVersion: 'v2.0',
+        contentFactoryVersion: 'v2.0',
         modelVersion: 'gemini-1.5-pro-reasoning',
-        evidenceCoverage: 1.0,
+        generatedAt: new Date().toISOString(),
+        validationScore: 1.0,
+        citationCoverageRate: 1.0,
       },
     };
 

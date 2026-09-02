@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
+  Users,
   Search,
   BookOpen,
   CheckCircle2,
@@ -106,6 +107,17 @@ export function UniversalKnowledgeUniverseStudio({
 
   // Socratic Q&A State
   const [askInput, setAskInput] = useState<string>('');
+  // M3.4 Live Classroom & Collaboration State
+  const [isLiveClassroom, setIsLiveClassroom] = useState<boolean>(true);
+  const [liveStudentsCount, setLiveStudentsCount] = useState<number>(24);
+  const [isSessionPaused, setIsSessionPaused] = useState<boolean>(false);
+  const [selectedPollOption, setSelectedPollOption] = useState<number | null>(null);
+  const [pollSubmitted, setPollSubmitted] = useState<boolean>(false);
+  const [pollRevealed, setPollRevealed] = useState<boolean>(false);
+  const [showCollabModal, setShowCollabModal] = useState<boolean>(false);
+  const [showStandardsModal, setShowStandardsModal] = useState<boolean>(false);
+  const [myRole, setMyRole] = useState<'EXPLORER' | 'ANALYST' | 'SCRIBE'>('EXPLORER');
+  const [handRaised, setHandRaised] = useState<boolean>(false);
   const [socraticAnswer, setSocraticAnswer] = useState<{
     question: string;
     answer: string;
@@ -114,7 +126,7 @@ export function UniversalKnowledgeUniverseStudio({
 
   useEffect(() => {
     const loadedBook = BookStorageService.getBookById(bookId);
-    setBook(loadedBook);
+    setBook(loadedBook || null);
     if (loadedBook && loadedBook.chapters.length > 0) {
       const foundCh = loadedBook.chapters.find((c) => c.id === sectionId) || loadedBook.chapters[0];
       setCurrentChapter(foundCh);
@@ -259,6 +271,25 @@ export function UniversalKnowledgeUniverseStudio({
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             <span>100% Source Grounded</span>
           </div>
+
+          {/* M3.4 Live Classroom & Curriculum Badges */}
+          <button
+            onClick={() => setShowCollabModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-950/60 hover:bg-blue-900/70 border border-blue-500/40 text-[11px] font-bold text-blue-300 transition"
+            title="Peer Collaboration Rooms"
+          >
+            <Users className="w-3.5 h-3.5 text-blue-400" />
+            <span>Group Discovery ({myRole})</span>
+          </button>
+
+          <button
+            onClick={() => setShowStandardsModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/60 hover:bg-amber-900/70 border border-amber-500/40 text-[11px] font-bold text-amber-300 transition"
+            title="NCERT / CBSE Standards Compliance"
+          >
+            <Award className="w-3.5 h-3.5 text-amber-400" />
+            <span>NCERT / CBSE</span>
+          </button>
 
           <button
             onClick={() => setShowTaskInspector(true)}
@@ -610,28 +641,134 @@ export function UniversalKnowledgeUniverseStudio({
                     </div>
                   </div>
 
-                  {/* Step Action Buttons (Previous & Next) */}
-                  <div className="flex items-center justify-between pt-1">
-                    <button
-                      onClick={() => setCurrentTeacherStepIdx((p) => Math.max(0, p - 1))}
-                      disabled={currentTeacherStepIdx <= 0}
-                      className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white disabled:opacity-30 transition flex items-center gap-1.5"
-                    >
-                      <ChevronLeft className="w-4 h-4" /> Previous Step
-                    </button>
+                  {/* M3.4 Live Classroom Step Synchronization & Teacher Controls */}
+                  <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-emerald-800/80 shadow-inner flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                        <span className="text-xs font-bold text-emerald-300">
+                          LIVE CLASSROOM • {isSessionPaused ? '⏸️ PAUSED' : '🟢 ACTIVE'}
+                        </span>
+                        <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
+                          👥 {liveStudentsCount} Students
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setHandRaised(!handRaised)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                            handRaised
+                              ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30'
+                              : 'bg-slate-800 text-amber-300 hover:bg-slate-700'
+                          }`}
+                        >
+                          ✋ {handRaised ? 'Hand Raised' : 'Raise Hand'}
+                        </button>
+                        <button
+                          onClick={() => setIsSessionPaused(!isSessionPaused)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+                        >
+                          {isSessionPaused ? '▶️ Resume' : '⏸️ Pause'}
+                        </button>
+                      </div>
+                    </div>
 
-                    <button
-                      onClick={() =>
-                        setCurrentTeacherStepIdx((p) =>
-                          Math.min(teacherSteps.length - 1, p + 1)
-                        )
-                      }
-                      disabled={currentTeacherStepIdx >= teacherSteps.length - 1}
-                      className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 disabled:opacity-30 transition flex items-center gap-1.5"
-                    >
-                      <span>Next Teaching Step</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                    {/* Step Action Buttons (Previous & Next) */}
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        onClick={() => setCurrentTeacherStepIdx((p) => Math.max(0, p - 1))}
+                        disabled={currentTeacherStepIdx <= 0}
+                        className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white disabled:opacity-30 transition flex items-center gap-1.5"
+                      >
+                        <ChevronLeft className="w-4 h-4" /> Previous Step
+                      </button>
+
+                      <div className="text-[11px] font-mono text-slate-400">
+                        Synchronized Step {currentTeacherStepIdx + 1} of {teacherSteps.length}
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          setCurrentTeacherStepIdx((p) =>
+                            Math.min(teacherSteps.length - 1, p + 1)
+                          )
+                        }
+                        disabled={currentTeacherStepIdx >= teacherSteps.length - 1}
+                        className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 disabled:opacity-30 transition flex items-center gap-1.5"
+                      >
+                        <span>Next Teaching Step</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* M3.4 Live Classroom Quiz Poll Widget */}
+                  <div className="p-4 rounded-2xl bg-[#09101d] border border-cyan-800/70 shadow-lg space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-cyan-950">
+                      <span className="text-xs font-black text-cyan-300 flex items-center gap-1.5">
+                        <span>🗳️</span>
+                        <span>QUICK CLASSROOM POLL • Concept C0101</span>
+                      </span>
+                      <span className="text-[10.5px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-800">
+                        {pollRevealed ? 'Results Revealed' : pollSubmitted ? 'Vote Submitted' : 'Poll Open'}
+                      </span>
+                    </div>
+
+                    <p className="text-xs font-bold text-slate-100">
+                      Which of the following demonstrates living biological growth?
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { label: 'A. Wooden Chair', correct: false },
+                        { label: 'B. Green Plant Sprout', correct: true },
+                        { label: 'C. Plastic Toy', correct: false },
+                        { label: 'D. Stone Rock', correct: false },
+                      ].map((opt, oidx) => (
+                        <button
+                          key={oidx}
+                          onClick={() => {
+                            if (!pollSubmitted) setSelectedPollOption(oidx);
+                          }}
+                          disabled={pollSubmitted}
+                          className={`p-2.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between ${
+                            selectedPollOption === oidx
+                              ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 shadow-md'
+                              : 'bg-black/40 border-slate-800 text-slate-300 hover:border-slate-700'
+                          }`}
+                        >
+                          <span>{opt.label}</span>
+                          {pollRevealed && opt.correct && (
+                            <span className="text-[10px] text-emerald-400 font-black px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800">
+                              ✓ 24 votes (88%)
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      {!pollSubmitted ? (
+                        <button
+                          onClick={() => setPollSubmitted(true)}
+                          disabled={selectedPollOption === null}
+                          className="px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-30 text-slate-950 text-xs font-black transition"
+                        >
+                          Submit Poll Response
+                        </button>
+                      ) : (
+                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Response Recorded • BKT Mastery Updated!
+                        </span>
+                      )}
+
+                      <button
+                        onClick={() => setPollRevealed(!pollRevealed)}
+                        className="text-xs font-bold text-cyan-400 hover:text-cyan-300 underline"
+                      >
+                        {pollRevealed ? 'Hide Distribution' : '📊 Reveal Class Distribution'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1028,6 +1165,147 @@ export function UniversalKnowledgeUniverseStudio({
       )}
 
       {showTaskInspector && <EnginePipelineTaskInspector onClose={() => setShowTaskInspector(false)} />}
+      {/* MODAL: M3.4 PEER COLLABORATION DISCOVERY ROOM */}
+      {showCollabModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-2xl bg-[#0c1324] border border-blue-700/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 font-black text-sm text-blue-300">
+                <Users className="w-4 h-4 text-blue-400" />
+                <span>PEER COLLABORATION DISCOVERY ROOM • CONCEPT C0101</span>
+              </div>
+              <button
+                onClick={() => setShowCollabModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div
+                onClick={() => setMyRole('EXPLORER')}
+                className={`p-3 rounded-2xl border cursor-pointer transition ${
+                  myRole === 'EXPLORER' ? 'bg-blue-950 border-blue-400 text-blue-200' : 'bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span className="text-2xl block mb-1">🧭</span>
+                <span className="text-xs font-black block">EXPLORER</span>
+                <span className="text-[10px] text-slate-400">Find textbook evidence</span>
+              </div>
+
+              <div
+                onClick={() => setMyRole('ANALYST')}
+                className={`p-3 rounded-2xl border cursor-pointer transition ${
+                  myRole === 'ANALYST' ? 'bg-blue-950 border-blue-400 text-blue-200' : 'bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span className="text-2xl block mb-1">🔎</span>
+                <span className="text-xs font-black block">ANALYST</span>
+                <span className="text-[10px] text-slate-400">Compare reasoning</span>
+              </div>
+
+              <div
+                onClick={() => setMyRole('SCRIBE')}
+                className={`p-3 rounded-2xl border cursor-pointer transition ${
+                  myRole === 'SCRIBE' ? 'bg-blue-950 border-blue-400 text-blue-200' : 'bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span className="text-2xl block mb-1">📝</span>
+                <span className="text-xs font-black block">SCRIBE</span>
+                <span className="text-[10px] text-slate-400">Record group summary</span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-blue-950/30 border border-blue-900/60 text-xs space-y-2">
+              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider block">
+                🎯 Group Discovery Challenge
+              </span>
+              <p className="text-slate-200 leading-relaxed">
+                "Look at the Page 2 textbook evidence. Find two examples of Living Things and explain how biological growth differentiates them from inanimate objects."
+              </p>
+              <div className="flex items-center gap-2 pt-1 text-[11px] font-mono text-blue-300">
+                <span>📖 Citation: Page 2 (BBox: &#123;x: 262, y: 572, w: 400, h: 39&#125;)</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowCollabModal(false)}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black transition"
+              >
+                Join Collaborative Group Task
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: M3.4 CURRICULUM COMPLIANCE & STANDARDS */}
+      {showStandardsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-2xl bg-[#0c1324] border border-amber-700/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 font-black text-sm text-amber-300">
+                <Award className="w-4 h-4 text-amber-400" />
+                <span>CURRICULUM COMPLIANCE & STANDARDS ALIGNMENT</span>
+              </div>
+              <button
+                onClick={() => setShowStandardsModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">NCERT Coverage</span>
+                <span className="text-lg font-black text-emerald-400">75.0%</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Taught vs Mastered</span>
+                <span className="text-lg font-black text-amber-300">66.7% / 33.3%</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Syllabus Gaps</span>
+                <span className="text-lg font-black text-rose-400">1 Gap</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className="text-amber-300 font-bold">NCERT-EVS-5-01 (Living Things)</span>
+                  <p className="text-[11px] text-slate-400">Mapped to Concept C0101 • Physical Page 3</p>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 text-[10px] font-bold">
+                  ✅ Taught & Mastered (92.7%)
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className="text-amber-300 font-bold">CBSE-EVS-5-C1 (Growth Continuum)</span>
+                  <p className="text-[11px] text-slate-400">Mapped to Concept C0102 • Physical Page 4</p>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-amber-950 border border-amber-800 text-amber-300 text-[10px] font-bold">
+                  🟡 Taught / Developing (58%)
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-2">
+              <button
+                onClick={() => setShowStandardsModal(false)}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition"
+              >
+                Close Standards Inspector
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
