@@ -35,7 +35,7 @@ export interface CanonicalBookManifestRecord {
   chapters: ChapterStructure[];
   frontMatterPages: number[];
   backMatterPages: number[];
-  unassignedPages: number[]; // Invariant: MUST BE []
+  unassignedPages: number[];
   manifestHash: string;
   generatedAt: string;
 }
@@ -99,7 +99,7 @@ export class CanonicalManifestBuilderService {
       }
     });
 
-    const frontMatter = [1, 2]; // TOC and Art Special
+    const frontMatter = [1, 2];
     frontMatter.forEach((p) => coveredPages.add(p));
 
     const unassigned: number[] = [];
@@ -128,7 +128,7 @@ export class CanonicalManifestBuilderService {
       chapters,
       frontMatterPages: frontMatter,
       backMatterPages: [116],
-      unassignedPages: unassigned, // Invariant: Must be 0
+      unassignedPages: unassigned,
       manifestHash,
       generatedAt: new Date().toISOString(),
     };
