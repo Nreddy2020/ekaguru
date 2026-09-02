@@ -1,0 +1,476 @@
+[
+  {
+    "bookId": "maths-class-5",
+    "title": "Math-Magic Class 5",
+    "subject": "Mathematics",
+    "grade": "Class 5",
+    "curriculum": "NCERT / CBSE",
+    "totalPages": 96,
+    "frontMatter": [
+      1,
+      2
+    ],
+    "units": [
+      {
+        "unitNumber": 1,
+        "unitName": "Unit 1: Numbers & Shapes",
+        "start": 3,
+        "end": 32,
+        "chapterIds": [
+          "ch-1",
+          "ch-2",
+          "ch-3",
+          "ch-4"
+        ]
+      },
+      {
+        "unitNumber": 2,
+        "unitName": "Unit 2: Patterns & Symmetry",
+        "start": 33,
+        "end": 54,
+        "chapterIds": [
+          "ch-5",
+          "ch-6",
+          "ch-7"
+        ]
+      },
+      {
+        "unitNumber": 3,
+        "unitName": "Unit 3: Geometry & Measurement",
+        "start": 55,
+        "end": 76,
+        "chapterIds": [
+          "ch-8",
+          "ch-9",
+          "ch-10"
+        ]
+      },
+      {
+        "unitNumber": 4,
+        "unitName": "Unit 4: Calculations & Data",
+        "start": 77,
+        "end": 96,
+        "chapterIds": [
+          "ch-11",
+          "ch-12",
+          "ch-13",
+          "ch-14"
+        ]
+      }
+    ],
+    "chapters": [
+      {
+        "num": 1,
+        "unit": "Unit 1: Numbers & Shapes",
+        "title": "The Fish Tale (Numbers & Speed)",
+        "start": 3,
+        "end": 9
+      },
+      {
+        "num": 2,
+        "unit": "Unit 1: Numbers & Shapes",
+        "title": "Shapes and Angles (Geometry)",
+        "start": 10,
+        "end": 17
+      },
+      {
+        "num": 3,
+        "unit": "Unit 1: Numbers & Shapes",
+        "title": "How Many Squares? (Area)",
+        "start": 18,
+        "end": 24
+      },
+      {
+        "num": 4,
+        "unit": "Unit 1: Numbers & Shapes",
+        "title": "Parts and Wholes (Fractions)",
+        "start": 25,
+        "end": 32
+      },
+      {
+        "num": 5,
+        "unit": "Unit 2: Patterns & Symmetry",
+        "title": "Does it Look the Same? (Symmetry)",
+        "start": 33,
+        "end": 40
+      },
+      {
+        "num": 6,
+        "unit": "Unit 2: Patterns & Symmetry",
+        "title": "Be My Multiple, I will be Your Factor",
+        "start": 41,
+        "end": 47
+      },
+      {
+        "num": 7,
+        "unit": "Unit 2: Patterns & Symmetry",
+        "title": "Can You See the Pattern? (Sequences)",
+        "start": 48,
+        "end": 54
+      },
+      {
+        "num": 8,
+        "unit": "Unit 3: Geometry & Measurement",
+        "title": "Mapping Your Way (Scale & Coordinates)",
+        "start": 55,
+        "end": 62
+      },
+      {
+        "num": 9,
+        "unit": "Unit 3: Geometry & Measurement",
+        "title": "Boxes and Sketches (3D Projections)",
+        "start": 63,
+        "end": 69
+      },
+      {
+        "num": 10,
+        "unit": "Unit 3: Geometry & Measurement",
+        "title": "Tenths and Hundredths (Decimals)",
+        "start": 70,
+        "end": 76
+      },
+      {
+        "num": 11,
+        "unit": "Unit 4: Calculations & Data",
+        "title": "Area and its Boundary (Perimeter)",
+        "start": 77,
+        "end": 83
+      },
+      {
+        "num": 12,
+        "unit": "Unit 4: Calculations & Data",
+        "title": "Smart Charts (Data Handling & Graphs)",
+        "start": 84,
+        "end": 88
+      },
+      {
+        "num": 13,
+        "unit": "Unit 4: Calculations & Data",
+        "title": "Ways to Multiply and Divide",
+        "start": 89,
+        "end": 92
+      },
+      {
+        "num": 14,
+        "unit": "Unit 4: Calculations & Data",
+        "title": "How Big? How Heavy? (Volume & Weight)",
+        "start": 93,
+        "end": 96
+      }
+    ]
+  },
+  {
+    "bookId": "science-class-6",
+    "title": "Curiosity: Science Class 6",
+    "subject": "General Science",
+    "grade": "Class 6",
+    "curriculum": "NCERT",
+    "totalPages": 128,
+    "frontMatter": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "units": [
+      {
+        "unitNumber": 1,
+        "unitName": "Unit 1: Food & Nutrition",
+        "start": 5,
+        "end": 28,
+        "chapterIds": [
+          "ch-1",
+          "ch-2"
+        ]
+      },
+      {
+        "unitNumber": 2,
+        "unitName": "Unit 2: Materials & World",
+        "start": 29,
+        "end": 58,
+        "chapterIds": [
+          "ch-3",
+          "ch-4",
+          "ch-5",
+          "ch-6"
+        ]
+      },
+      {
+        "unitNumber": 3,
+        "unitName": "Unit 3: The Living World",
+        "start": 59,
+        "end": 88,
+        "chapterIds": [
+          "ch-7",
+          "ch-8",
+          "ch-9"
+        ]
+      },
+      {
+        "unitNumber": 4,
+        "unitName": "Unit 4: Physical Phenomena",
+        "start": 89,
+        "end": 128,
+        "chapterIds": [
+          "ch-10",
+          "ch-11",
+          "ch-12",
+          "ch-13",
+          "ch-14",
+          "ch-15",
+          "ch-16"
+        ]
+      }
+    ],
+    "chapters": [
+      {
+        "num": 1,
+        "unit": "Unit 1: Food & Nutrition",
+        "title": "Food: Where Does It Come From?",
+        "start": 5,
+        "end": 16
+      },
+      {
+        "num": 2,
+        "unit": "Unit 1: Food & Nutrition",
+        "title": "Components of Food (Carbs, Fats, Vitamins)",
+        "start": 17,
+        "end": 28
+      },
+      {
+        "num": 3,
+        "unit": "Unit 2: Materials & World",
+        "title": "Fibre to Fabric (Yarns & Weaving)",
+        "start": 29,
+        "end": 38
+      },
+      {
+        "num": 4,
+        "unit": "Unit 2: Materials & World",
+        "title": "Sorting Materials into Groups (Solubility & Density)",
+        "start": 39,
+        "end": 46
+      },
+      {
+        "num": 5,
+        "unit": "Unit 2: Materials & World",
+        "title": "Separation of Substances (Decantation, Filtration)",
+        "start": 47,
+        "end": 53
+      },
+      {
+        "num": 6,
+        "unit": "Unit 2: Materials & World",
+        "title": "Changes Around Us (Reversible vs Irreversible)",
+        "start": 54,
+        "end": 58
+      },
+      {
+        "num": 7,
+        "unit": "Unit 3: The Living World",
+        "title": "Getting to Know Plants (Root Systems & Venation)",
+        "start": 59,
+        "end": 68
+      },
+      {
+        "num": 8,
+        "unit": "Unit 3: The Living World",
+        "title": "Body Movements (Joints & Skeletal System)",
+        "start": 69,
+        "end": 78
+      },
+      {
+        "num": 9,
+        "unit": "Unit 3: The Living World",
+        "title": "The Living Organisms & Their Surroundings (Habitats)",
+        "start": 79,
+        "end": 88
+      },
+      {
+        "num": 10,
+        "unit": "Unit 4: Physical Phenomena",
+        "title": "Motion and Measurement of Distances (SI Units)",
+        "start": 89,
+        "end": 96
+      },
+      {
+        "num": 11,
+        "unit": "Unit 4: Physical Phenomena",
+        "title": "Light, Shadows and Reflections (Optics)",
+        "start": 97,
+        "end": 104
+      },
+      {
+        "num": 12,
+        "unit": "Unit 4: Physical Phenomena",
+        "title": "Electricity and Circuits (Switches & Conductors)",
+        "start": 105,
+        "end": 112
+      },
+      {
+        "num": 13,
+        "unit": "Unit 4: Physical Phenomena",
+        "title": "Fun with Magnets (Poles & Compass)",
+        "start": 113,
+        "end": 118
+      },
+      {
+        "num": 14,
+        "unit": "Unit 4: Physical Phenomena",
+        "title": "Water (Hydrological Cycle & Conservation)",
+        "start": 119,
+        "end": 122
+      },
+      {
+        "num": 15,
+        "unit": "Unit 4: Physical Phenomena",
+        "title": "Air Around Us (Atmosphere & Respiration)",
+        "start": 123,
+        "end": 125
+      },
+      {
+        "num": 16,
+        "unit": "Unit 4: Physical Phenomena",
+        "title": "Garbage In, Garbage Out (Vermicomposting)",
+        "start": 126,
+        "end": 128
+      }
+    ]
+  },
+  {
+    "bookId": "social-class-5",
+    "title": "Footprints: Social Studies Class 5",
+    "subject": "Social Studies & History",
+    "grade": "Class 5",
+    "curriculum": "CBSE",
+    "totalPages": 88,
+    "frontMatter": [
+      1,
+      2
+    ],
+    "units": [
+      {
+        "unitNumber": 1,
+        "unitName": "Unit 1: Our Earth & Grid",
+        "start": 3,
+        "end": 24,
+        "chapterIds": [
+          "ch-1",
+          "ch-2",
+          "ch-3"
+        ]
+      },
+      {
+        "unitNumber": 2,
+        "unitName": "Unit 2: Climatic Zones",
+        "start": 25,
+        "end": 52,
+        "chapterIds": [
+          "ch-4",
+          "ch-5",
+          "ch-6",
+          "ch-7"
+        ]
+      },
+      {
+        "unitNumber": 3,
+        "unitName": "Unit 3: Environment & Society",
+        "start": 53,
+        "end": 88,
+        "chapterIds": [
+          "ch-8",
+          "ch-9",
+          "ch-10",
+          "ch-11",
+          "ch-12"
+        ]
+      }
+    ],
+    "chapters": [
+      {
+        "num": 1,
+        "unit": "Unit 1: Our Earth & Grid",
+        "title": "Know Your Planet (Globe, Maps & Continents)",
+        "start": 3,
+        "end": 10
+      },
+      {
+        "num": 2,
+        "unit": "Unit 1: Our Earth & Grid",
+        "title": "Parallels and Meridians (Latitudes & Longitudes)",
+        "start": 11,
+        "end": 17
+      },
+      {
+        "num": 3,
+        "unit": "Unit 1: Our Earth & Grid",
+        "title": "Movements of the Earth (Rotation & Revolution)",
+        "start": 18,
+        "end": 24
+      },
+      {
+        "num": 4,
+        "unit": "Unit 2: Climatic Zones",
+        "title": "Major Landforms (Mountains, Plateaus & Plains)",
+        "start": 25,
+        "end": 32
+      },
+      {
+        "num": 5,
+        "unit": "Unit 2: Climatic Zones",
+        "title": "Weather and Climate (Torrid, Temperate, Frigid)",
+        "start": 33,
+        "end": 39
+      },
+      {
+        "num": 6,
+        "unit": "Unit 2: Climatic Zones",
+        "title": "The Land of Dense Forests (Democratic Rep. of Congo)",
+        "start": 40,
+        "end": 46
+      },
+      {
+        "num": 7,
+        "unit": "Unit 2: Climatic Zones",
+        "title": "The Land of Snow (Greenland / Tundra)",
+        "start": 47,
+        "end": 52
+      },
+      {
+        "num": 8,
+        "unit": "Unit 3: Environment & Society",
+        "title": "The Grassland: Prairies",
+        "start": 53,
+        "end": 59
+      },
+      {
+        "num": 9,
+        "unit": "Unit 3: Environment & Society",
+        "title": "Environmental Pollution (Air, Water, Soil, Noise)",
+        "start": 60,
+        "end": 67
+      },
+      {
+        "num": 10,
+        "unit": "Unit 3: Environment & Society",
+        "title": "Saving the Environment (Waste Management & 3Rs)",
+        "start": 68,
+        "end": 74
+      },
+      {
+        "num": 11,
+        "unit": "Unit 3: Environment & Society",
+        "title": "Transport and Communication (Canals, Railways & Internet)",
+        "start": 75,
+        "end": 81
+      },
+      {
+        "num": 12,
+        "unit": "Unit 3: Environment & Society",
+        "title": "Great People of India (Social Reformers & Scientists)",
+        "start": 82,
+        "end": 88
+      }
+    ]
+  }
+]

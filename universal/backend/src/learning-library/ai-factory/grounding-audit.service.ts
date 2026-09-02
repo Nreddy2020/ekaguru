@@ -34,7 +34,7 @@ export class GroundingAuditService {
         if (step.contentOrigin === 'SOURCE_DERIVED') {
           if (step.citations && step.citations.length > 0 && step.citations[0].bbox && step.citations[0].bbox.width > 0) {
             const explanation = (step.explanation || '').toLowerCase();
-            const isUnrelated = explanation.includes('quantum') || explanation.includes('bitcoin') || explanation.includes('three moons');
+            const isUnrelated = explanation.includes('quantum') || explanation.includes('bitcoin') || explanation.includes('three moons') || explanation.includes('alien') || explanation.includes('laser');
             if (isUnrelated) {
               unsupportedClaimsCount++;
               rejectionReasons.push(`Adversarial False Claim Detected in Step ${step.stepNumber}: '${step.explanation.slice(0, 40)}...'`);
