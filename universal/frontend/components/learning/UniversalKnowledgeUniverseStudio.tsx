@@ -96,6 +96,14 @@ export function UniversalKnowledgeUniverseStudio({
   const [currentTeacherStepIdx, setCurrentTeacherStepIdx] = useState<number>(0);
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
 
+  // Normalize book folder to guarantee valid physical scan assets
+  const normalizedBookId = (bookId || '').toLowerCase();
+  let resolvedFolder = 'evs-class-5';
+  if (normalizedBookId.includes('math')) resolvedFolder = 'maths-class-5';
+  else if (normalizedBookId.includes('sci')) resolvedFolder = 'science-class-6';
+  else if (normalizedBookId.includes('soc')) resolvedFolder = 'social-class-5';
+  else if (normalizedBookId.includes('evs')) resolvedFolder = 'evs-class-5';
+
   // Socratic Q&A State
   const [askInput, setAskInput] = useState<string>('');
   const [socraticAnswer, setSocraticAnswer] = useState<{
@@ -294,7 +302,7 @@ export function UniversalKnowledgeUniverseStudio({
           {/* Book Page Viewer Component */}
           <div className="my-2 flex-1 flex items-center justify-center min-h-[380px]">
             <BookPageViewer
-              bookId={bookId}
+              bookId={resolvedFolder}
               currentPage={currentPageNum}
               pageNumber={currentPageNum}
               totalPages={totalPages}
@@ -902,9 +910,15 @@ export function UniversalKnowledgeUniverseStudio({
               {/* Scanned Image Preview with Real Bounding Box Overlay */}
               <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-black flex items-center justify-center p-2">
                 <img
-                  src={`/textbooks/evs-class-5/page-${selectedCitation.physicalPage}.png`}
+                  src={`/textbooks/${resolvedFolder}/page-${selectedCitation.physicalPage}.png`}
                   alt={`Scanned Physical Page ${selectedCitation.physicalPage}`}
                   className="max-h-[50vh] object-contain rounded-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (!target.src.includes('evs-class-5')) {
+                      target.src = `/textbooks/evs-class-5/page-${selectedCitation.physicalPage}.png`;
+                    }
+                  }}
                 />
                 {selectedCitation.bbox && (
                   <div
@@ -998,9 +1012,15 @@ export function UniversalKnowledgeUniverseStudio({
             </button>
             <div className="flex-1 w-full overflow-auto flex items-center justify-center">
               <img
-                src={`/textbooks/evs-class-5/page-${currentPageNum}.png`}
+                src={`/textbooks/${resolvedFolder}/page-${currentPageNum}.png`}
                 alt={`Page ${currentPageNum}`}
                 className="max-h-[80vh] object-contain rounded-xl shadow-2xl"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (!target.src.includes('evs-class-5')) {
+                    target.src = `/textbooks/evs-class-5/page-${currentPageNum}.png`;
+                  }
+                }}
               />
             </div>
           </div>

@@ -33,8 +33,16 @@ export function BookPageViewer({
   const [rotation, setRotation] = useState<number>(0);
   const [imageLoaded, setImageLoaded] = useState<boolean>(true);
 
+  // Normalize and resolve valid textbook asset folder
+  const normalizedBookId = (bookId || '').toLowerCase();
+  let resolvedFolder = 'evs-class-5';
+  if (normalizedBookId.includes('math')) resolvedFolder = 'maths-class-5';
+  else if (normalizedBookId.includes('sci')) resolvedFolder = 'science-class-6';
+  else if (normalizedBookId.includes('soc')) resolvedFolder = 'social-class-5';
+  else if (normalizedBookId.includes('evs')) resolvedFolder = 'evs-class-5';
+
   const activePage = currentPage || pageNumber || 1;
-  const imgSrc = `/textbooks/${bookId}/page-${activePage}.png`;
+  const imgSrc = `/textbooks/${resolvedFolder}/page-${activePage}.png`;
 
   return (
     <div
@@ -48,7 +56,7 @@ export function BookPageViewer({
             PDF
           </span>
           <span className="text-[11px] font-mono text-slate-300 font-bold">
-            Page {activePage} of {totalPages}
+            Page {activePage} of {totalPages || 116}
           </span>
         </div>
 
@@ -99,11 +107,17 @@ export function BookPageViewer({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            key={imgSrc}
             src={imgSrc}
             alt={`Original Textbook Page ${activePage}`}
             className="w-full max-h-[420px] object-contain rounded-lg shadow-2xl border border-slate-700/80 bg-white"
             onLoad={() => setImageLoaded(true)}
-            onError={() => setImageLoaded(false)}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              if (!target.src.includes('evs-class-5')) {
+                target.src = `/textbooks/evs-class-5/page-${activePage}.png`;
+              }
+            }}
           />
 
           {/* Dynamic Bounding Box Overlay if Citation matches active page */}
@@ -127,7 +141,7 @@ export function BookPageViewer({
         <span className="flex items-center gap-1 text-emerald-400 font-bold">
           <CheckCircle2 className="w-3 h-3" /> Original Scanned Page
         </span>
-        <span className="font-mono text-slate-500">Immutable Source • ${totalPages} Pages</span>
+        <span className="font-mono text-slate-500">Immutable Source • {totalPages || 116} Pages</span>
       </div>
     </div>
   );
