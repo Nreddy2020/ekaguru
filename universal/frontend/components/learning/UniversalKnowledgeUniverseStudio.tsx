@@ -119,6 +119,9 @@ export function UniversalKnowledgeUniverseStudio({
   const [showStandardsModal, setShowStandardsModal] = useState<boolean>(false);
   const [myRole, setMyRole] = useState<'EXPLORER' | 'ANALYST' | 'SCRIBE'>('EXPLORER');
   const [handRaised, setHandRaised] = useState<boolean>(false);
+  const [selectedSocraticOption, setSelectedSocraticOption] = useState<string | null>(null);
+  const [socraticFeedback, setSocraticFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
+  const [highlightedBbox, setHighlightedBbox] = useState<boolean>(false);
   const [socraticAnswer, setSocraticAnswer] = useState<{
     question: string;
     answer: string;
@@ -191,10 +194,17 @@ export function UniversalKnowledgeUniverseStudio({
     }
   }, [currentPageNum, canonicalEntry.chapterNumber]);
 
-  // Reset step index when depth changes
+  // Reset step index & socratic state when depth or page changes
   useEffect(() => {
     setCurrentTeacherStepIdx(0);
-  }, [activeDepth]);
+    setSelectedSocraticOption(null);
+    setSocraticFeedback(null);
+  }, [activeDepth, currentPageNum]);
+
+  useEffect(() => {
+    setSelectedSocraticOption(null);
+    setSocraticFeedback(null);
+  }, [currentTeacherStepIdx]);
 
   const totalPages = Math.max(book?.totalPages || 0, 116);
 
@@ -645,20 +655,90 @@ export function UniversalKnowledgeUniverseStudio({
                       </div>
                     )}
 
-                    {/* Socratic Probe */}
-                    <div className="pt-2 border-t border-emerald-900/60 text-[11.5px] text-emerald-300 font-medium flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <span>💡 Socratic Probe:</span>
-                        <span className="italic text-emerald-200">{activeStep.socraticPrompt || activeStep.socraticQuestion}</span>
+                    
+                    {/* D. Interactive Guru Socratic Checkpoint */}
+                    <div className="bg-purple-950/40 border border-purple-800/80 rounded-2xl p-4 shadow-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase text-purple-300 flex items-center gap-1.5">
+                          💡 GURU SOCRATIC CHECKPOINT (Page {currentPageNum})
+                        </span>
+                        <button
+                          onClick={() => {
+                            setHighlightedBbox(true);
+                            openEvidenceInspector({
+                              bookId: 'evs-class-5',
+                              chapterNumber: ch.chapterNumber,
+                              physicalPage: currentPageNum,
+                              blockId: `blk-${currentPageNum}-core`,
+                              regionId: `reg-${currentPageNum}-body`,
+                              bbox: { x: 165, y: 84, width: 926, height: 298 },
+                              confidence: 0.99,
+                              sourceTextSnippet: activeStep.stepTitle,
+                            });
+                          }}
+                          className="text-[11px] font-bold text-amber-300 hover:text-amber-200 underline flex items-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Highlight on Textbook Scan
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          setAskInput(activeStep.socraticQuestion);
-                        }}
-                        className="px-2.5 py-1 bg-purple-900/60 hover:bg-purple-800 border border-purple-600 rounded-lg text-[10.5px] font-bold text-purple-200 shrink-0"
-                      >
-                        Answer on Board
-                      </button>
+
+                      <p className="text-xs md:text-sm text-purple-100 font-medium italic">
+                        "{activeStep.socraticPrompt || activeStep.socraticQuestion}"
+                      </p>
+
+                      {/* Interactive Options */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                        {[
+                          { id: 'opt-a', label: activeStep.chalkboardWords ? activeStep.chalkboardWords[0] || 'Primary Component' : 'Core Concept', isCorrect: true },
+                          { id: 'opt-b', label: 'Unrelated Non-Living Object', isCorrect: false },
+                          { id: 'opt-c', label: activeStep.chalkboardWords ? activeStep.chalkboardWords[1] || 'Essential Helper' : 'Supporting Role', isCorrect: true },
+                          { id: 'opt-d', label: 'Random Guess', isCorrect: false },
+                        ].map((opt, oidx) => (
+                          <button
+                            key={oidx}
+                            onClick={() => {
+                              setSelectedSocraticOption(opt.id);
+                              if (opt.isCorrect) {
+                                setSocraticFeedback({
+                                  isCorrect: true,
+                                  message: `⭐ Excellent! You understood ${opt.label} grounded in Page ${currentPageNum}.`,
+                                });
+                              } else {
+                                setSocraticFeedback({
+                                  isCorrect: false,
+                                  message: `💡 Good try! Look closely at the drawing on the board. Let us review the key principles of Page ${currentPageNum}.`,
+                                });
+                              }
+                            }}
+                            className={`p-2.5 rounded-xl text-left text-xs font-bold transition flex items-center justify-between border ${
+                              selectedSocraticOption === opt.id
+                                ? opt.isCorrect
+                                  ? 'bg-emerald-950/90 border-emerald-500 text-emerald-200 shadow-md shadow-emerald-500/20'
+                                  : 'bg-rose-950/90 border-rose-500 text-rose-200 shadow-md shadow-rose-500/20'
+                                : 'bg-black/60 border-purple-800/60 text-slate-200 hover:bg-purple-900/40 hover:border-purple-600'
+                            }`}
+                          >
+                            <span>{String.fromCharCode(65 + oidx)}. {opt.label}</span>
+                            {selectedSocraticOption === opt.id && (
+                              <span>{opt.isCorrect ? '✅' : '❌'}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Guru Instant Chalkboard Response */}
+                      {socraticFeedback && (
+                        <div className={`p-3 rounded-xl border text-xs font-medium leading-relaxed ${
+                          socraticFeedback.isCorrect
+                            ? 'bg-emerald-950/60 border-emerald-700/80 text-emerald-200'
+                            : 'bg-amber-950/60 border-amber-700/80 text-amber-200'
+                        }`}>
+                          <span className="font-bold block mb-1">
+                            {socraticFeedback.isCorrect ? '🧑‍🏫 Guru says:' : '🧑‍🏫 Guru coaches:'}
+                          </span>
+                          {socraticFeedback.message}
+                        </div>
+                      )}
                     </div>
                   </div>
 
