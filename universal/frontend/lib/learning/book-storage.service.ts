@@ -73,35 +73,59 @@ export interface IngestedBookModel {
 }
 
 export class BookStorageService {
-  private static STORAGE_KEY = 'ekaguru_canonical_real_18ch_116pages_v2';
+  private static STORAGE_KEY = 'ekaguru_canonical_user_books_v4';
+  private static SEEDED_KEY = 'ekaguru_has_initialized_seed_v4';
 
   public static getBooks(): IngestedBookModel[] {
     if (typeof window === 'undefined') return [this.generateDefaultRealBook('evs-class-5')];
+    const hasInitialized = localStorage.getItem(this.SEEDED_KEY);
     const saved = localStorage.getItem(this.STORAGE_KEY);
-    if (!saved) {
+
+    // Initial first-time visit seed only if user has never interacted/deleted
+    if (!hasInitialized && saved === null) {
+      localStorage.setItem(this.SEEDED_KEY, 'true');
       const defaultBooks = [this.generateDefaultRealBook('evs-class-5')];
       this.saveBooks(defaultBooks);
       return defaultBooks;
     }
+
+    if (!saved) return [];
     try {
       const parsed: IngestedBookModel[] = JSON.parse(saved);
-      if (!parsed || parsed.length === 0) {
-        const defaultBooks = [this.generateDefaultRealBook('evs-class-5')];
-        this.saveBooks(defaultBooks);
-        return defaultBooks;
-      }
+      if (!Array.isArray(parsed)) return [];
       return parsed.map((b) => ({
         ...b,
         totalPages: Math.max(b.totalPages || 0, 116),
       }));
     } catch {
-      return [this.generateDefaultRealBook('evs-class-5')];
+      return [];
     }
   }
 
   public static saveBooks(books: IngestedBookModel[]): void {
     if (typeof window === 'undefined') return;
+    localStorage.setItem(this.SEEDED_KEY, 'true');
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(books));
+  }
+
+  public static deleteBook(id: string): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(this.SEEDED_KEY, 'true');
+    const saved = localStorage.getItem(this.STORAGE_KEY);
+    let books: IngestedBookModel[] = [];
+    try {
+      books = saved ? JSON.parse(saved) : [];
+    } catch {
+      books = [];
+    }
+    const updated = books.filter((b) => b.id !== id);
+    this.saveBooks(updated);
+  }
+
+  public static clearAllBooks(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(this.SEEDED_KEY, 'true');
+    this.saveBooks([]);
   }
 
   public static getBookById(id: string): IngestedBookModel | undefined {
@@ -118,7 +142,7 @@ export class BookStorageService {
     return this.generateDefaultRealBook(id);
   }
 
-  private static generateDefaultRealBook(customId: string): IngestedBookModel {
+  public static generateDefaultRealBook(customId: string): IngestedBookModel {
     const chapters: ChapterLessonModel[] = CANONICAL_TEXTBOOK_TOC.map((t) => ({
       id: `ch-${t.chapterNumber}`,
       chapterNumber: t.chapterNumber,
@@ -230,11 +254,5 @@ export class BookStorageService {
       books[index] = updated;
       this.saveBooks(books);
     }
-  }
-
-  public static deleteBook(id: string): void {
-    if (typeof window === 'undefined') return;
-    const books = this.getBooks().filter((b) => b.id !== id);
-    this.saveBooks(books);
   }
 }
