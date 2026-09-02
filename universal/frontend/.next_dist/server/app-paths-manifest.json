@@ -1,5 +1,0 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/learn/page": "app/learn/page.js",
-  "/learn/books/[bookId]/lessons/[lessonId]/page": "app/learn/books/[bookId]/lessons/[lessonId]/page.js"
-}

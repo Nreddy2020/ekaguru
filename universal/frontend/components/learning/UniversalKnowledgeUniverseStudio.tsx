@@ -58,6 +58,10 @@ import { EnginePipelineTaskInspector } from './EnginePipelineTaskInspector';
 interface UniversalKnowledgeUniverseStudioProps {
   bookId?: string;
   sectionId?: string;
+  sectionTitle?: string;
+  conceptName?: string;
+  description?: string;
+  printedPage?: number | string;
   className?: string;
 }
 

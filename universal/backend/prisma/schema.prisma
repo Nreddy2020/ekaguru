@@ -1585,3 +1585,119 @@ model Notification {
 
   @@unique([eventId, deliveryType, parentId])
 }
+
+// ============================================================================
+// Phase M3.1 — Document Intelligence & 5x6 Content Factory Persistent Store
+// ============================================================================
+
+enum DocumentProcessingStatus {
+  PENDING
+  PROCESSING
+  VERIFIED
+  REJECTED
+  PUBLISHED
+}
+
+model BookManifestRecord {
+  id              String                   @id @default(uuid())
+  bookId          String                   @unique
+  title           String
+  subject         String
+  grade           String
+  curriculum      String
+  totalPages      Int
+  manifestHash    String
+  unitsPayload    Json
+  chaptersPayload Json
+  status          DocumentProcessingStatus @default(VERIFIED)
+  version         String                   @default("1.0.0")
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  pageVisionRecords PageVisionRecord[]
+  qualityReports    SourceQualityReportRecord[]
+  evidencePacks     EvidencePackRecord[]
+  teachingPackages  TeachingPackageRecord[]
+
+  @@index([bookId])
+  @@index([status])
+}
+
+model PageVisionRecord {
+  id                 String             @id @default(uuid())
+  bookId             String
+  bookManifest       BookManifestRecord @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+  physicalPageNumber Int
+  imageHash          String
+  ocrConfidence      Float
+  textDensity        Float
+  layoutScore        Float
+  blocksPayload      Json
+  tokensCount        Int
+  createdAt          DateTime           @default(now())
+
+  @@unique([bookId, physicalPageNumber])
+  @@index([bookId])
+  @@index([physicalPageNumber])
+}
+
+model SourceQualityReportRecord {
+  id                 String                   @id @default(uuid())
+  bookId             String
+  bookManifest       BookManifestRecord       @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+  physicalPageNumber Int
+  meanConfidence     Float
+  textDensityScore   Float
+  deskewAngle        Float                    @default(0.0)
+  status             DocumentProcessingStatus @default(VERIFIED)
+  rejected           Boolean                  @default(false)
+  retryCount         Int                      @default(0)
+  diagnostics        Json?
+  createdAt          DateTime                 @default(now())
+
+  @@unique([bookId, physicalPageNumber])
+  @@index([bookId])
+  @@index([status])
+}
+
+model EvidencePackRecord {
+  id            String             @id @default(uuid())
+  packId        String             @unique
+  bookId        String
+  bookManifest  BookManifestRecord @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+  chapterNumber Int
+  title         String
+  physicalPages Int[]
+  blocksPayload Json
+  concepts      Json
+  keyIdeas      Json
+  questions     Json
+  packHash      String
+  version       String             @default("1.0.0")
+  createdAt     DateTime           @default(now())
+
+  @@unique([bookId, chapterNumber, version])
+  @@index([bookId])
+  @@index([chapterNumber])
+}
+
+model TeachingPackageRecord {
+  id               String                   @id @default(uuid())
+  packageId        String                   @unique
+  bookId           String
+  bookManifest     BookManifestRecord       @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+  chapterNumber    Int
+  title            String
+  depthsPayload    Json
+  auditReport      Json
+  evidenceCoverage Float                    @default(1.0)
+  status           DocumentProcessingStatus @default(PUBLISHED)
+  version          String                   @default("1.0.0")
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  @@unique([bookId, chapterNumber, version])
+  @@index([bookId])
+  @@index([chapterNumber])
+  @@index([status])
+}
