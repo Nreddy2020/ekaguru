@@ -552,10 +552,19 @@ export function UniversalKnowledgeUniverseStudio({
                       {activeStep.stepTag || `Step ${currentTeacherStepIdx + 1} of ${teacherSteps.length}`}
                     </span>
                     <button
-                      onClick={() => openEvidenceInspector(activeStep.citations[0])}
+                      onClick={() => openEvidenceInspector({
+    bookId: 'evs-class-5',
+    chapterNumber: ch.chapterNumber,
+    physicalPage: currentPageNum,
+    blockId: `blk-${currentPageNum}-1`,
+    regionId: `reg-${currentPageNum}-1`,
+    bbox: { x: 165, y: 84, width: 926, height: 298 },
+    confidence: 0.99,
+    sourceTextSnippet: activeStep.title,
+  })}
                       className="text-xs text-emerald-400 underline hover:text-emerald-300 flex items-center gap-1 font-mono"
                     >
-                      <FileCheck2 className="w-3.5 h-3.5" /> Page {activeStep.citations[0]?.physicalPage || currentPageNum} Evidence
+                      <FileCheck2 className="w-3.5 h-3.5" /> Page {currentPageNum} Evidence
                     </button>
                   </div>
 
