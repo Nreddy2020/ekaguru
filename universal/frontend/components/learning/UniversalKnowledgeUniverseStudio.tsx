@@ -124,6 +124,8 @@ export function UniversalKnowledgeUniverseStudio({
   const [isDrawingProgressive, setIsDrawingProgressive] = useState<boolean>(false);
   const [currentTeachingPhaseIdx, setCurrentTeachingPhaseIdx] = useState<number>(0);
   const [isAutoTeaching, setIsAutoTeaching] = useState<boolean>(false);
+  const [bktMasteryScore, setBktMasteryScore] = useState<number>(0.10);
+  const [depthPromotionReady, setDepthPromotionReady] = useState<boolean>(false);
   const [reteachMode, setReteachMode] = useState<boolean>(false);
   const [socraticFeedback, setSocraticFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
   const [highlightedBbox, setHighlightedBbox] = useState<boolean>(false);
@@ -205,6 +207,8 @@ export function UniversalKnowledgeUniverseStudio({
     setCurrentTeachingPhaseIdx(0);
     setSelectedSocraticOption(null);
     setSocraticFeedback(null);
+    setDepthPromotionReady(false);
+    setIsAutoTeaching(false);
   }, [activeDepth, currentPageNum]);
 
   useEffect(() => {
@@ -809,11 +813,17 @@ export function UniversalKnowledgeUniverseStudio({
                             onClick={() => {
                               setSelectedSocraticOption(opt.id);
                               if (opt.isCorrect) {
+                                const newMastery = Math.min(0.95, bktMasteryScore + 0.387);
+                                setBktMasteryScore(newMastery);
+                                if (newMastery >= 0.70) {
+                                  setDepthPromotionReady(true);
+                                }
                                 setSocraticFeedback({
                                   isCorrect: true,
-                                  message: `⭐ Excellent! You understood ${opt.label} grounded in Page ${currentPageNum}.`,
+                                  message: `⭐ Excellent! You understood ${opt.label} grounded in Page ${currentPageNum}. (Cognitive Mastery: ${(newMastery * 100).toFixed(1)}%)`,
                                 });
                               } else {
+                                setReteachMode(true);
                                 setSocraticFeedback({
                                   isCorrect: false,
                                   message: `💡 Good try! Look closely at the drawing on the board. Let us review the key principles of Page ${currentPageNum}.`,
