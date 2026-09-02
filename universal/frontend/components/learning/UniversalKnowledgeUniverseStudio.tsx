@@ -122,6 +122,8 @@ export function UniversalKnowledgeUniverseStudio({
   const [selectedSocraticOption, setSelectedSocraticOption] = useState<string | null>(null);
   const [revealedElementIdx, setRevealedElementIdx] = useState<number>(3);
   const [isDrawingProgressive, setIsDrawingProgressive] = useState<boolean>(false);
+  const [currentTeachingPhaseIdx, setCurrentTeachingPhaseIdx] = useState<number>(0);
+  const [isAutoTeaching, setIsAutoTeaching] = useState<boolean>(false);
   const [reteachMode, setReteachMode] = useState<boolean>(false);
   const [socraticFeedback, setSocraticFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
   const [highlightedBbox, setHighlightedBbox] = useState<boolean>(false);
@@ -200,6 +202,7 @@ export function UniversalKnowledgeUniverseStudio({
   // Reset step index & socratic state when depth or page changes
   useEffect(() => {
     setCurrentTeacherStepIdx(0);
+    setCurrentTeachingPhaseIdx(0);
     setSelectedSocraticOption(null);
     setSocraticFeedback(null);
   }, [activeDepth, currentPageNum]);
@@ -545,6 +548,71 @@ export function UniversalKnowledgeUniverseStudio({
                   </button>
                 </div>
               </div>
+
+              
+              {/* 17-Phase Guru Sequential Teaching State Machine Ribbon */}
+              {guruLesson.sequentialPhases && (
+                <div className="bg-emerald-950/80 border border-emerald-600/80 rounded-2xl p-3 shadow-2xl backdrop-blur mb-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                      <span className="text-[11px] font-black uppercase tracking-wider text-amber-300">
+                        🧑‍🏫 GURU TEACHING SESSION • PHASE {currentTeachingPhaseIdx + 1} OF {guruLesson.sequentialPhases.length}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-[10px] font-mono font-bold text-amber-200">
+                        {guruLesson.sequentialPhases[currentTeachingPhaseIdx]?.badge}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar & Step Controls */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentTeachingPhaseIdx((p) => Math.max(0, p - 1))}
+                        disabled={currentTeachingPhaseIdx <= 0}
+                        className="px-2.5 py-1 rounded-lg bg-black/60 border border-emerald-800 text-[11px] font-bold text-slate-300 hover:text-white disabled:opacity-30 transition"
+                      >
+                        ⏮️ Prev Action
+                      </button>
+                      <button
+                        onClick={() => {
+                          const nextIdx = Math.min(guruLesson.sequentialPhases.length - 1, currentTeachingPhaseIdx + 1);
+                          setCurrentTeachingPhaseIdx(nextIdx);
+                          const activeP = guruLesson.sequentialPhases[nextIdx];
+                          if (activeP?.triggerBboxHighlight) {
+                            openEvidenceInspector({
+                              bookId: 'evs-class-5',
+                              chapterNumber: ch.chapterNumber,
+                              physicalPage: currentPageNum,
+                              blockId: `blk-${currentPageNum}-core`,
+                              regionId: `reg-${currentPageNum}-body`,
+                              bbox: { x: 165, y: 84, width: 926, height: 298 },
+                              confidence: 0.99,
+                              sourceTextSnippet: activeP.title,
+                            });
+                          }
+                        }}
+                        disabled={currentTeachingPhaseIdx >= guruLesson.sequentialPhases.length - 1}
+                        className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-black shadow-md shadow-amber-500/20 disabled:opacity-30 transition flex items-center gap-1"
+                      >
+                        <span>⏭️ Next Teacher Action</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Phase Teacher Action Description */}
+                  <div className="mt-2 pt-2 border-t border-emerald-900/60 flex items-center justify-between text-xs text-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-amber-200">Action:</span>
+                      <span className="italic text-emerald-100 font-medium">
+                        {guruLesson.sequentialPhases[currentTeachingPhaseIdx]?.teacherAction}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-amber-300 font-mono">
+                      {guruLesson.sequentialPhases[currentTeachingPhaseIdx]?.title}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Main Blackboard Chalk Title & Subtitle */}
               <div className="text-center mt-2">
