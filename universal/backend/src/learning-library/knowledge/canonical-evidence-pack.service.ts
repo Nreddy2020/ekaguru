@@ -29,6 +29,29 @@ export interface CanonicalKeyIdeaRecord {
   citations: EvidenceCitationRecord[];
 }
 
+export interface CanonicalFormulaRecord {
+  id: string;
+  expression: string;
+  variables: string[];
+  physicalPage: number;
+  citation: EvidenceCitationRecord;
+}
+
+export interface CanonicalTableRecord {
+  id: string;
+  title: string;
+  physicalPage: number;
+  citation: EvidenceCitationRecord;
+}
+
+export interface CanonicalCalloutRecord {
+  id: string;
+  calloutType: string;
+  text: string;
+  physicalPage: number;
+  citation: EvidenceCitationRecord;
+}
+
 export interface CanonicalEvidencePack {
   evidencePackId: string;
   bookId: string;
@@ -39,6 +62,9 @@ export interface CanonicalEvidencePack {
   blocks: DocumentVisionBlockRecord[];
   concepts: CanonicalConceptRecord[];
   keyIdeas: CanonicalKeyIdeaRecord[];
+  formulas: CanonicalFormulaRecord[];
+  tables: CanonicalTableRecord[];
+  callouts: CanonicalCalloutRecord[];
   evidencePackHash: string;
   version: string;
   generatedAt: string;
@@ -75,14 +101,14 @@ export class CanonicalEvidencePackService {
         regionId: matchingBlock ? matchingBlock.regionId : `reg-${page}-1`,
         bbox: matchingBlock ? matchingBlock.bbox : { x: 262, y: 572, width: 400, height: 39 },
         confidence: matchingBlock ? matchingBlock.confidence : 0.92,
-        sourceTextSnippet: matchingBlock ? matchingBlock.text : `Living things grow and develop: ${name}`,
+        sourceTextSnippet: matchingBlock ? matchingBlock.text : `Core curricular concept: ${name}`,
       };
 
       return {
         id: `C${String(chapterNumber).padStart(2, '0')}${String(idx + 1).padStart(2, '0')}`,
         name,
-        definition: `Scientific concept: ${name} grounded on Page ${page}.`,
-        category: 'Environmental Science',
+        definition: `Fundamental concept: ${name} grounded on Page ${page}.`,
+        category: bookId.startsWith('maths') ? 'Mathematics' : bookId.startsWith('science') ? 'Science' : 'Curricular Studies',
         primaryPhysicalPage: page,
         citations: [citation],
       };
@@ -97,12 +123,64 @@ export class CanonicalEvidencePackService {
       },
     ];
 
-    const evidencePackHash = crypto
-      .createHash('sha256')
-      .update(JSON.stringify({ bookId, chapterNumber, physicalPages, concepts, keyIdeas, blocksCount: realBlocks.length }))
-      .digest('hex');
+    // Extract Complex Layout Elements directly into EvidencePack with verified BBoxes
+    const formulas: CanonicalFormulaRecord[] = realBlocks
+      .filter((b) => b.type === 'formula' || b.subTypeMetadata?.isMathFormula)
+      .map((b, idx) => ({
+        id: `F${String(chapterNumber).padStart(2, '0')}${String(idx + 1).padStart(2, '0')}`,
+        expression: b.text,
+        variables: b.text.split(/[^a-zA-Z]/).filter((w) => w.length > 0 && w.length < 10),
+        physicalPage: b.physicalPageNumber,
+        citation: {
+          bookId,
+          chapterNumber,
+          physicalPage: b.physicalPageNumber,
+          blockId: b.blockId,
+          regionId: b.regionId,
+          bbox: b.bbox,
+          confidence: b.confidence,
+          sourceTextSnippet: b.text,
+        },
+      }));
 
-    return {
+    const tables: CanonicalTableRecord[] = realBlocks
+      .filter((b) => b.type === 'table' || b.subTypeMetadata?.isTableGrid)
+      .map((b, idx) => ({
+        id: `T${String(chapterNumber).padStart(2, '0')}${String(idx + 1).padStart(2, '0')}`,
+        title: `Table: ${b.text.slice(0, 30)}`,
+        physicalPage: b.physicalPageNumber,
+        citation: {
+          bookId,
+          chapterNumber,
+          physicalPage: b.physicalPageNumber,
+          blockId: b.blockId,
+          regionId: b.regionId,
+          bbox: b.bbox,
+          confidence: b.confidence,
+          sourceTextSnippet: b.text,
+        },
+      }));
+
+    const callouts: CanonicalCalloutRecord[] = realBlocks
+      .filter((b) => b.type === 'callout_box' || b.type === 'activity' || b.subTypeMetadata?.isCalloutBox)
+      .map((b, idx) => ({
+        id: `CB${String(chapterNumber).padStart(2, '0')}${String(idx + 1).padStart(2, '0')}`,
+        calloutType: b.type === 'activity' ? 'Activity / Challenge' : 'Did You Know / Note',
+        text: b.text,
+        physicalPage: b.physicalPageNumber,
+        citation: {
+          bookId,
+          chapterNumber,
+          physicalPage: b.physicalPageNumber,
+          blockId: b.blockId,
+          regionId: b.regionId,
+          bbox: b.bbox,
+          confidence: b.confidence,
+          sourceTextSnippet: b.text,
+        },
+      }));
+
+    const packPayload = {
       evidencePackId: `evpack-ch${chapterNumber}-v1`,
       bookId,
       chapterId: `ch-${chapterNumber}`,
@@ -112,8 +190,20 @@ export class CanonicalEvidencePackService {
       blocks: realBlocks,
       concepts,
       keyIdeas,
-      evidencePackHash,
+      formulas,
+      tables,
+      callouts,
       version: '1.0.0',
+    };
+
+    const evidencePackHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify(packPayload))
+      .digest('hex');
+
+    return {
+      ...packPayload,
+      evidencePackHash,
       generatedAt: new Date().toISOString(),
     };
   }
