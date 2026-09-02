@@ -30,6 +30,10 @@ import {
   Award,
   BookMarked,
   FileCheck2,
+  Play,
+  Pause,
+  SkipForward,
+  SkipBack,
 } from 'lucide-react';
 import {
   BookStorageService,
@@ -79,10 +83,14 @@ export function UniversalKnowledgeUniverseStudio({
   const [selectedCitation, setSelectedCitation] = useState<EvidenceCitation | null>(null);
 
   // Teaching Depth: Basis -> Developing -> Proficient -> Advanced -> Deep
-  const [activeDepth, setActiveDepth] = useState<TeachingDepth>('developing');
+  const [activeDepth, setActiveDepth] = useState<TeachingDepth>('basis');
   const [activeBoardTab, setActiveBoardTab] = useState<
     'teacher_explains' | 'visuals' | 'real_world' | 'key_points' | 'board_summary' | 'printable_notes'
   >('teacher_explains');
+
+  // Slow-Paced Step Index for Classroom Teaching
+  const [currentTeacherStepIdx, setCurrentTeacherStepIdx] = useState<number>(0);
+  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
 
   // Socratic Q&A State
   const [askInput, setAskInput] = useState<string>('');
@@ -120,6 +128,11 @@ export function UniversalKnowledgeUniverseStudio({
     }
   }, [currentPageNum, book]);
 
+  // Reset step index when depth changes
+  useEffect(() => {
+    setCurrentTeacherStepIdx(0);
+  }, [activeDepth]);
+
   const ch = currentChapter || {
     id: 'ch-1',
     chapterNumber: 1,
@@ -155,6 +168,8 @@ export function UniversalKnowledgeUniverseStudio({
     ch.chapterNumber || 1
   );
   const currentDepthArtifacts = teachingPackage.depths[activeDepth];
+  const teacherSteps = currentDepthArtifacts.teacherExplanation;
+  const activeStep: any = teacherSteps[currentTeacherStepIdx] || teacherSteps[0];
 
   const handleAskQuestion = (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,6 +200,19 @@ export function UniversalKnowledgeUniverseStudio({
     }
     setSelectedCitation(citation);
     setShowEvidenceModal(true);
+  };
+
+  const playStepSpeech = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.92; // warm, slow-paced teacher cadence
+      utterance.pitch = 1.05;
+      utterance.onstart = () => setIsPlayingAudio(true);
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => setIsPlayingAudio(false);
+      window.speechSynthesis.speak(utterance);
+    }
   };
 
   return (
@@ -260,10 +288,11 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
 
           {/* Book Page Viewer Component */}
-          <div className="my-2 flex-1 flex items-center justify-center min-h-[360px]">
+          <div className="my-2 flex-1 flex items-center justify-center min-h-[380px]">
             <BookPageViewer
               bookId={bookId}
               currentPage={currentPageNum}
+              pageNumber={currentPageNum}
               totalPages={totalPages}
               activeCitation={selectedCitation}
               onPageChange={(p) => setCurrentPageNum(p)}
@@ -307,9 +336,9 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
         </aside>
 
-        {/* RIGHT COLUMN: PRE-COMPUTED EKAGURU TEACHING RUNTIME */}
+        {/* RIGHT COLUMN: SLOW-PACED CLASSROOM BLACKBOARD LESSON */}
         <main className="flex-1 flex flex-col h-full bg-[#050811] overflow-y-auto p-5 gap-4">
-          {/* A. ENGINE ANALYSIS STRIP & 5 TEACHING DEPTHS */}
+          {/* A. TEACHING DEPTH / LEVEL SELECTOR */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a0f1d] border border-slate-800/90 rounded-2xl p-3 shadow-lg">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
@@ -333,7 +362,7 @@ export function UniversalKnowledgeUniverseStudio({
                   onClick={() => setActiveDepth(d.depth)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center leading-none ${
                     activeDepth === d.depth
-                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 ring-2 ring-purple-400'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
@@ -344,40 +373,88 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
           </div>
 
-          {/* B. AUTHENTIC GRAPHICAL CHALKBOARD MATCHING SPECIFICATION */}
-          <div className="flex-1 min-h-[440px] rounded-3xl bg-[#071910] border-[6px] border-[#6b4226] p-7 shadow-2xl relative flex flex-col justify-between overflow-hidden shadow-black/80">
+          {/* B. GRAPHICAL CHALKBOARD WITH SLOW-PACED STEP LESSON & DRAWING CANVAS */}
+          <div className="flex-1 min-h-[460px] rounded-3xl bg-[#071910] border-[6px] border-[#6b4226] p-6 shadow-2xl relative flex flex-col justify-between overflow-hidden shadow-black/80">
             {/* Wooden Frame Corner Accent */}
             <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#a66a38] opacity-60 pointer-events-none" />
             <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#a66a38] opacity-60 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#a66a38] opacity-60 pointer-events-none" />
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#a66a38] opacity-60 pointer-events-none" />
 
-            {/* Board Top Header */}
+            {/* Board Top Header: Step Navigator & Audio Player */}
             <div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-[#173a26]">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-900/80 border border-emerald-500 text-emerald-200">
-                    Depth: {activeDepth.toUpperCase()}
+                    DEPTH: {activeDepth.toUpperCase()}
                   </span>
                   <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-emerald-400" /> Ground-Truth Verified
                   </span>
                 </div>
+
+                {/* Slow-Paced Step Selector & Audio */}
                 <div className="flex items-center gap-2">
+                  {activeBoardTab === 'teacher_explains' && (
+                    <div className="flex items-center gap-1.5 bg-black/60 border border-emerald-700/60 rounded-xl px-2 py-1">
+                      <button
+                        onClick={() => setCurrentTeacherStepIdx((prev) => Math.max(0, prev - 1))}
+                        disabled={currentTeacherStepIdx <= 0}
+                        className="p-1 text-emerald-300 hover:text-white disabled:opacity-30 rounded hover:bg-emerald-900"
+                        title="Previous Teaching Step"
+                      >
+                        <SkipBack className="w-3.5 h-3.5" />
+                      </button>
+
+                      <div className="flex items-center gap-1 px-1">
+                        {teacherSteps.map((_, sIdx) => (
+                          <button
+                            key={sIdx}
+                            onClick={() => setCurrentTeacherStepIdx(sIdx)}
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              currentTeacherStepIdx === sIdx ? 'bg-amber-400 w-4' : 'bg-emerald-800'
+                            }`}
+                            title={`Go to Step ${sIdx + 1}`}
+                          />
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          setCurrentTeacherStepIdx((prev) =>
+                            Math.min(teacherSteps.length - 1, prev + 1)
+                          )
+                        }
+                        disabled={currentTeacherStepIdx >= teacherSteps.length - 1}
+                        className="p-1 text-emerald-300 hover:text-white disabled:opacity-30 rounded hover:bg-emerald-900"
+                        title="Next Teaching Step"
+                      >
+                        <SkipForward className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     onClick={() => {
-                      if ('speechSynthesis' in window) {
-                        const utterance = new SpeechSynthesisUtterance(
-                          currentDepthArtifacts.boardSummary.boardTitle + '. ' + currentDepthArtifacts.boardSummary.boardSubtitle
-                        );
-                        window.speechSynthesis.speak(utterance);
-                      }
+                      const speech =
+                        activeBoardTab === 'teacher_explains'
+                          ? activeStep.teacherSpeech
+                          : currentDepthArtifacts.boardSummary.boardTitle +
+                            '. ' +
+                            currentDepthArtifacts.boardSummary.boardSubtitle;
+                      playStepSpeech(speech);
                     }}
-                    className="p-1.5 rounded-full bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 transition"
-                    title="Audio Read Aloud"
+                    className={`p-1.5 rounded-full border transition flex items-center gap-1 text-xs font-bold px-3 ${
+                      isPlayingAudio
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse'
+                        : 'bg-emerald-950/80 hover:bg-emerald-900 border-emerald-700 text-emerald-300'
+                    }`}
+                    title="Teacher Audio Read Aloud"
                   >
                     <Volume2 className="w-3.5 h-3.5" />
+                    <span>{isPlayingAudio ? 'Speaking...' : 'Listen'}</span>
                   </button>
+
                   <button
                     onClick={() =>
                       openEvidenceInspector({
@@ -400,52 +477,156 @@ export function UniversalKnowledgeUniverseStudio({
               </div>
 
               {/* Main Blackboard Chalk Title & Subtitle */}
-              <div className="text-center mt-3">
+              <div className="text-center mt-2">
                 <h2 className="text-2xl md:text-3xl font-black text-[#ffea79] tracking-wider font-serif uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                   {currentDepthArtifacts.boardSummary.boardTitle}
                 </h2>
                 <div className="h-0.5 w-48 bg-[#ffea79]/40 mx-auto mt-1 rounded-full" />
-                <p className="text-xs md:text-sm text-pink-300 italic mt-1.5 font-medium tracking-wide">
+                <p className="text-xs md:text-sm text-pink-300 italic mt-1 font-medium tracking-wide">
                   {currentDepthArtifacts.boardSummary.boardSubtitle}
                 </p>
               </div>
             </div>
 
             {/* Center Content based on Active Tab */}
-            <div className="my-5 flex-1 flex flex-col justify-center">
-              {/* 1. TEACHER EXPLAINS TAB */}
+            <div className="my-4 flex-1 flex flex-col justify-center">
+              {/* 1. TEACHER EXPLAINS TAB: SLOW-PACED STEP-BY-STEP TEACHER DRAWING & LESSON */}
               {activeBoardTab === 'teacher_explains' && (
-                <div className="space-y-3 max-w-4xl mx-auto w-full">
-                  {currentDepthArtifacts.teacherExplanation.map((step) => (
-                    <div
-                      key={step.stepNumber}
-                      className="bg-black/50 border border-emerald-800/70 rounded-2xl p-4 text-xs shadow-lg backdrop-blur-sm"
+                <div className="space-y-4 max-w-4xl mx-auto w-full">
+                  {/* Step Title & Tag Header */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-amber-300 tracking-wider bg-amber-950/60 border border-amber-600/50 px-3 py-1 rounded-full">
+                      {activeStep.stepTag || `Step ${currentTeacherStepIdx + 1} of ${teacherSteps.length}`}
+                    </span>
+                    <button
+                      onClick={() => openEvidenceInspector(activeStep.citations[0])}
+                      className="text-xs text-emerald-400 underline hover:text-emerald-300 flex items-center gap-1 font-mono"
                     >
-                      <div className="flex items-center justify-between font-bold text-amber-200 text-sm mb-1.5">
-                        <span className="flex items-center gap-2">{step.title}</span>
-                        <button
-                          onClick={() => openEvidenceInspector(step.citations[0])}
-                          className="text-[11px] text-emerald-400 underline hover:text-emerald-300 flex items-center gap-1 font-mono font-normal"
-                        >
-                          <FileCheck2 className="w-3.5 h-3.5" /> Page {step.citations[0]?.physicalPage || currentPageNum} Evidence
-                        </button>
+                      <FileCheck2 className="w-3.5 h-3.5" /> Page {activeStep.citations[0]?.physicalPage || currentPageNum} Evidence
+                    </button>
+                  </div>
+
+                  {/* A. Center Chalkboard Drawing Box for Active Step */}
+                  {activeStep.drawingScene && (
+                    <div className="bg-black/60 border-2 border-emerald-600/60 rounded-2xl p-4 shadow-xl text-center">
+                      <div className="flex items-center justify-between pb-2 border-b border-emerald-900/60">
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
+                          🎨 {activeStep.drawingScene.title}
+                        </span>
+                        <span className="text-[10px] text-amber-300 font-mono">
+                          {activeStep.drawingScene.badge}
+                        </span>
                       </div>
-                      <p className="text-slate-200 text-xs md:text-[13px] leading-relaxed font-normal">
-                        {step.explanation}
+
+                      {/* Visual Drawing Elements */}
+                      <div className="flex items-center justify-center gap-3 md:gap-5 flex-wrap my-3">
+                        {activeStep.drawingScene.elements.map((el: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className={`flex flex-col items-center text-center p-3 rounded-2xl min-w-[110px] max-w-[140px] shadow transition transform hover:scale-105 ${
+                              el.highlight
+                                ? 'bg-emerald-950/80 border-2 border-amber-400/80 shadow-[0_0_12px_rgba(251,191,36,0.3)]'
+                                : 'bg-black/50 border border-emerald-800/60'
+                            }`}
+                          >
+                            <span className="text-3xl md:text-4xl mb-1.5 drop-shadow">{el.icon}</span>
+                            <span className="text-[11.5px] font-black text-amber-300 tracking-wide">
+                              {el.label}
+                            </span>
+                            <span className="text-[10px] text-emerald-200/90 mt-1 leading-snug">
+                              {el.subtext}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="text-[11px] text-slate-300 italic">
+                        {activeStep.drawingScene.subtitle}
                       </p>
-                      <div className="mt-2.5 pt-2 border-t border-emerald-900/60 text-[11.5px] text-emerald-300 font-medium flex items-center gap-1.5">
-                        <span>💡 Socratic Probe:</span>
-                        <span className="italic text-emerald-200">{step.socraticQuestion}</span>
-                      </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* B. School Teacher Dialogue & Spoken Explanation */}
+                  <div className="bg-black/50 border border-emerald-800/70 rounded-2xl p-4 text-xs shadow-lg backdrop-blur-sm space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-black text-amber-200 flex items-center gap-2">
+                        <span>👩‍🏫 Teacher Explains:</span> {activeStep.title}
+                      </h3>
+                      <button
+                        onClick={() => playStepSpeech(activeStep.teacherSpeech)}
+                        className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-bold underline"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" /> Read Aloud
+                      </button>
+                    </div>
+
+                    <p className="text-slate-100 text-xs md:text-[13.5px] leading-relaxed font-medium bg-emerald-950/30 p-3 rounded-xl border border-emerald-900/50">
+                      "{activeStep.teacherSpeech}"
+                    </p>
+
+                    {/* Chalk Highlight Keywords */}
+                    {activeStep.highlightKeywords && activeStep.highlightKeywords.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap pt-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                          Chalkboard Words:
+                        </span>
+                        {activeStep.highlightKeywords.map((kw: string, kidx: number) => (
+                          <span
+                            key={kidx}
+                            className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-[11px] font-bold text-amber-200"
+                          >
+                            ⭐ {kw}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Socratic Probe */}
+                    <div className="pt-2 border-t border-emerald-900/60 text-[11.5px] text-emerald-300 font-medium flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span>💡 Socratic Probe:</span>
+                        <span className="italic text-emerald-200">{activeStep.socraticQuestion}</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setAskInput(activeStep.socraticQuestion);
+                        }}
+                        className="px-2.5 py-1 bg-purple-900/60 hover:bg-purple-800 border border-purple-600 rounded-lg text-[10.5px] font-bold text-purple-200 shrink-0"
+                      >
+                        Answer on Board
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Step Action Buttons (Previous & Next) */}
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      onClick={() => setCurrentTeacherStepIdx((p) => Math.max(0, p - 1))}
+                      disabled={currentTeacherStepIdx <= 0}
+                      className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white disabled:opacity-30 transition flex items-center gap-1.5"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Previous Step
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        setCurrentTeacherStepIdx((p) =>
+                          Math.min(teacherSteps.length - 1, p + 1)
+                        )
+                      }
+                      disabled={currentTeacherStepIdx >= teacherSteps.length - 1}
+                      className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 disabled:opacity-30 transition flex items-center gap-1.5"
+                    >
+                      <span>Next Teaching Step</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* 2. VISUALS & REAL WORLD FLOW (MATCHING GRAPHICAL BOARD SPECIFICATION) */}
+              {/* 2. VISUALS & REAL WORLD FLOW */}
               {(activeBoardTab === 'visuals' || activeBoardTab === 'board_summary') && (
                 <div className="space-y-5">
-                  {/* Top Horizontal Process Flow Steps */}
                   <div className="flex items-center justify-center gap-3 md:gap-5 flex-wrap">
                     {currentDepthArtifacts.visuals.steps.map((st, idx, arr) => (
                       <React.Fragment key={idx}>
@@ -465,9 +646,7 @@ export function UniversalKnowledgeUniverseStudio({
                     ))}
                   </div>
 
-                  {/* Dual Lower Formula & Key Idea Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    {/* Formula Card */}
                     <div className="bg-black/60 border border-amber-600/60 rounded-2xl p-4 shadow-lg text-center flex flex-col justify-center">
                       <span className="text-[11px] font-black uppercase text-amber-300 tracking-wider block mb-1.5">
                         {currentDepthArtifacts.boardSummary.formulaBanner?.title || 'FORMULA PRINCIPLE'}
@@ -477,7 +656,6 @@ export function UniversalKnowledgeUniverseStudio({
                       </p>
                     </div>
 
-                    {/* Key Idea Card */}
                     <div className="bg-black/60 border border-emerald-600/60 rounded-2xl p-4 shadow-lg flex flex-col justify-center">
                       <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1.5 mb-1">
                         <span>💡</span>
@@ -585,7 +763,7 @@ export function UniversalKnowledgeUniverseStudio({
                   onClick={() => setActiveBoardTab(tab.id)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
                     active
-                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 ring-2 ring-purple-400'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
