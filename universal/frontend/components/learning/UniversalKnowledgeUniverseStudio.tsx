@@ -137,53 +137,63 @@ export function UniversalKnowledgeUniverseStudio({
     }
   }, [bookId, sectionId]);
 
+  // 1. Authoritative Physical Page -> TOC / Chapter / Section Resolution
+  const canonicalEntry =
+    CANONICAL_TEXTBOOK_TOC.find(
+      (c) => currentPageNum >= c.startPage && currentPageNum <= c.endPage
+    ) ||
+    (currentChapter
+      ? CANONICAL_TEXTBOOK_TOC.find((c) => c.chapterNumber === currentChapter.chapterNumber)
+      : null) ||
+    CANONICAL_TEXTBOOK_TOC[1];
+
+  const ch = {
+    id: `ch-${canonicalEntry.chapterNumber}`,
+    chapterNumber: canonicalEntry.chapterNumber,
+    unitName: canonicalEntry.unitName,
+    title: canonicalEntry.title,
+    startPage: canonicalEntry.startPage,
+    endPage: canonicalEntry.endPage,
+    pageRangeText: canonicalEntry.pageRangeText,
+    sections: canonicalEntry.sections.map((s, idx) => ({
+      id: `sec-${canonicalEntry.chapterNumber}-${idx + 1}`,
+      sectionNumber: s.sectionNumber,
+      title: s.title,
+      page: s.page,
+    })),
+    concepts: canonicalEntry.concepts,
+    boardTitle: canonicalEntry.boardTitle,
+    boardSubtitle: canonicalEntry.boardSubtitle,
+    flowSteps: canonicalEntry.flowSteps,
+    subBoxTitle: canonicalEntry.subBoxTitle,
+    subBoxFormula: canonicalEntry.subBoxFormula,
+    keyIdea: canonicalEntry.keyIdea,
+    textbookExcerpt: `Physical Page ${currentPageNum} from ${canonicalEntry.title}. Grounded in original NCERT/State Board scan.`,
+  };
+
+  // Find exact section on active page, or closest preceding section
+  const activePageSection =
+    ch.sections.find((s) => s.page === currentPageNum) ||
+    ch.sections.slice().reverse().find((s) => s.page <= currentPageNum) ||
+    ch.sections[0];
+
   useEffect(() => {
     const pageContent = getPhysicalPageContent(currentPageNum);
     setPhysicalPage(pageContent);
-
-    if (book && book.chapters.length > 0) {
-      const matchedCh = book.chapters.find(
-        (c) => currentPageNum >= c.startPage && currentPageNum <= c.endPage
-      );
-      if (matchedCh && matchedCh.id !== currentChapter?.id) {
-        setCurrentChapter(matchedCh);
-        setExpandedChapterIds((prev) => ({ ...prev, [matchedCh.id]: true }));
-      }
+    setActiveSection(activePageSection);
+    setExpandedChapterIds((prev) => ({ ...prev, [`ch-${canonicalEntry.chapterNumber}`]: true }));
+    
+    // Automatically select the teaching step corresponding to the active page section
+    const secIdx = ch.sections.findIndex((s) => s.page === currentPageNum);
+    if (secIdx >= 0) {
+      setCurrentTeacherStepIdx(Math.min(secIdx, teacherSteps.length - 1));
     }
-  }, [currentPageNum, book]);
+  }, [currentPageNum, canonicalEntry.chapterNumber]);
 
   // Reset step index when depth changes
   useEffect(() => {
     setCurrentTeacherStepIdx(0);
   }, [activeDepth]);
-
-  const ch = currentChapter || {
-    id: 'ch-1',
-    chapterNumber: 1,
-    unitName: 'Unit 1: About Me',
-    title: 'I am Growing Up',
-    startPage: 3,
-    endPage: 7,
-    pageRangeText: 'Pages 2–7',
-    sections: [
-      { id: 'sec-1-1', sectionNumber: '1.1', title: 'Living Things Grow and Develop', page: 3 },
-      { id: 'sec-1-2', sectionNumber: '1.2', title: 'Infancy to Adulthood', page: 5 },
-    ],
-    concepts: ['Living Things', 'Growth Cycle', 'Adulthood', 'Development'],
-    boardTitle: 'HOW LIVING THINGS GROW & DEVELOP',
-    boardSubtitle: 'Developmental lifecycle from seeds and chicks to mature living beings.',
-    flowSteps: [
-      { label: 'SEED / EGG', icon: '🥚', description: 'Beginning of life in dormant form' },
-      { label: 'SPROUT / CHICK', icon: '🐣', description: 'Germination and hatching into young stage' },
-      { label: 'TODDLER / SAPLING', icon: '🌱', description: 'Rapid physical growth needing nourishment' },
-      { label: 'ADULT BEING', icon: '🧑', description: 'Mature living organism with independent skills' },
-      { label: 'NEW GENERATION', icon: '🌳', description: 'Producing seeds and continuing the life cycle' },
-    ],
-    subBoxTitle: 'GROWTH CONTINUUM PRINCIPLE',
-    subBoxFormula: 'Nutrients + Water + Care ➔ Cell Division & Expansion ➔ Maturity & Independence',
-    keyIdea: 'All living things—plants, animals, and human beings—grow and change over time. Seeds grow into big trees and babies grow into adults.',
-    textbookExcerpt: 'Textbook page extracted. Look at the structured patterns described in this section.',
-  };
 
   const totalPages = Math.max(book?.totalPages || 0, 116);
 
