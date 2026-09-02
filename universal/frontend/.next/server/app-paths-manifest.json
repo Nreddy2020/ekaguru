@@ -1,4 +1,3 @@
 {
-  "/learn/books/[bookId]/lessons/[lessonId]/page": "app/learn/books/[bookId]/lessons/[lessonId]/page.js",
   "/learn/page": "app/learn/page.js"
 }

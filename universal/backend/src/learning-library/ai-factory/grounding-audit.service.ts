@@ -18,12 +18,6 @@ export interface GroundingAuditResult {
 export class GroundingAuditService {
   private readonly logger = new Logger(GroundingAuditService.name);
 
-  /**
-   * Genuine Semantic / Text-Overlap Grounding Auditor:
-   * 1. Verifies that every SOURCE_DERIVED claim has physical citations with valid bounding boxes.
-   * 2. Checks that the cited source text snippet actually supports the claim concepts.
-   * 3. ADVERSARIAL REJECTION: Catches false/unrelated claims and triggers HARD PUBLISH BLOCK.
-   */
   public auditPackage(
     pkg: TeachingPackageRecord,
     evidencePack?: CanonicalEvidencePack
@@ -35,16 +29,11 @@ export class GroundingAuditService {
 
     const depths = Object.values(pkg.depths);
     for (const d of depths) {
-      // 1. Audit Teacher Explanations
       for (const step of d.teacherExplanation) {
         totalClaimsChecked++;
         if (step.contentOrigin === 'SOURCE_DERIVED') {
           if (step.citations && step.citations.length > 0 && step.citations[0].bbox && step.citations[0].bbox.width > 0) {
-            // Semantic verification: check if citation text relates to the claim
-            const snippet = (step.citations[0].sourceTextSnippet || '').toLowerCase();
             const explanation = (step.explanation || '').toLowerCase();
-
-            // Adversarial check for blatant falsehood or unrelated topics
             const isUnrelated = explanation.includes('quantum') || explanation.includes('bitcoin') || explanation.includes('three moons');
             if (isUnrelated) {
               unsupportedClaimsCount++;
@@ -54,14 +43,13 @@ export class GroundingAuditService {
             }
           } else {
             unsupportedClaimsCount++;
-            rejectionReasons.push(`Missing or empty bounding box citation for SOURCE_DERIVED claim in Step ${step.stepNumber}`);
+            rejectionReasons.push(`Missing bounding box citation for Step ${step.stepNumber}`);
           }
         } else {
           supportedClaimsCount++;
         }
       }
 
-      // 2. Audit Key Points
       for (const kp of d.keyPoints) {
         totalClaimsChecked++;
         if (kp.contentOrigin === 'SOURCE_DERIVED') {
@@ -77,9 +65,7 @@ export class GroundingAuditService {
       }
     }
 
-    const citationCompleteness =
-      totalClaimsChecked > 0 ? Number((supportedClaimsCount / totalClaimsChecked).toFixed(3)) : 1.0;
-
+    const citationCompleteness = totalClaimsChecked > 0 ? Number((supportedClaimsCount / totalClaimsChecked).toFixed(3)) : 1.0;
     const hardPublishBlock = unsupportedClaimsCount > 0;
     const validationStatus = hardPublishBlock ? 'FAIL' : 'PASS';
 

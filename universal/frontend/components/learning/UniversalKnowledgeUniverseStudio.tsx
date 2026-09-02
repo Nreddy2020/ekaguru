@@ -39,26 +39,21 @@ import {
 } from '../../lib/learning/book-storage.service';
 import { BookPageViewer } from './BookPageViewer';
 import {
-  CANONICAL_TEXTBOOK_TOC,
-  getPhysicalPageContent,
   PhysicalPageContent,
+  getPhysicalPageContent,
+  CANONICAL_TEXTBOOK_TOC,
 } from '../../lib/learning/page-preservation-engine';
 import {
+  ChapterTeachingPackage,
   TeachingDepth,
   EvidenceCitation,
-  ChapterTeachingPackage,
 } from '../../lib/learning/teaching-package.types';
 import { ContentFactoryEngine } from '../../lib/learning/content-factory.engine';
-import { DocumentVisionEngine } from '../../lib/learning/document-vision.engine';
 import { EnginePipelineTaskInspector } from './EnginePipelineTaskInspector';
 
-export interface UniversalKnowledgeUniverseStudioProps {
+interface UniversalKnowledgeUniverseStudioProps {
   bookId?: string;
   sectionId?: string;
-  sectionTitle?: string;
-  conceptName?: string;
-  description?: string;
-  printedPage?: number;
   className?: string;
 }
 
@@ -67,11 +62,12 @@ export function UniversalKnowledgeUniverseStudio({
   sectionId = 'ch-1',
   className = '',
 }: UniversalKnowledgeUniverseStudioProps) {
-  const [book, setBook] = useState<IngestedBookModel | undefined>(undefined);
-  const [currentChapter, setCurrentChapter] = useState<ChapterLessonModel | undefined>(undefined);
-  const [activeSection, setActiveSection] = useState<LessonSectionModel | undefined>(undefined);
+  // Navigation & Textbook State
+  const [book, setBook] = useState<IngestedBookModel | null>(null);
+  const [currentChapter, setCurrentChapter] = useState<ChapterLessonModel | null>(null);
   const [currentPageNum, setCurrentPageNum] = useState<number>(3);
   const [physicalPage, setPhysicalPage] = useState<PhysicalPageContent>(getPhysicalPageContent(3));
+  const [activeSection, setActiveSection] = useState<LessonSectionModel | null>(null);
   const [expandedChapterIds, setExpandedChapterIds] = useState<Record<string, boolean>>({});
 
   // Modals
@@ -109,7 +105,6 @@ export function UniversalKnowledgeUniverseStudio({
     }
   }, [bookId, sectionId]);
 
-  // Sync physical page whenever currentPageNum changes
   useEffect(() => {
     const pageContent = getPhysicalPageContent(currentPageNum);
     setPhysicalPage(pageContent);
@@ -161,7 +156,6 @@ export function UniversalKnowledgeUniverseStudio({
   );
   const currentDepthArtifacts = teachingPackage.depths[activeDepth];
 
-  // Handle Socratic Question Ask
   const handleAskQuestion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!askInput.trim()) return;
@@ -172,7 +166,7 @@ export function UniversalKnowledgeUniverseStudio({
       physicalPage: currentPageNum,
       blockId: `blk-${currentPageNum}-2`,
       regionId: `reg-${currentPageNum}-body`,
-      bbox: { x: 80, y: 150, width: 1040, height: 600 },
+      bbox: { x: 165, y: 84, width: 926, height: 298 },
       confidence: 0.99,
       sourceTextSnippet: ch.keyIdea,
     };
@@ -248,32 +242,36 @@ export function UniversalKnowledgeUniverseStudio({
       {/* 2. MAIN 2-COLUMN VIEWPORT */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT COLUMN: 100% IMMUTABLE PHYSICAL BOOK PAGE VIEWER */}
-        <aside className="w-[360px] lg:w-[400px] xl:w-[440px] h-full bg-[#090d18] border-r border-slate-800/90 flex flex-col p-4 shrink-0 overflow-y-auto">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+        <aside className="w-80 md:w-96 lg:w-[420px] bg-[#090e1a] border-r border-slate-800 flex flex-col justify-between shrink-0 p-3 select-none overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-800/60">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                 FROM YOUR TEXTBOOK
               </span>
-              <span className="text-xs font-black text-white">
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/60">
+                Source Verified
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-200">
                 Page {currentPageNum} • {book?.subject || 'Environmental Studies'}
               </span>
             </div>
-            <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Source Verified
-            </span>
           </div>
 
-          {/* Genuine Book Page Viewer */}
-          <div className="my-3 flex-1 flex flex-col items-center justify-center">
+          {/* Book Page Viewer Component */}
+          <div className="my-2 flex-1 flex items-center justify-center min-h-[360px]">
             <BookPageViewer
-              pageNumber={currentPageNum}
+              bookId={bookId}
+              currentPage={currentPageNum}
               totalPages={totalPages}
-              onOpenFullPage={() => setShowFullPageModal(true)}
+              activeCitation={selectedCitation}
+              onPageChange={(p) => setCurrentPageNum(p)}
             />
           </div>
 
-          {/* Page Navigator */}
-          <div className="flex items-center justify-between bg-[#0d1424] border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 shadow-inner">
+          {/* Page Switcher */}
+          <div className="flex items-center justify-between px-2 py-1.5 bg-[#0d1424] rounded-xl border border-slate-800 text-xs text-slate-300">
             <button
               onClick={() => setCurrentPageNum((p) => Math.max(1, p - 1))}
               disabled={currentPageNum <= 1}
@@ -315,10 +313,7 @@ export function UniversalKnowledgeUniverseStudio({
           <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a0f1d] border border-slate-800/90 rounded-2xl p-3 shadow-lg">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-purple-400" /> EKAGURU ENGINE ANALYSIS
-              </span>
-              <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                Pre-Computed • 0ms Latency
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" /> TEACHING DEPTH / LEVEL
               </span>
             </div>
 
@@ -327,10 +322,10 @@ export function UniversalKnowledgeUniverseStudio({
               {(
                 [
                   { depth: 'basis', label: 'Basis', sub: '(Start Here)' },
-                  { depth: 'developing', label: 'Developing', sub: '(Core)' },
-                  { depth: 'proficient', label: 'Proficient', sub: '(Apply)' },
-                  { depth: 'advanced', label: 'Advanced', sub: '(Analyse)' },
-                  { depth: 'deep', label: 'Deep', sub: '(Explore)' },
+                  { depth: 'developing', label: 'Developing', sub: '(Build Understanding)' },
+                  { depth: 'proficient', label: 'Proficient', sub: '(Apply & Connect)' },
+                  { depth: 'advanced', label: 'Advanced', sub: '(Analyse & Reason)' },
+                  { depth: 'deep', label: 'Deep', sub: '(Research & Explore)' },
                 ] as const
               ).map((d) => (
                 <button
@@ -349,120 +344,189 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
           </div>
 
-          {/* B. DYNAMIC GRAPHICAL CHALKBOARD / ARTIFACT CANVAS */}
-          <div className="flex-1 min-h-[360px] rounded-3xl bg-gradient-to-b from-[#0a1a12] via-[#05110b] to-[#020805] border-2 border-[#173a26] p-6 shadow-2xl relative flex flex-col justify-between overflow-hidden">
-            {/* Board Header */}
+          {/* B. AUTHENTIC GRAPHICAL CHALKBOARD MATCHING SPECIFICATION */}
+          <div className="flex-1 min-h-[440px] rounded-3xl bg-[#071910] border-[6px] border-[#6b4226] p-7 shadow-2xl relative flex flex-col justify-between overflow-hidden shadow-black/80">
+            {/* Wooden Frame Corner Accent */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#a66a38] opacity-60 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#a66a38] opacity-60 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#a66a38] opacity-60 pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#a66a38] opacity-60 pointer-events-none" />
+
+            {/* Board Top Header */}
             <div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-700 text-emerald-300">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-900/80 border border-emerald-500 text-emerald-200">
                     Depth: {activeDepth.toUpperCase()}
                   </span>
-                  <span className="text-[10px] text-emerald-400/80 font-mono">
-                    Ground-Truth Verified
+                  <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-emerald-400" /> Ground-Truth Verified
                   </span>
                 </div>
-                <button
-                  onClick={() =>
-                    openEvidenceInspector({
-                      bookId: 'evs-class-5',
-                      chapterNumber: ch.chapterNumber,
-                      physicalPage: currentPageNum,
-                      blockId: `blk-${currentPageNum}-2`,
-                      bbox: { x: 80, y: 150, width: 1040, height: 600 },
-                      confidence: 0.99,
-                      sourceTextSnippet: ch.keyIdea,
-                    })
-                  }
-                  className="flex items-center gap-1 text-[11px] font-bold text-cyan-300 hover:text-cyan-200 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-800/80 px-2.5 py-1 rounded-lg transition"
-                >
-                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Inspect Evidence</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if ('speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(
+                          currentDepthArtifacts.boardSummary.boardTitle + '. ' + currentDepthArtifacts.boardSummary.boardSubtitle
+                        );
+                        window.speechSynthesis.speak(utterance);
+                      }
+                    }}
+                    className="p-1.5 rounded-full bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 transition"
+                    title="Audio Read Aloud"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      openEvidenceInspector({
+                        bookId: 'evs-class-5',
+                        chapterNumber: ch.chapterNumber,
+                        physicalPage: currentPageNum,
+                        blockId: `blk-${currentPageNum}-1`,
+                        regionId: `reg-${currentPageNum}-1`,
+                        bbox: { x: 165, y: 84, width: 926, height: 298 },
+                        confidence: 0.99,
+                        sourceTextSnippet: currentDepthArtifacts.boardSummary.boardTitle,
+                      })
+                    }
+                    className="flex items-center gap-1 text-[11px] font-bold text-cyan-300 hover:text-cyan-200 bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-700 px-3 py-1 rounded-xl transition shadow"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Inspect Evidence</span>
+                  </button>
+                </div>
               </div>
 
-              <h2 className="text-xl font-black text-amber-100 tracking-wide mt-2 text-center">
-                {currentDepthArtifacts.boardSummary.boardTitle}
-              </h2>
-              <p className="text-xs text-emerald-300/80 text-center mt-0.5">
-                {currentDepthArtifacts.boardSummary.boardSubtitle}
-              </p>
+              {/* Main Blackboard Chalk Title & Subtitle */}
+              <div className="text-center mt-3">
+                <h2 className="text-2xl md:text-3xl font-black text-[#ffea79] tracking-wider font-serif uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                  {currentDepthArtifacts.boardSummary.boardTitle}
+                </h2>
+                <div className="h-0.5 w-48 bg-[#ffea79]/40 mx-auto mt-1 rounded-full" />
+                <p className="text-xs md:text-sm text-pink-300 italic mt-1.5 font-medium tracking-wide">
+                  {currentDepthArtifacts.boardSummary.boardSubtitle}
+                </p>
+              </div>
             </div>
 
             {/* Center Content based on Active Tab */}
-            <div className="my-4 flex-1 flex flex-col justify-center">
+            <div className="my-5 flex-1 flex flex-col justify-center">
+              {/* 1. TEACHER EXPLAINS TAB */}
               {activeBoardTab === 'teacher_explains' && (
-                <div className="space-y-3">
+                <div className="space-y-3 max-w-4xl mx-auto w-full">
                   {currentDepthArtifacts.teacherExplanation.map((step) => (
                     <div
                       key={step.stepNumber}
-                      className="bg-black/40 border border-emerald-800/50 rounded-2xl p-3 text-xs"
+                      className="bg-black/50 border border-emerald-800/70 rounded-2xl p-4 text-xs shadow-lg backdrop-blur-sm"
                     >
-                      <div className="flex items-center justify-between font-bold text-amber-200 mb-1">
-                        <span>{step.title}</span>
+                      <div className="flex items-center justify-between font-bold text-amber-200 text-sm mb-1.5">
+                        <span className="flex items-center gap-2">{step.title}</span>
                         <button
                           onClick={() => openEvidenceInspector(step.citations[0])}
-                          className="text-[10px] text-emerald-400 underline hover:text-emerald-300 flex items-center gap-1"
+                          className="text-[11px] text-emerald-400 underline hover:text-emerald-300 flex items-center gap-1 font-mono font-normal"
                         >
-                          <FileCheck2 className="w-3 h-3" /> Page {step.citations[0]?.physicalPage} Evidence
+                          <FileCheck2 className="w-3.5 h-3.5" /> Page {step.citations[0]?.physicalPage || currentPageNum} Evidence
                         </button>
                       </div>
-                      <p className="text-slate-200 leading-relaxed">{step.explanation}</p>
-                      <div className="mt-2 pt-2 border-t border-emerald-900/40 text-[11px] text-emerald-300/90 font-medium">
-                        💡 Socratic Probe: {step.socraticQuestion}
+                      <p className="text-slate-200 text-xs md:text-[13px] leading-relaxed font-normal">
+                        {step.explanation}
+                      </p>
+                      <div className="mt-2.5 pt-2 border-t border-emerald-900/60 text-[11.5px] text-emerald-300 font-medium flex items-center gap-1.5">
+                        <span>💡 Socratic Probe:</span>
+                        <span className="italic text-emerald-200">{step.socraticQuestion}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {activeBoardTab === 'visuals' && (
-                <div className="flex items-center justify-around gap-2 flex-wrap">
-                  {currentDepthArtifacts.visuals.steps.map((st, idx) => (
-                    <div
-                      key={idx}
-                      className="flex flex-col items-center text-center p-3 bg-black/40 border border-emerald-800/40 rounded-2xl min-w-[110px]"
-                    >
-                      <span className="text-3xl mb-1">{st.icon}</span>
-                      <span className="text-xs font-black text-amber-200">{st.label}</span>
-                      <span className="text-[10px] text-slate-300 mt-1 max-w-[120px]">
-                        {st.description}
+              {/* 2. VISUALS & REAL WORLD FLOW (MATCHING GRAPHICAL BOARD SPECIFICATION) */}
+              {(activeBoardTab === 'visuals' || activeBoardTab === 'board_summary') && (
+                <div className="space-y-5">
+                  {/* Top Horizontal Process Flow Steps */}
+                  <div className="flex items-center justify-center gap-3 md:gap-5 flex-wrap">
+                    {currentDepthArtifacts.visuals.steps.map((st, idx, arr) => (
+                      <React.Fragment key={idx}>
+                        <div className="flex flex-col items-center text-center p-3 bg-black/50 border border-emerald-700/60 rounded-2xl min-w-[125px] max-w-[150px] shadow-lg">
+                          <span className="text-4xl mb-1.5 transform hover:scale-110 transition drop-shadow">{st.icon}</span>
+                          <span className="text-xs font-black text-amber-300 tracking-wide">{st.label}</span>
+                          <span className="text-[10.5px] text-emerald-200/90 mt-1 leading-snug">
+                            {st.description}
+                          </span>
+                        </div>
+                        {idx < arr.length - 1 && (
+                          <span className="text-xl md:text-2xl text-amber-400 font-black hidden sm:inline select-none">
+                            ➔
+                          </span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  {/* Dual Lower Formula & Key Idea Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {/* Formula Card */}
+                    <div className="bg-black/60 border border-amber-600/60 rounded-2xl p-4 shadow-lg text-center flex flex-col justify-center">
+                      <span className="text-[11px] font-black uppercase text-amber-300 tracking-wider block mb-1.5">
+                        {currentDepthArtifacts.boardSummary.formulaBanner?.title || 'FORMULA PRINCIPLE'}
                       </span>
+                      <p className="text-xs md:text-sm font-mono font-bold text-amber-100 leading-relaxed">
+                        {currentDepthArtifacts.boardSummary.formulaBanner?.formula}
+                      </p>
                     </div>
-                  ))}
+
+                    {/* Key Idea Card */}
+                    <div className="bg-black/60 border border-emerald-600/60 rounded-2xl p-4 shadow-lg flex flex-col justify-center">
+                      <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1.5 mb-1">
+                        <span>💡</span>
+                        <span>{currentDepthArtifacts.boardSummary.keyTakeawayBox.heading}</span>
+                      </span>
+                      <p className="text-xs text-slate-200 leading-relaxed">
+                        {currentDepthArtifacts.boardSummary.keyTakeawayBox.text}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
+              {/* 3. REAL WORLD EXAMPLES */}
               {activeBoardTab === 'real_world' && (
-                <div className="space-y-3">
+                <div className="space-y-3.5 max-w-4xl mx-auto w-full">
                   {currentDepthArtifacts.realWorldExamples.map((ex, idx) => (
                     <div
                       key={idx}
-                      className="bg-black/40 border border-emerald-800/50 rounded-2xl p-4 text-xs"
+                      className="bg-black/50 border border-emerald-800/70 rounded-2xl p-4 text-xs shadow-lg"
                     >
-                      <h4 className="text-sm font-bold text-amber-200">{ex.scenarioTitle}</h4>
-                      <p className="text-slate-200 mt-1">{ex.context} {ex.application}</p>
-                      <div className="mt-2 text-[11px] text-emerald-300 font-medium">
-                        🌟 Why it matters: {ex.whyItMatters}
+                      <h4 className="text-sm font-bold text-amber-300 flex items-center gap-1.5">
+                        <span>🌟</span> {ex.scenarioTitle}
+                      </h4>
+                      <p className="text-slate-200 text-xs md:text-[13px] mt-1.5 leading-relaxed">
+                        {ex.context} {ex.application}
+                      </p>
+                      <div className="mt-2.5 pt-2 border-t border-emerald-900/60 text-[11.5px] text-emerald-300 font-medium">
+                        ✨ Why it matters: <span className="text-slate-200 font-normal">{ex.whyItMatters}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
+              {/* 4. KEY POINTS */}
               {activeBoardTab === 'key_points' && (
-                <div className="space-y-2.5">
+                <div className="space-y-3 max-w-4xl mx-auto w-full">
                   {currentDepthArtifacts.keyPoints.map((kp) => (
                     <div
                       key={kp.pointNumber}
-                      className="flex items-start gap-3 bg-black/40 border border-emerald-800/50 rounded-2xl p-3 text-xs"
+                      className="flex items-start gap-3.5 bg-black/50 border border-emerald-800/70 rounded-2xl p-4 text-xs shadow-lg"
                     >
-                      <div className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow">
                         {kp.pointNumber}
                       </div>
                       <div>
-                        <p className="text-amber-100 font-bold">{kp.takeaway}</p>
-                        <p className="text-[11px] text-emerald-300/80 mt-0.5">
+                        <p className="text-amber-200 font-bold text-sm leading-snug">{kp.takeaway}</p>
+                        <p className="text-[11.5px] text-emerald-300 mt-1 font-mono">
                           {kp.scientificPrinciple}
                         </p>
                       </div>
@@ -471,41 +535,21 @@ export function UniversalKnowledgeUniverseStudio({
                 </div>
               )}
 
-              {activeBoardTab === 'board_summary' && (
-                <div className="space-y-3">
-                  <div className="bg-emerald-950/60 border border-emerald-700/60 rounded-2xl p-3 text-center">
-                    <span className="text-[10px] font-black uppercase text-amber-300 block">
-                      {currentDepthArtifacts.boardSummary.formulaBanner?.title}
-                    </span>
-                    <span className="text-xs font-mono font-bold text-emerald-100 mt-1 block">
-                      {currentDepthArtifacts.boardSummary.formulaBanner?.formula}
-                    </span>
-                  </div>
-                  <div className="bg-black/40 border border-emerald-800/50 rounded-2xl p-3 text-xs text-center">
-                    <span className="text-[10px] font-black uppercase text-emerald-400 block mb-1">
-                      {currentDepthArtifacts.boardSummary.keyTakeawayBox.heading}
-                    </span>
-                    <p className="text-slate-200">
-                      {currentDepthArtifacts.boardSummary.keyTakeawayBox.text}
-                    </p>
-                  </div>
-                </div>
-              )}
-
+              {/* 6. PRINTABLE NOTES */}
               {activeBoardTab === 'printable_notes' && (
-                <div className="bg-black/40 border border-emerald-800/50 rounded-2xl p-4 text-xs space-y-2">
+                <div className="bg-black/50 border border-emerald-800/70 rounded-2xl p-5 text-xs max-w-4xl mx-auto w-full shadow-lg space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-amber-200">
-                      Printable Study Notes: {currentDepthArtifacts.printableNotes.chapterTitle}
+                    <h4 className="font-bold text-amber-300 text-sm">
+                      📄 Printable Student Summary: {currentDepthArtifacts.printableNotes.chapterTitle}
                     </h4>
                     <button
                       onClick={() => setShowPrintableModal(true)}
-                      className="text-xs text-purple-300 bg-purple-900/40 border border-purple-700 px-2 py-1 rounded hover:bg-purple-800"
+                      className="text-xs text-purple-200 bg-purple-900/60 border border-purple-600 px-3 py-1.5 rounded-xl hover:bg-purple-800 font-bold flex items-center gap-1.5 transition shadow"
                     >
-                      Open Full Sheet
+                      <Printer className="w-3.5 h-3.5" /> Open Full Print Sheet
                     </button>
                   </div>
-                  <ul className="list-disc pl-4 text-slate-300 space-y-1">
+                  <ul className="list-disc pl-5 text-slate-200 text-xs md:text-[13px] space-y-1.5 leading-relaxed">
                     {currentDepthArtifacts.printableNotes.whatILearned.map((w, idx) => (
                       <li key={idx}>{w}</li>
                     ))}
@@ -515,8 +559,8 @@ export function UniversalKnowledgeUniverseStudio({
             </div>
 
             {/* Chalkboard Footer Banner */}
-            <div className="pt-2 border-t border-[#173a26] flex items-center justify-between text-[11px] text-emerald-400/80 font-mono">
-              <span>CANONICAL EVS CLASS 5</span>
+            <div className="pt-2.5 border-t border-[#1a4a30] flex items-center justify-between text-[11px] text-emerald-400 font-mono">
+              <span className="flex items-center gap-1">🌿 CANONICAL EVS CLASS 5</span>
               <span>CHAPTER {ch.chapterNumber} • 540 ARTIFACT ENGINE</span>
             </div>
           </div>
@@ -649,7 +693,7 @@ export function UniversalKnowledgeUniverseStudio({
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2 font-black text-sm text-cyan-300">
                 <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                <span>EVIDENCE INSPECTOR • REGION-LEVEL PROVENANCE</span>
+                <span>DYNAMIC EVIDENCE PROVENANCE INSPECTOR</span>
               </div>
               <button
                 onClick={() => setShowEvidenceModal(false)}
@@ -658,40 +702,40 @@ export function UniversalKnowledgeUniverseStudio({
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto">
-              <div className="relative border border-slate-700 rounded-2xl overflow-hidden bg-black flex items-center justify-center">
-                <img
-                  src={`/textbooks/evs-class-5/page-${selectedCitation.physicalPage}.png`}
-                  alt={`Page ${selectedCitation.physicalPage}`}
-                  className="max-h-[400px] object-contain"
-                />
-                {/* Highlight Bounding Box */}
-                <div
-                  className="absolute border-2 border-cyan-400 bg-cyan-500/20 pointer-events-none rounded animate-pulse"
-                  style={{
-                    left: `${(activeEvidenceCitation?.bbox?.x || 80) / 12}%`,
-                    top: `${(activeEvidenceCitation?.bbox?.y || 150) / 16.8}%`,
-                    width: `${(activeEvidenceCitation?.bbox?.width || 980) / 12}%`,
-                    height: `${(activeEvidenceCitation?.bbox?.height || 550) / 16.8}%`,
-                  }}
-                />
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/80 text-xs">
+                <span className="text-[10px] font-bold text-cyan-400 uppercase block mb-1">
+                  Source Evidence Snippet:
+                </span>
+                <p className="text-slate-200 italic leading-relaxed">
+                  "{selectedCitation.sourceTextSnippet}"
+                </p>
+                <div className="mt-2 text-[10px] font-mono text-cyan-300 flex items-center justify-between">
+                  <span>Physical Page: {selectedCitation.physicalPage}</span>
+                  <span>Block ID: {selectedCitation.blockId}</span>
+                  <span>Confidence: {((selectedCitation.confidence || 0.98) * 100).toFixed(1)}%</span>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-3 text-xs">
-                <div className="bg-[#080d1a] p-3 rounded-xl border border-slate-800">
-                  <span className="text-[10px] font-bold text-slate-400 block">SOURCE CITATION IDENTITY</span>
-                  <p className="font-mono text-cyan-300 mt-1">Physical Page: {selectedCitation.physicalPage}</p>
-                  <p className="font-mono text-slate-400">Block ID: {selectedCitation.blockId}</p>
-                  <p className="font-mono text-slate-400">Confidence: {(selectedCitation.confidence * 100).toFixed(1)}%</p>
-                </div>
-                <div className="bg-[#080d1a] p-3 rounded-xl border border-slate-800">
-                  <span className="text-[10px] font-bold text-slate-400 block">TEXTBOOK EVIDENCE SNIPPET</span>
-                  <p className="text-slate-200 mt-1 italic">"{selectedCitation.sourceTextSnippet}"</p>
-                </div>
-                <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-emerald-300">
-                  ✓ Invariant Verified: No teaching statement published without verified physical scan provenance.
-                </div>
+              {/* Scanned Image Preview with Real Bounding Box Overlay */}
+              <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-black flex items-center justify-center p-2">
+                <img
+                  src={`/textbooks/evs-class-5/page-${selectedCitation.physicalPage}.png`}
+                  alt={`Scanned Physical Page ${selectedCitation.physicalPage}`}
+                  className="max-h-[50vh] object-contain rounded-lg"
+                />
+                {selectedCitation.bbox && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: `${(selectedCitation.bbox.x / 1200) * 100}%`,
+                      top: `${(selectedCitation.bbox.y / 1680) * 100}%`,
+                      width: `${(selectedCitation.bbox.width / 1200) * 100}%`,
+                      height: `${(selectedCitation.bbox.height / 1680) * 100}%`,
+                    }}
+                    className="border-2 border-amber-400 bg-amber-400/25 rounded animate-pulse pointer-events-none"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -780,7 +824,8 @@ export function UniversalKnowledgeUniverseStudio({
           </div>
         </div>
       )}
-    {showTaskInspector && <EnginePipelineTaskInspector onClose={() => setShowTaskInspector(false)} />}
-</div>
+
+      {showTaskInspector && <EnginePipelineTaskInspector onClose={() => setShowTaskInspector(false)} />}
+    </div>
   );
 }

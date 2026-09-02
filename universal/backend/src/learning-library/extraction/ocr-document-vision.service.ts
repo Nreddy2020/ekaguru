@@ -41,16 +41,12 @@ export interface PageVisionResult {
 export class OcrDocumentVisionService {
   private readonly logger = new Logger(OcrDocumentVisionService.name);
 
-  /**
-   * Genuine OCR Document Vision: Runs Tesseract OCR on the actual page image,
-   * extracts real lines, real words, confidences, and exact bounding boxes.
-   */
   public async processPageVision(
     physicalPageNumber: number,
     imagePath: string
   ): Promise<PageVisionResult> {
     if (!fs.existsSync(imagePath)) {
-      throw new Error(`Physical page image not found: ${imagePath}`);
+      throw new Error(`Physical page scan not found: ${imagePath}`);
     }
 
     const worker = await createWorker('eng');
@@ -85,9 +81,9 @@ export class OcrDocumentVisionService {
             });
 
             let type: DocumentVisionBlockRecord['type'] = 'paragraph';
-            if (lineText.length < 35 && (lineText.includes('Chapter') || lineText.includes('Growing Up') || lineText.includes('Outcomes') || lineText.includes('Living Things'))) {
+            if (lineText.length < 40 && (lineText.includes('Chapter') || lineText.includes('Growing Up') || lineText.includes('Outcomes') || lineText.includes('Living Things'))) {
               type = 'heading';
-            } else if (lineText.includes('Activity') || lineText.includes('Point') || lineText.includes('Paste')) {
+            } else if (lineText.includes('Activity') || lineText.includes('Point') || lineText.includes('Paste') || lineText.includes('Draw')) {
               type = 'activity';
             }
 

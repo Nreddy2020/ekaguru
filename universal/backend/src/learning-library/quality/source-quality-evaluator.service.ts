@@ -20,9 +20,6 @@ export interface PageQualityReportRecord {
 export class SourceQualityEvaluatorService {
   private readonly logger = new Logger(SourceQualityEvaluatorService.name);
 
-  /**
-   * 100% Dynamic Quality Score calculation derived from extracted OCR geometry.
-   */
   public evaluateQuality(vision: PageVisionResult): PageQualityReportRecord {
     const ocrConfidence = Number(vision.averageWordConfidence.toFixed(3));
     
@@ -46,10 +43,10 @@ export class SourceQualityEvaluatorService {
 
     if (overallQualityScore < 0.5) {
       status = 'REJECTED';
-      issues.push('Critical page degradation: OCR confidence and text density below threshold');
+      issues.push('Critical degradation: OCR confidence below threshold');
     } else if (overallQualityScore < 0.75) {
       status = 'NEEDS_RETRY';
-      issues.push('Moderate degradation: secondary re-deskew pass required');
+      issues.push('Moderate degradation: re-deskew pass required');
     }
 
     return {

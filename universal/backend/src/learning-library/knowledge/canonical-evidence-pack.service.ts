@@ -48,9 +48,6 @@ export interface CanonicalEvidencePack {
 export class CanonicalEvidencePackService {
   private readonly logger = new Logger(CanonicalEvidencePackService.name);
 
-  /**
-   * Constructs an immutable CanonicalEvidencePack using REAL OCR vision blocks.
-   */
   public buildChapterEvidencePack(
     bookId: string,
     chapterNumber: number,
