@@ -73,16 +73,29 @@ export interface IngestedBookModel {
 }
 
 export class BookStorageService {
-  private static STORAGE_KEY = 'ekaguru_canonical_real_18ch_v6';
+  private static STORAGE_KEY = 'ekaguru_canonical_real_18ch_116pages_v2';
 
   public static getBooks(): IngestedBookModel[] {
-    if (typeof window === 'undefined') return [];
+    if (typeof window === 'undefined') return [this.generateDefaultRealBook('evs-class-5')];
     const saved = localStorage.getItem(this.STORAGE_KEY);
-    if (!saved) return [];
+    if (!saved) {
+      const defaultBooks = [this.generateDefaultRealBook('evs-class-5')];
+      this.saveBooks(defaultBooks);
+      return defaultBooks;
+    }
     try {
-      return JSON.parse(saved);
+      const parsed: IngestedBookModel[] = JSON.parse(saved);
+      if (!parsed || parsed.length === 0) {
+        const defaultBooks = [this.generateDefaultRealBook('evs-class-5')];
+        this.saveBooks(defaultBooks);
+        return defaultBooks;
+      }
+      return parsed.map((b) => ({
+        ...b,
+        totalPages: Math.max(b.totalPages || 0, 116),
+      }));
     } catch {
-      return [];
+      return [this.generateDefaultRealBook('evs-class-5')];
     }
   }
 
@@ -94,7 +107,12 @@ export class BookStorageService {
   public static getBookById(id: string): IngestedBookModel | undefined {
     const books = this.getBooks();
     const found = books.find((b) => b.id === id);
-    if (found) return found;
+    if (found) {
+      return {
+        ...found,
+        totalPages: Math.max(found.totalPages || 0, 116),
+      };
+    }
 
     // Default seeded fallback dynamically constructed from 18 real chapters
     return this.generateDefaultRealBook(id);
