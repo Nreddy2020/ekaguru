@@ -125,17 +125,17 @@ Operating details: guru-quality-and-mastery-gates.md. Evidence: ekaguru-implemen
 
 ## Remaining release requirements
 
-These are tracked requirements, not claims of completed implementation:
-- Configure GEMINI_API_KEY and GURU_MODEL; run real vision, explanations, diagrams and grading evaluations across subjects, ages and languages. There is no provider key configured in this workspace.
-- Prepare and score the educator evaluation corpus (infrastructure now exists; no lesson has been generated or scored because no provider key is configured). A second call to the same model does not replace educator review.
-- Re-extract affected legacy documents and verify concept mappings per lesson before enabling the mastery bridge (`GURU_MASTERY_BRIDGE=enabled`). Built-in scans have no extraction provenance and need manual curator links. Add a learner selector for shared parent accounts and builtin books.
-- Durable queued lesson generation, per-user budgets and a database-backed page-evidence cache are implemented (11 September 2026). Still needed before broad deployment: queued OCR for first-time uploads, client-initiated cancellation of jobs, and load tests on a production build.
-- Add human extraction review/correction, verified semantic chapter manifests, prerequisite retrieval and general doubt-driven branching.
-- Extend board source rendering beyond PDFs/images. Existing DOCX/EPUB/text ingestion remains, but those formats do not yet have trustworthy physical-page board renderers.
-- Add broader UI localization, tested speech voices, right-to-left diagram layout, offline teaching packs and accessibility audits.
-- Resolve the legacy Socratic API/test contract mismatch detailed in the validation report.
+These are tracked requirements, not claims of completed implementation (refreshed 11 September 2026, evening):
+- Prepare and score the educator evaluation corpus. Infrastructure exists and one page is prepared at five depths; the Gemini free tier (20 requests per day per model) blocks the rest until billing is enabled, and no educator has scored a case. A second call to the same model does not replace educator review.
+- Verify concept mappings per lesson (manual links for built-in scans through the curation panel) and reach the corpus threshold before enabling the mastery bridge (`GURU_MASTERY_BRIDGE=enabled`).
+- Live-verify the OpenAI provider path (mocked only) and run vision, explanation, diagram and grading evaluations across subjects, ages and languages.
+- Hardening still open: queued OCR for first-time uploads, client-initiated cancellation of generation jobs, load tests on a production build with several replicas, a real mail delivery webhook for recovery, deployment baselining of the database migration history.
+- Add human extraction review and correction, verified semantic chapter manifests, prerequisite retrieval and general doubt-driven branching.
+- Extend board source rendering beyond PDFs and images; DOCX, EPUB and text ingestion exist but have no trustworthy physical-page renderer.
+- Add broader UI localization, tested speech voices, right-to-left diagram layout, offline teaching packs and a screen-reader accessibility audit.
+- PRD loops not yet on the page board: reflection and teach-back, transfer testing, fear and confidence signals, and the Python diagnosis loop.
 
-Global uniqueness and “best in the world” require comparative evidence and demonstrated learner outcomes. They are product ambitions, not assertions justified by this implementation.
+Global uniqueness and "best in the world" require comparative evidence and demonstrated learner outcomes. They are product ambitions, not assertions justified by this implementation.
 
 ## Operation
 

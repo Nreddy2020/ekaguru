@@ -17,13 +17,15 @@ A learner opens their own textbook page in the already approved EKAGURU classroo
 - Store local PDFs in IndexedDB; distinguish device-local originals from authorized server materials.
 - Continue existing Gemini support while implementing the user's requested OpenAI option through the same model boundary.
 
-## Milestones and acceptance
-1. Source-grounded pipeline and durable runtime: implemented. Source/hash checks, schema validation, checkpoint guards and idempotent sessions have tests. Live model quality is unverified.
-2. Approved UI integration and Open Book repair: implemented. Normal routes use the approved shell; older metadata-only uploads expose original-PDF recovery. Automated frontend checks pass. In-app browser verification passed for a generated two-page PDF: real upload, persisted original after refresh, page-two URL and refresh, correct plant content, automatic progression to blocked recall checkpoint, source answer enabling Next. Production frontend build passed.
-3. Configurable OpenAI multimodal provider: code and mocked transport verification complete; live-provider acceptance BLOCKED on a configured API key and authorization for evaluation calls. Gemini remains the default for existing installations. The 12 provider tests plus 20 Guru runtime tests pass. This does not establish model quality or production endpoint/account compatibility.
-4. Authenticated upload bridge for local PDFs: pending. Prerequisites: verify signed-in learner selection, the 50 MB server limit versus 200 MB local limit, and content identity in the legacy server upload deduplication (currently title/name/size). Reuse real learner ownership and backend ingestion; a scanned local PDF must reach actual OCR/vision and the correct page lesson without identity substitution.
-5. Educator-reviewed teaching quality and canonical concept mapping: pending. Build a representative page/level evaluation set before connecting page answers to mastery.
-6. Production hardening: pending. Access control regression, mobile/keyboard usability, interruption/resume, storage quota and retry behavior, rate/cost limits, multilingual output and deployment migration baseline.
+## Milestones and acceptance (status as of 11 September 2026, evening)
+1. Source-grounded pipeline and durable runtime: implemented and live-verified for EVS page 46 at all five depths with Gemini. Durable job queue, persisted page evidence, cacheable image delivery and per-account budgets added.
+2. Approved UI integration and Open Book repair: implemented; small-screen jump links added.
+3. Configurable provider: Gemini live-verified; OpenAI path still only mocked (no key).
+4. Authenticated upload bridge for local PDFs: implemented and verified end to end (byte identity, owned upload, page evidence, signed image links); verified authentication, recovery and email verification in place. Remaining: password recovery mail needs a real delivery webhook; first-time OCR of an uploaded scan still runs inside the request.
+5. Educator-reviewed teaching quality and canonical concept mapping: infrastructure complete (rubric, corpus of 185 cases, curator pages, concept-mapping panel, gated mastery bridge). Blocked on people and money: no educator score exists yet, and the Gemini free tier (20 requests per day) prevents preparing the corpus; the bridge therefore stays closed.
+6. Production hardening: partly done (rate/cost limits, durable jobs, evidence cache, mobile reflow, honest mastery statements, full suites green). Remaining: queued OCR for first-time uploads, job cancellation, load tests on a production build with replicas, accessibility audit with a screen reader, deployment baseline of the database migration history, mail delivery, tested speech voices and localization.
+7. Learning-science loops: spaced review of practised pages implemented; still missing from the PRD are the reflection and teach-back agent, transfer testing, fear and confidence signals, and connecting the Python diagnosis loop to the page board.
+8. Outcome evidence: not started. A learner pilot with pre and post measures and an educator-reviewed corpus are what would justify any "world reference" claim.
 
 ## Current evidence
 - Full frontend: 23 suites, 113 tests pass; existing PDF-viewer mock warnings remain.
