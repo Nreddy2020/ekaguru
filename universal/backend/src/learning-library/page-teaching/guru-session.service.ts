@@ -340,6 +340,7 @@ export class GuruSessionService {
           payloadHash,
           result: {
             ...result,
+            kind: input.kind,
             sourceHash: session.artifact.sourceHash,
             actionId: action.id,
             response: input.answer || null,

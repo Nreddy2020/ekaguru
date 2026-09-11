@@ -28,6 +28,7 @@ import { DEPTHS, Depth } from "./guru-plan.schema";
 import { GuruUsageService } from "./guru-usage.service";
 import { GuruMasteryBridgeService } from "./guru-mastery-bridge.service";
 import { GuruGenerationQueueService } from "./guru-generation-queue.service";
+import { GuruActivityService } from "./guru-activity.service";
 
 export class GuruPreferencesDto {
   @IsIn(DEPTHS) depth: Depth = "basis";
@@ -54,6 +55,7 @@ export class GuruController {
     private readonly usage: GuruUsageService,
     private readonly bridge: GuruMasteryBridgeService,
     private readonly queue: GuruGenerationQueueService,
+    private readonly activity: GuruActivityService,
   ) {}
   @Get("guru/capabilities") capabilities() {
     return {
@@ -107,6 +109,12 @@ export class GuruController {
     }
     res?.status?.(202);
     return { job };
+  }
+  /** Parent-facing activity for an owned learner; the guard resolves learnerId ownership. */
+  @Get("guru/learners/:learnerId/activity")
+  @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
+  learnerActivity(@Param("learnerId") learnerId: string) {
+    return this.activity.forLearner(learnerId);
   }
   @Get("guru/jobs/:id")
   @UseGuards(JwtAuthGuard)

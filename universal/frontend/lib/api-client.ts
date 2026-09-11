@@ -237,6 +237,9 @@ export const api = {
     getParentLearnerAnalytics: (learnerId: string) =>
         apiCall<{ data: any }>(`/api/v2/parent/learners/${learnerId}/analytics`),
 
+    getGuruLearnerActivity: (learnerId: string) =>
+        apiCall<any>(`/api/v2/guru/learners/${learnerId}/activity`),
+
     getParentLearnerMastery: (learnerId: string) =>
         apiCall<{ data: any }>(`/api/v2/parent/learners/${learnerId}/mastery`),
 

@@ -16,6 +16,48 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 
+interface GuruActivityEvent {
+  at: string;
+  kind: "answer" | "help" | "question" | "navigation";
+  passed: boolean | null;
+  confidence: number | null;
+  misconception: string | null;
+  masteryUpdated: boolean;
+  masteryNote: string | null;
+  response: string | null;
+  feedback: string | null;
+}
+interface GuruActivitySession {
+  id: string;
+  bookId: string;
+  physicalPage: number;
+  title: string;
+  depth: string;
+  language: string;
+  startedAt: string;
+  lastActivityAt: string;
+  progress: { position: number; total: number; completed: boolean };
+  checkpoints: { passed: number; assisted: number; attempts: number };
+  questions: number;
+  masteryRecorded: number;
+  events: GuruActivityEvent[];
+}
+interface GuruActivity {
+  learnerId: string;
+  summary: {
+    sessions: number;
+    pagesPracticed: number;
+    checkpointsPassed: number;
+    assistedCheckpoints: number;
+    attempts: number;
+    questionsAsked: number;
+    masteryRecorded: number;
+    misconceptions: { text: string; count: number }[];
+  };
+  sessions: GuruActivitySession[];
+  explanation: string[];
+}
+
 interface Learner {
   id: string;
   name: string;
@@ -57,6 +99,8 @@ export default function ParentDashboard() {
   const [learners, setLearners] = useState<Learner[]>([]);
   const [selectedLearner, setSelectedLearner] = useState<Learner | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [guruActivity, setGuruActivity] = useState<GuruActivity | null>(null);
+  const [guruActivityError, setGuruActivityError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [analyticsLoading, setAnalyticsLoading] = useState<boolean>(false);
@@ -140,6 +184,31 @@ export default function ParentDashboard() {
       }
     }
     loadAnalytics();
+  }, [selectedLearner]);
+
+  // Guru classroom activity for the active learner (evidence-backed, from the session ledger)
+  useEffect(() => {
+    if (!selectedLearner) {
+      setGuruActivity(null);
+      return;
+    }
+    let live = true;
+    setGuruActivity(null);
+    setGuruActivityError(null);
+    api
+      .getGuruLearnerActivity(selectedLearner.id)
+      .then((res: any) => {
+        if (!live) return;
+        const data = res?.summary ? res : res?.data;
+        if (data?.summary) setGuruActivity(data as GuruActivity);
+        else setGuruActivityError("Guru activity is unavailable right now.");
+      })
+      .catch(() => {
+        if (live) setGuruActivityError("Guru activity is unavailable right now.");
+      });
+    return () => {
+      live = false;
+    };
   }, [selectedLearner]);
 
   // Handle child onboarding submission
@@ -617,6 +686,94 @@ export default function ParentDashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* 5. Guru classroom activity (evidence-backed) */}
+                <section
+                  aria-label="Guru classroom activity"
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200"
+                >
+                  <h3 className="text-lg font-bold text-slate-800 mb-1">Guru classroom activity</h3>
+                  <p className="text-sm text-slate-500 mb-4">
+                    What Guru actually did with {selectedLearner?.name} on real textbook pages. Every number below comes from the saved session record.
+                  </p>
+                  {guruActivityError && <p role="alert" className="text-sm text-amber-700">{guruActivityError}</p>}
+                  {!guruActivity && !guruActivityError && <p role="status" className="text-sm text-slate-500">Loading Guru activity…</p>}
+                  {guruActivity && guruActivity.summary.sessions === 0 && (
+                    <p className="text-sm text-slate-500">No Guru sessions yet. Open a textbook page, choose this learner in Guru settings, and press Teach with Guru.</p>
+                  )}
+                  {guruActivity && guruActivity.summary.sessions > 0 && (
+                    <div className="space-y-5">
+                      <dl className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                        {[
+                          ["Pages practised", guruActivity.summary.pagesPracticed],
+                          ["Checkpoints passed independently", guruActivity.summary.checkpointsPassed],
+                          ["Checkpoint attempts", guruActivity.summary.attempts],
+                          ["Assisted checkpoints", guruActivity.summary.assistedCheckpoints],
+                          ["Questions asked", guruActivity.summary.questionsAsked],
+                          ["Mastery evidence recorded", guruActivity.summary.masteryRecorded],
+                        ].map(([label, value]) => (
+                          <div key={String(label)} className="rounded-xl bg-slate-50 p-3">
+                            <dt className="text-xs uppercase tracking-wide text-slate-500">{label}</dt>
+                            <dd className="text-2xl font-black text-slate-800" data-testid={"guru-" + String(label).toLowerCase().replace(/[^a-z]+/g, "-")}>{value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                      {guruActivity.summary.misconceptions.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-slate-800">Ideas worth talking about together</h4>
+                          <ul className="mt-1 list-disc pl-5 text-sm text-slate-700">
+                            {guruActivity.summary.misconceptions.map((m) => (
+                              <li key={m.text}>{m.text}{m.count > 1 ? " (seen " + m.count + " times)" : ""}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <ul className="space-y-3">
+                        {guruActivity.sessions.map((session) => (
+                          <li key={session.id} className="rounded-xl border border-slate-200 p-4">
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <span className="font-semibold text-slate-800">
+                                {session.title} · {session.bookId} page {session.physicalPage} · {session.depth}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {new Date(session.lastActivityAt).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-sm text-slate-600">
+                              Progress {session.progress.position} of {session.progress.total}{session.progress.completed ? " (page complete)" : ""} · {session.checkpoints.passed} passed independently · {session.checkpoints.assisted} assisted · {session.questions} questions
+                            </p>
+                            {session.events.length > 0 && (
+                              <ul className="mt-2 space-y-1 text-sm">
+                                {session.events.slice(-5).map((event, i) => (
+                                  <li key={i} className="rounded bg-slate-50 p-2">
+                                    <span className="font-medium">
+                                      {event.kind === "answer" ? (event.passed ? "Checkpoint passed" : "Checkpoint not yet passed") : event.kind === "help" ? "Asked Guru to teach again" : "Asked a page question"}
+                                    </span>
+                                    {event.response && <span className="text-slate-600"> · &ldquo;{event.response}&rdquo;</span>}
+                                    {event.feedback && <div className="text-xs text-slate-500">Guru: {event.feedback}</div>}
+                                    {event.kind === "answer" && (
+                                      <div className="text-xs text-slate-500">
+                                        {event.masteryUpdated ? "Recorded toward concept mastery." : "Recorded as page practice; concept mastery unchanged."}
+                                      </div>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                      <details className="text-xs text-slate-500">
+                        <summary className="cursor-pointer">How these numbers are counted</summary>
+                        <ul className="mt-1 list-disc pl-5">
+                          {guruActivity.explanation.map((line, i) => (
+                            <li key={i}>{line}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    </div>
+                  )}
+                </section>
 
               </div>
             )}

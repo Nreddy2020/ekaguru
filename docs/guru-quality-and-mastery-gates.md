@@ -72,6 +72,10 @@ A worker inside each backend process claims jobs with compare-and-swap (`QUEUED`
 | `GURU_JOB_MAX_ATTEMPTS` | 2 | Attempts before a transient failure becomes permanent. |
 | `GURU_JOB_STALE_MINUTES` | 15 | Age after which a RUNNING job is treated as abandoned. |
 
+## Parent visibility
+
+`GET /api/v2/guru/learners/:learnerId/activity` (owner or ADMIN, enforced by the learning-library guard) derives a parent-facing view from the idempotent session ledger: pages practised, checkpoints passed independently, attempts, assisted checkpoints, page questions, mastery evidence recorded, and Guru's stated misconceptions with counts, plus per-session progress and the last events with the learner's own words and Guru's feedback. Session events now store their kind. The parent dashboard shows this as "Guru classroom activity" with a plain-language explanation of how each number is counted; assisted practice never counts as independent understanding and mastery stays at zero until the bridge gates open.
+
 ## Account recovery and email ownership
 
 Password reset and email verification use single-use, hashed, expiring tokens (`ParentRecoveryToken`). A completed reset sets the password, increments `ParentCredential.credentialVersion` so older sessions are rejected, and marks the email verified, which is how legacy accounts without a credential are claimed. Delivery goes through `MailerService`:
