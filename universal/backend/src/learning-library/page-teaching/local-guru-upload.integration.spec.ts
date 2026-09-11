@@ -76,7 +76,11 @@ describe("Local PDF to authenticated Guru source (real database and storage)",()
    expect(page.body.bookId).toBe(materialId);expect(page.body.physicalPage).toBe(2);expect(page.body.totalPages).toBe(2);
    const text=page.body.blocks.map((b:any)=>b.text).join(" ");
    expect(text).toContain("Plants");expect(text).not.toContain("triangle");
-   expect(page.body.imageDataUrl).toMatch(/^data:image/);
+   expect(page.body.imageDataUrl).toBeUndefined();expect(page.body.imageUrl).toMatch(new RegExp(String.raw`^/api/v2/learning-materials/${materialId}/pages/2/image\?exp=\d+&sig=`));
+   const image=await request(app.getHttpServer()).get(page.body.imageUrl).expect(200);
+   expect(image.headers["content-type"]).toBe("image/png");expect(image.headers["cache-control"]).toBe("private, max-age=3600");expect(image.headers["etag"]).toBe('"'+page.body.sourceHash+'"');
+   await request(app.getHttpServer()).get(page.body.imageUrl.replace(/sig=.{4}/,"sig=zzzz")).expect(403);
+   await request(app.getHttpServer()).get(page.body.imageUrl.replace(/exp=\d+/,"exp=1")).expect(403);
    await request(app.getHttpServer()).get("/api/v2/learning-materials/"+materialId+"/pages/2/evidence").set("Authorization","Bearer "+other).expect(403);
  },30000);
 });

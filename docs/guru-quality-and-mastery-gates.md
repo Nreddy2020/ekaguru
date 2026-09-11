@@ -74,7 +74,7 @@ A worker inside each backend process claims jobs with compare-and-swap (`QUEUED`
 
 ## Persisted page evidence
 
-`GuruPageEvidence` stores the reliable blocks, dimensions, status and provenance for each (book, physical page, source hash), never the image. OCR and native-PDF extraction run once per page revision across restarts and replicas; the image is regenerated from the source bytes on every read, so the source of truth stays the original file. Cache reads and writes are best effort: if the table is unreachable the evidence is computed as before and the lesson never depends on the write.
+`GuruPageEvidence` stores the reliable blocks, dimensions, status and provenance for each (book, physical page, source hash), never the image. Evidence responses no longer embed the scan either: they carry an `imageUrl`. Built-in scans come from `GET /api/v2/textbooks/:bookId/pages/:page/image` with an immutable cache policy and an ETag equal to the source hash; private uploads come from a signed, expiring URL issued with the evidence (`exp` and an HMAC `sig` over material, page and expiry, keyed by the server signing secret), because an `<img>` cannot carry a bearer token. OCR and native-PDF extraction run once per page revision across restarts and replicas; the image is regenerated from the source bytes on every read, so the source of truth stays the original file. Cache reads and writes are best effort: if the table is unreachable the evidence is computed as before and the lesson never depends on the write.
 
 ## Parent visibility
 

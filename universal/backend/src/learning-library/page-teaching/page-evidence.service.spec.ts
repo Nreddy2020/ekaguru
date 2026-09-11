@@ -26,6 +26,85 @@ describe("page evidence boundary", () => {
       ),
     ).toEqual([JwtAuthGuard, LearningLibraryAuthGuard]);
   });
+  it("signs private image links, rejects tampering and expiry, and never signs builtin links", () => {
+    const previous = process.env.JWT_SECRET;
+    process.env.JWT_SECRET = "spec-secret-that-is-long-enough-for-tests-1234";
+    try {
+      const url = service.signedMaterialImageUrl("material-1", 3);
+      const params = new URL("http://x" + url).searchParams;
+      const exp = Number(params.get("exp"));
+      const sig = params.get("sig")!;
+      expect(url.startsWith("/api/v2/learning-materials/material-1/pages/3/image?")).toBe(true);
+      expect(service.verifyImageSignature("material-1", 3, exp, sig)).toBe(true);
+      expect(service.verifyImageSignature("material-1", 4, exp, sig)).toBe(false);
+      expect(service.verifyImageSignature("material-2", 3, exp, sig)).toBe(false);
+      expect(service.verifyImageSignature("material-1", 3, exp, sig.slice(0, -1) + "x")).toBe(false);
+      expect(service.verifyImageSignature("material-1", 3, Date.now() - 1000, service.imageSignature("material-1", 3, Date.now() - 1000))).toBe(false);
+      expect(service.builtinImageUrl("evs-class-5", 46, "abcdef0123456789abcdef")).toBe("/api/v2/textbooks/evs-class-5/pages/46/image?v=abcdef0123456789");
+    } finally {
+      if (previous === undefined) delete process.env.JWT_SECRET;
+      else process.env.JWT_SECRET = previous;
+    }
+  });
+});
+
+describe("page image delivery", () => {
+  const png = Buffer.from("89504e470d0a1a0a", "hex");
+  const evidence = {
+    bookId: "evs-class-5",
+    physicalPage: 46,
+    sourceHash: "hash-46",
+    blocks: [{ blockId: "b1" }],
+    imageDataUrl: "data:image/png;base64,AAAA",
+    imageBytes: png,
+    status: "READY",
+  };
+  function fakeRes() {
+    const res: any = { headers: {} as Record<string, string>, statusCode: 0, body: undefined };
+    res.setHeader = (k: string, v: string) => (res.headers[k] = v);
+    res.status = (code: number) => ((res.statusCode = code), res);
+    res.send = (body: any) => ((res.body = body), res);
+    res.end = () => res;
+    return res;
+  }
+  const svc: any = {
+    builtin: jest.fn(async () => evidence),
+    material: jest.fn(async () => evidence),
+    publicView: PageEvidenceService.prototype.publicView,
+    builtinImageUrl: PageEvidenceService.prototype.builtinImageUrl,
+    verifyImageSignature: jest.fn(() => false),
+    signedMaterialImageUrl: jest.fn(() => "/signed"),
+  };
+  const controller = new PageEvidenceController(svc);
+  it("returns evidence without the image and with a cacheable image link", async () => {
+    const view: any = await controller.builtin("evs-class-5", "46");
+    expect(view.imageDataUrl).toBeUndefined();
+    expect(view.imageBytes).toBeUndefined();
+    expect(view.imageUrl).toBe("/api/v2/textbooks/evs-class-5/pages/46/image?v=hash-46");
+    expect(view.blocks).toEqual([{ blockId: "b1" }]);
+  });
+  it("serves the PNG with an immutable cache policy and honours If-None-Match", async () => {
+    const res = fakeRes();
+    await controller.builtinImage("evs-class-5", "46", undefined, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["Content-Type"]).toBe("image/png");
+    expect(res.headers["Cache-Control"]).toContain("immutable");
+    expect(res.headers["ETag"]).toBe('"hash-46"');
+    expect(res.body).toBe(png);
+    const cached = fakeRes();
+    await controller.builtinImage("evs-class-5", "46", '"hash-46"', cached);
+    expect(cached.statusCode).toBe(304);
+    expect(cached.body).toBeUndefined();
+  });
+  it("refuses private images without a valid signature and never loads the material", async () => {
+    await expect(controller.materialImage("m1", "2", "123", "bad", undefined, fakeRes())).rejects.toThrow("invalid or has expired");
+    expect(svc.material).not.toHaveBeenCalled();
+    svc.verifyImageSignature.mockReturnValueOnce(true);
+    const res = fakeRes();
+    await controller.materialImage("m1", "2", "123", "good", undefined, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["Cache-Control"]).toBe("private, max-age=3600");
+  });
 });
 
 describe("persisted page evidence", () => {

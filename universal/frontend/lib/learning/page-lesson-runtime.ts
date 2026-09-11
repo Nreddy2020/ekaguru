@@ -9,7 +9,9 @@ export interface PageEvidence {
   sourceHash: string;
   width: number;
   height: number;
-  imageDataUrl: string;
+  /** Local (IndexedDB) pages carry the rendered image inline; server pages link to a cacheable image. */
+  imageDataUrl?: string;
+  imageUrl?: string;
   status: "READY" | "NEEDS_REVIEW";
   omittedBlockCount: number;
   blocks: {

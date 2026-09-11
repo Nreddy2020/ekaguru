@@ -355,7 +355,13 @@ export function PageGroundedStudio({
           }}
         >
           <img
-            src={active.imageDataUrl}
+            src={
+              active.imageUrl
+                ? (active.imageUrl.startsWith("/")
+                    ? (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:20000") + active.imageUrl
+                    : active.imageUrl)
+                : active.imageDataUrl || ""
+            }
             alt={"Original physical page " + pageNumber}
             className="block w-full rounded"
           />

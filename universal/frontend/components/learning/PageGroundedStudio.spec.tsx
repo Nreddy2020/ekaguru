@@ -170,3 +170,12 @@ it("links the textbook panel and the Guru board both ways for small screens", as
   fireEvent.click(screen.getByRole("link", { name: /Jump to the Guru board/ }));
   expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
 });
+it("loads server page scans from the cacheable image link instead of an inline data URL", async () => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ ...source, imageDataUrl: undefined, imageUrl: "/api/v2/textbooks/maths-class-5/pages/1/image?v=abc" }),
+  });
+  render(<PageGroundedStudio bookId="maths-class-5" />);
+  const img = await screen.findByAltText("Original physical page 1");
+  expect(img.getAttribute("src")).toMatch(/\/api\/v2\/textbooks\/maths-class-5\/pages\/1\/image\?v=abc$/);
+});

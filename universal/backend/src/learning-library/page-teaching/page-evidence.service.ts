@@ -7,7 +7,8 @@ import {
 } from "@nestjs/common";
 import { promises as fs } from "fs";
 import * as path from "path";
-import { createHash } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
+import { authSigningSecret } from "../../auth/auth-config";
 import { OcrDocumentVisionService } from "../extraction/ocr-document-vision.service";
 import { PrismaService } from "../prisma.service";
 import { StorageService } from "../storage/storage.service";
@@ -29,6 +30,38 @@ export class PageEvidenceService {
     private readonly storage: StorageService,
   ) {}
 
+  /** Client-facing shape: blocks and identity only; the scan is fetched separately and cached by the browser. */
+  publicView(evidence: any, imageUrl: string) {
+    const { imageDataUrl, imageBytes, ...rest } = evidence;
+    return { ...rest, imageUrl };
+  }
+  builtinImageUrl(bookId: string, page: number, sourceHash: string) {
+    return (
+      "/api/v2/textbooks/" + encodeURIComponent(bookId) + "/pages/" + page +
+      "/image?v=" + sourceHash.slice(0, 16)
+    );
+  }
+  /** Private scans cannot carry a bearer header in an <img>; a short-lived HMAC signature stands in for it. */
+  signedMaterialImageUrl(materialId: string, page: number, ttlMs = 60 * 60 * 1000) {
+    const exp = Date.now() + ttlMs;
+    const sig = this.imageSignature(materialId, page, exp);
+    return (
+      "/api/v2/learning-materials/" + encodeURIComponent(materialId) + "/pages/" + page +
+      "/image?exp=" + exp + "&sig=" + sig
+    );
+  }
+  imageSignature(materialId: string, page: number, exp: number) {
+    return createHmac("sha256", authSigningSecret())
+      .update("page-image|" + materialId + "|" + page + "|" + exp)
+      .digest("base64url");
+  }
+  verifyImageSignature(materialId: string, page: number, exp: unknown, sig: unknown) {
+    const expiry = Number(exp);
+    if (!Number.isFinite(expiry) || expiry < Date.now() || typeof sig !== "string") return false;
+    const expected = Buffer.from(this.imageSignature(materialId, page, expiry));
+    const given = Buffer.from(sig);
+    return expected.length === given.length && timingSafeEqual(expected, given);
+  }
   private pageNumber(value: string) {
     if (!/^[1-9][0-9]*$/.test(value) || Number(value) > 10000)
       throw new BadRequestException("Invalid physical page");
@@ -193,6 +226,7 @@ export class PageEvidenceService {
   ) {
     try {
       const data = {
+        // never the image: blocks, status and identity only
         provenance: evidence.provenance,
         status: evidence.status,
         width: evidence.width,
@@ -236,8 +270,8 @@ export class PageEvidenceService {
           image.height,
         );
         png.getContext("2d").drawImage(image, 0, 0);
-        const imageDataUrl =
-          "data:image/png;base64," + png.toBuffer("image/png").toString("base64");
+        const imageBytes: Buffer = png.toBuffer("image/png");
+        const imageDataUrl = "data:image/png;base64," + imageBytes.toString("base64");
         const identity = { bookId, physicalPage: page, sourceHash: hash };
         // Evidence for this exact page revision may already exist from another process or an earlier run.
         const stored = await this.storedEvidence(identity);
@@ -252,6 +286,7 @@ export class PageEvidenceService {
             width: stored.width,
             height: stored.height,
             imageDataUrl,
+            imageBytes,
             status: stored.status,
             blocks: stored.blocks,
             omittedBlockCount: stored.omittedBlockCount,
@@ -280,6 +315,7 @@ export class PageEvidenceService {
           width: image.width,
           height: image.height,
           imageDataUrl,
+          imageBytes,
           status:
             blocks.length && vision.averageWordConfidence >= 0.65
               ? "READY"
