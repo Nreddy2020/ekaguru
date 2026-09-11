@@ -1862,3 +1862,34 @@ model ParentRecoveryToken {
 
   @@index([parentId, purpose])
 }
+
+// Durable lesson generation jobs (claimed with compare-and-swap by any backend process)
+enum GuruJobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+model GuruLessonJob {
+  id           String        @id @default(uuid())
+  artifactId   String
+  bookId       String
+  physicalPage Int
+  sourceHash   String
+  depth        String
+  language     String
+  age          Int?
+  requestedBy  String
+  status       GuruJobStatus @default(QUEUED)
+  stage        String        @default("queued")
+  attempts     Int           @default(0)
+  error        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  startedAt    DateTime?
+  finishedAt   DateTime?
+
+  @@index([status, createdAt])
+  @@index([artifactId])
+  @@index([requestedBy])
+}

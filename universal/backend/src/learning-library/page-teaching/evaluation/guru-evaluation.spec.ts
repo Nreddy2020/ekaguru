@@ -85,6 +85,7 @@ describe("GuruEvaluationService", () => {
   let evidence: any;
   let planner: any;
   let model: any;
+  let queue: any;
   let service: GuruEvaluationService;
   beforeEach(() => {
     process.env = { ...env, GURU_EVAL_MIN_PASSED_CASES: "2" };
@@ -106,7 +107,8 @@ describe("GuruEvaluationService", () => {
     };
     planner = { build: jest.fn(async () => ({ plan: { id: "artifact" } })) };
     model = { configured: true };
-    service = new GuruEvaluationService(prisma, evidence, planner, model);
+    queue = { enqueue: jest.fn(async () => ({ id: "job-1", status: "QUEUED", stage: "queued", artifactId: "artifact" })) };
+    service = new GuruEvaluationService(prisma, evidence, planner, model, queue);
   });
   afterAll(() => {
     process.env = { ...env };
@@ -150,6 +152,15 @@ describe("GuruEvaluationService", () => {
       where: { id: "case-1" },
       data: { artifactId: "artifact", sourceHash: "hash" },
     });
+  });
+  it("queues HTTP preparation instead of blocking, and links a case when the lesson already exists", async () => {
+    const queued = await service.enqueuePrepare("case-1", { userId: "admin", role: "ADMIN" });
+    expect(queued).toEqual({ caseId: "case-1", job: expect.objectContaining({ id: "job-1", status: "QUEUED" }) });
+    expect(queue.enqueue).toHaveBeenCalledWith(expect.objectContaining({ sourceHash: "hash" }), { depth: "basis", language: "en" }, { userId: "admin", role: "ADMIN" });
+    expect(prisma.guruEvaluationCase.update).not.toHaveBeenCalled();
+    queue.enqueue.mockResolvedValueOnce({ id: "artifact:artifact", status: "DONE", stage: "done", artifactId: "artifact" });
+    await service.enqueuePrepare("case-1", { userId: "admin", role: "ADMIN" });
+    expect(prisma.guruEvaluationCase.update).toHaveBeenCalledWith({ where: { id: "case-1" }, data: { artifactId: "artifact", sourceHash: "hash" } });
   });
   it("refuses reviews of unprepared cases and reconciles verdicts", async () => {
     prisma.guruEvaluationCase.findUnique.mockResolvedValueOnce(makeCase({ artifactId: null }));

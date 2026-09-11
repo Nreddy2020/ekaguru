@@ -35,6 +35,7 @@ import {
   GuruEvent,
   guruRequest,
   loadGuruLesson,
+  describeGuruStage,
 } from "../../lib/learning/guru-api";
 export interface PageGroundedStudioProps {
   bookId?: string;
@@ -102,6 +103,7 @@ export function PageGroundedStudio({
   const [learners, setLearners] = useState<{ id: string; name: string }[]>([]);
   const [learnerId, setLearnerId] = useState("");
   const [guruLoading, setGuruLoading] = useState(false);
+  const [guruStage, setGuruStage] = useState("");
   const [guruError, setGuruError] = useState("");
   const [guru, setGuru] = useState<{
     plan: PageLesson;
@@ -239,6 +241,7 @@ export function PageGroundedStudio({
     pendingEvent.current = null;
     if (reasoningEnabled && rawActive && !bookId.startsWith("book-")) {
       setGuruLoading(true);
+      setGuruStage("");
       loadGuruLesson(
         rawActive,
         depth,
@@ -246,6 +249,9 @@ export function PageGroundedStudio({
         age,
         controller.signal,
         builtin.includes(bookId) && learnerId ? learnerId : undefined,
+        (stage) => {
+          if (live) setGuruStage(stage);
+        },
       )
         .then((result) => {
           if (live) {
@@ -683,9 +689,11 @@ export function PageGroundedStudio({
             </div>
           </details>
           {guruLoading && (
-            <p role="status" className={styles.notice}>
-              Guru is studying this page, preparing diagrams and checking the
-              lesson…
+            <p role="status" className={styles.notice} data-testid="guru-stage">
+              {guruStage
+                ? describeGuruStage(guruStage) +
+                  " You can keep reading the page; the lesson appears here when it is ready."
+                : "Guru is studying this page, preparing diagrams and checking the lesson…"}
             </p>
           )}
           {guruError && (

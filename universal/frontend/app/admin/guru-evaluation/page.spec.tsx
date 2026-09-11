@@ -2,7 +2,7 @@ import React from "react";
 import {render,screen,fireEvent,waitFor} from "@testing-library/react";
 import GuruEvaluationPage from "./page";
 import {guruRequest} from "../../../lib/learning/guru-api";
-jest.mock("../../../lib/learning/guru-api",()=>({guruRequest:jest.fn()}));
+jest.mock("../../../lib/learning/guru-api",()=>({...jest.requireActual("../../../lib/learning/guru-api"),guruRequest:jest.fn()}));
 const rubric={version:1,passMinimum:3,minimumPassedCases:20,criteria:[
  {id:"source_coverage",title:"Source coverage",question:"Covers the page?",weight:1},
  {id:"factual_accuracy",title:"Factual accuracy",question:"Correct?",weight:1.5,gate:true},
@@ -22,6 +22,7 @@ function api(overrides:Record<string,any>={}){
   if(path.endsWith("/concept-mappings")&&body){mappingsState.list=[...mappingsState.list,{id:"m2",conceptId:(body as any).conceptId,method:"MANUAL",score:1,status:"VERIFIED",rationale:(body as any).rationale,concept:{id:(body as any).conceptId,canonicalName:"Water cycle",domain:"Science"}}];return mappingsState.list[mappingsState.list.length-1];}
   if(/\/concept-mappings\/[^/]+\/review$/.test(path)){mappingsState.list=mappingsState.list.map(m=>path.includes(m.id)?{...m,status:(body as any).status}:m);return {};}
   if(path.startsWith("/api/v2/guru/concepts?search="))return [{id:"c9",canonicalName:"Water cycle",domain:"Science",gradeBand:"PRIMARY"}];
+  if(path.endsWith("/prepare"))return {caseId:"case-b",job:{id:"artifact:artifact-999",status:"DONE",stage:"done",artifactId:"artifact-999"}};
   if(path.endsWith("/summary"))return summary;
   if(path.endsWith("/cases"))return cases;
   if(path.endsWith("/rubric"))return rubric;
@@ -94,4 +95,14 @@ it("lets a curator propose, verify and manually link concept mappings for a prep
  const linkCall=(guruRequest as jest.Mock).mock.calls.find(([path,body])=>path==="/api/v2/guru/lessons/artifact-123456789/concept-mappings"&&body);
  expect(linkCall[1]).toMatchObject({conceptId:"c9"});
  expect(screen.getAllByText("VERIFIED")).toHaveLength(2);
+});
+it("prepares through a durable job and reports the stage",async()=>{
+ api({packet:{...packet,case:{...cases[1],artifactId:null,sourceHash:null},lesson:null,page:null,audit:null}});
+ render(<GuruEvaluationPage/>);
+ await screen.findByRole("button",{name:"Open science-class-6 p28 deep"});
+ fireEvent.click(screen.getByRole("button",{name:"Open science-class-6 p28 deep"}));
+ await screen.findByRole("button",{name:"Prepare lesson"});
+ fireEvent.click(screen.getByRole("button",{name:"Prepare lesson"}));
+ await screen.findByText("Lesson prepared: artifact-999");
+ expect((guruRequest as jest.Mock).mock.calls.some(([path])=>path==="/api/v2/guru/evaluation/cases/case-b/prepare")).toBe(true);
 });

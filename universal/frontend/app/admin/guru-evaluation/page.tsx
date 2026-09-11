@@ -1,7 +1,7 @@
 "use client";
 import React,{useEffect,useMemo,useState} from "react";
 import Link from "next/link";
-import {guruRequest} from "../../../lib/learning/guru-api";
+import {guruRequest,waitForGuruJob,describeGuruStage,GuruJob} from "../../../lib/learning/guru-api";
 
 type Criterion={id:string;title:string;question:string;weight:number;gate?:boolean};
 type Rubric={version:number;criteria:Criterion[];passMinimum:number;minimumPassedCases:number};
@@ -59,7 +59,9 @@ export default function GuruEvaluationPage(){
  };
  const prepare=async()=>{
   if(!packet)return;setPacketBusy(true);setNotice("");setError("");
-  try{const r=await guruRequest<{artifactId:string}>(BASE+"/cases/"+encodeURIComponent(packet.case.id)+"/prepare",{});await open(packet.case.id);await load();setNotice("Lesson prepared: "+r.artifactId);}
+  try{const r=await guruRequest<{caseId:string;job:GuruJob}>(BASE+"/cases/"+encodeURIComponent(packet.case.id)+"/prepare",{});
+   const done=await waitForGuruJob(r.job,undefined,stage=>setNotice(describeGuruStage(stage)));
+   await open(packet.case.id);await load();setNotice("Lesson prepared: "+done.artifactId);}
   catch(e:any){setError(e.message);}finally{setPacketBusy(false);}
  };
  const submitReview=async(event:React.FormEvent)=>{

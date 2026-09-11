@@ -15,6 +15,7 @@ import { GuruConceptMappingService } from "./guru-concept-mapping.service";
 import { PageEvidenceService } from "./page-evidence.service";
 import { GuruPlannerService } from "./guru-planner.service";
 import { GuruModelService } from "./guru-model.service";
+import { GuruGenerationQueueService } from "./guru-generation-queue.service";
 
 /**
  * Real-database check of the curator surface: role enforcement, corpus import,
@@ -49,6 +50,7 @@ describe("Guru curation HTTP surface (real database)", () => {
         GuruModelService,
         { provide: PageEvidenceService, useValue: {} },
         { provide: GuruPlannerService, useValue: {} },
+        { provide: GuruGenerationQueueService, useValue: {} },
         { provide: PrismaService, useValue: db },
       ],
     }).compile();

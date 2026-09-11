@@ -5,6 +5,7 @@ import {
   Param,
   Post,
   Request,
+  Res,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -26,6 +27,7 @@ import { GuruSessionService, GuruEventInput } from "./guru-session.service";
 import { DEPTHS, Depth } from "./guru-plan.schema";
 import { GuruUsageService } from "./guru-usage.service";
 import { GuruMasteryBridgeService } from "./guru-mastery-bridge.service";
+import { GuruGenerationQueueService } from "./guru-generation-queue.service";
 
 export class GuruPreferencesDto {
   @IsIn(DEPTHS) depth: Depth = "basis";
@@ -51,6 +53,7 @@ export class GuruController {
     private readonly sessions: GuruSessionService,
     private readonly usage: GuruUsageService,
     private readonly bridge: GuruMasteryBridgeService,
+    private readonly queue: GuruGenerationQueueService,
   ) {}
   @Get("guru/capabilities") capabilities() {
     return {
@@ -75,8 +78,9 @@ export class GuruController {
     @Param("page") page: string,
     @Body() prefs: GuruPreferencesDto,
     @Request() req: any,
+    @Res({ passthrough: true }) res: any,
   ) {
-    return this.plan(await this.evidence.builtin(bookId, page), prefs, req.user);
+    return this.plan(await this.evidence.builtin(bookId, page), prefs, req.user, res);
   }
   @Post("learning-materials/:materialId/pages/:page/lesson")
   @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
@@ -85,15 +89,29 @@ export class GuruController {
     @Param("page") page: string,
     @Body() prefs: GuruPreferencesDto,
     @Request() req: any,
+    @Res({ passthrough: true }) res: any,
   ) {
-    return this.plan(await this.evidence.material(id, page), prefs, req.user);
+    return this.plan(await this.evidence.material(id, page), prefs, req.user, res);
   }
-  private async plan(source: any, prefs: GuruPreferencesDto, user: any) {
-    // Budget is reserved only when a lesson must actually be generated.
-    const result = await this.planner.build(source, prefs, () =>
-      this.usage.reserve(user?.userId, "lessons"),
-    );
-    return { ...result, plan: publicGuruPlan(result.plan) };
+  /**
+   * A cached lesson answers immediately (200). Otherwise the request never waits on the
+   * model: a durable job is queued or reused and returned with 202 for the client to poll.
+   */
+  private async plan(source: any, prefs: GuruPreferencesDto, user: any, res: any) {
+    const cached = await this.planner.cached(source, prefs);
+    if (cached) return { ...cached, plan: publicGuruPlan(cached.plan) };
+    const job = await this.queue.enqueue(source, prefs, user);
+    if (job.status === "DONE") {
+      const ready = await this.planner.cached(source, prefs);
+      if (ready) return { ...ready, plan: publicGuruPlan(ready.plan) };
+    }
+    res?.status?.(202);
+    return { job };
+  }
+  @Get("guru/jobs/:id")
+  @UseGuards(JwtAuthGuard)
+  job(@Param("id") id: string, @Request() req: any) {
+    return this.queue.status(id, req.user);
   }
   @Post("guru/lessons/:artifactId/sessions")
   @UseGuards(JwtAuthGuard)

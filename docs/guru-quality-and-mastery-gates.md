@@ -59,6 +59,19 @@ When it records, it writes `LearningEvidence` of type EXPLANATION through the ex
 
 Every assessed answer carries `assessment.masteryUpdated`, `assessment.conceptIds` and `assessment.masteryNote`, and the classroom board shows the learner a plain-language statement of what changed and why. A ledger failure keeps the checkpoint progress and reports `ledger-error`.
 
+## Durable lesson generation
+
+A lesson request never waits on the model. `POST …/pages/:page/lesson` returns the cached lesson with 200 when it exists; otherwise it returns 202 with a job (`GuruLessonJob`), reusing any live job for the same lesson identity so concurrent learners on the same page and depth share one generation. Clients poll `GET /api/v2/guru/jobs/:id` (requester or ADMIN only) and re-request the lesson when the job is DONE. The classroom shows the current stage (reading the page, planning, repairing, reviewing, saving) and the learner can keep reading the source meanwhile.
+
+A worker inside each backend process claims jobs with compare-and-swap (`QUEUED` to `RUNNING`), so several processes can share the table without double generation. Stages are written as the planner progresses. Transient failures re-queue the job up to `GURU_JOB_MAX_ATTEMPTS`; validation failures, a changed page source and the provider's daily quota fail immediately. Jobs left `RUNNING` for more than `GURU_JOB_STALE_MINUTES` after a crash are re-queued at startup. Budget is reserved once per new job. When a job completes, evaluation-corpus cases waiting for exactly that page, depth and language are linked to the artifact.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `GURU_WORKER` | enabled outside tests | `disabled` turns the in-process worker off (for API-only replicas). |
+| `GURU_WORKER_CONCURRENCY` | 1 | Simultaneous generations per process; keep at 1 on free-tier quotas. |
+| `GURU_JOB_MAX_ATTEMPTS` | 2 | Attempts before a transient failure becomes permanent. |
+| `GURU_JOB_STALE_MINUTES` | 15 | Age after which a RUNNING job is treated as abandoned. |
+
 ## Account recovery and email ownership
 
 Password reset and email verification use single-use, hashed, expiring tokens (`ParentRecoveryToken`). A completed reset sets the password, increments `ParentCredential.credentialVersion` so older sessions are rejected, and marks the email verified, which is how legacy accounts without a credential are claimed. Delivery goes through `MailerService`:

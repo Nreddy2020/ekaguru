@@ -47,23 +47,40 @@ export class GuruPlannerService {
    * @param onGenerate Runs only when a new lesson must be generated (cache miss).
    * Callers reserve model budget here so cached lessons stay free.
    */
-  async build(
-    source: any,
-    preferences: GuruPreferences,
-    onGenerate?: () => Promise<void>,
-  ) {
-    const id = createHash("sha256")
+  /** Deterministic lesson identity: page revision, preferences, model. */
+  artifactIdFor(source: any, preferences: GuruPreferences) {
+    const normalized = {
+      depth: preferences.depth,
+      language: preferences.language,
+      ...(preferences.age ? { age: preferences.age } : {}),
+    };
+    return createHash("sha256")
       .update(
         JSON.stringify([
           source.bookId,
           source.physicalPage,
           source.sourceHash,
-          preferences,
+          normalized,
           this.model.identity,
           "guru-v2",
         ]),
       )
       .digest("hex");
+  }
+  /** The stored lesson for this identity, or null. Never generates. */
+  async cached(source: any, preferences: GuruPreferences) {
+    const row = await this.prisma.guruLessonArtifact.findUnique({
+      where: { id: this.artifactIdFor(source, preferences) },
+    });
+    return row ? (row.payload as any) : null;
+  }
+  async build(
+    source: any,
+    preferences: GuruPreferences,
+    onGenerate?: () => Promise<void>,
+    onStage?: (stage: "vision" | "plan" | "repair" | "review" | "persist") => void,
+  ) {
+    const id = this.artifactIdFor(source, preferences);
     const cached = await this.prisma.guruLessonArtifact.findUnique({
       where: { id },
     });
@@ -71,7 +88,7 @@ export class GuruPlannerService {
     if (!this.pending.has(id)) {
       const promise = (async () => {
         if (onGenerate) await onGenerate();
-        return this.generate(id, source, preferences);
+        return this.generate(id, source, preferences, onStage);
       })();
       this.pending.set(id, promise);
       promise.finally(() => this.pending.delete(id)).catch(() => {});
@@ -83,7 +100,9 @@ export class GuruPlannerService {
     id: string,
     source: any,
     preferences: GuruPreferences,
+    onStage?: (stage: "vision" | "plan" | "repair" | "review" | "persist") => void,
   ) {
+    onStage?.("vision");
     // Vision understands the page as a whole, including regions OCR could not read.
     const extractionKey = [source.bookId, source.physicalPage, source.sourceHash, this.model.identity].join("|");
     if (!this.extractions.has(extractionKey)) {
@@ -170,6 +189,7 @@ export class GuruPlannerService {
       throw new ServiceUnavailableException(
         "Too many uncertain page regions (" + uncertain.length + " of " + (blocks.length + uncertain.length) + "); the page needs extraction review before a lesson can be published.",
       );
+    onStage?.("plan");
     const planRaw = await this.model.json(
       `Teach this opened textbook page as a patient Guru. Learner preferences: ${JSON.stringify(preferences)}.
 Explain meaning, causal mechanisms, worked steps and connections; do not merely read or summarize. Cover every instructional region. Use simple concrete recognition at basis, connections at developing, application at proficient, evidence/assumptions at advanced, and first-principles inquiry at deep. Keep language appropriate for the given age. Label invented examples as examples, not quotations from the page. Never claim mastery. Use the requested language for narration, board labels and feedback.
@@ -191,6 +211,7 @@ Every ask requires an explanation rubric, hint and likely misconception. Do not 
       const missing = uncoveredEvidence(planRaw, evidenceIds);
       const problem = String((error as any)?.message || error);
       this.logger.warn("Plan validation failed (" + stamp + "): " + problem + "; uncovered blocks: " + missing.length);
+      onStage?.("repair");
       const repairedRaw = await this.model.json(
         "The lesson below was rejected by the classroom validator with this problem: " + problem + ". " +
           (missing.length
@@ -214,6 +235,7 @@ Every ask requires an explanation rubric, hint and likely misconception. Do not 
       }
     }
     // Independent review pass: schema/citation validity alone cannot establish factual support.
+    onStage?.("review");
     const audit: any = await this.model.json(
       "Review this proposed lesson against the original page image and supplied evidence. Check factual support, transcription, visual interpretation, missing instructional regions, age/language suitability, unsafe advice and answer rubrics. Clearly labelled illustrative examples may extend the source but must be correct. Return {pass:boolean,issues:[string]}. Fail if any material claim, diagram or expected answer is unsupported, misleading or unreadable. Preferences: " +
         JSON.stringify(preferences) +
@@ -231,6 +253,7 @@ Every ask requires an explanation rubric, hint and likely misconception. Do not 
       throw new ServiceUnavailableException(
         "Guru lesson did not pass source review. Source reading remains available; retry after reviewing extraction.",
       );
+    onStage?.("persist");
     plan.id = id;
     const page = {
       bookId: source.bookId,

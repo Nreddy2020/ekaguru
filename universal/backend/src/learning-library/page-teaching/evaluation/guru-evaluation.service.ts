@@ -9,6 +9,7 @@ import { PrismaService } from "../../prisma.service";
 import { PageEvidenceService } from "../page-evidence.service";
 import { GuruPlannerService } from "../guru-planner.service";
 import { GuruModelService } from "../guru-model.service";
+import { GuruGenerationQueueService } from "../guru-generation-queue.service";
 import { DEPTHS } from "../guru-plan.schema";
 import {
   GURU_RUBRIC,
@@ -61,6 +62,7 @@ export class GuruEvaluationService {
     private readonly evidence: PageEvidenceService,
     private readonly planner: GuruPlannerService,
     private readonly model: GuruModelService,
+    private readonly queue: GuruGenerationQueueService,
   ) {}
 
   get minimumPassedCases() {
@@ -224,6 +226,29 @@ export class GuruEvaluationService {
       sourceHash: source.sourceHash,
       preparedBy: userId,
     };
+  }
+
+  /** HTTP preparation never blocks on the model: it queues (or reuses) a durable job. */
+  async enqueuePrepare(caseId: string, user: any) {
+    const record = await this.load(caseId);
+    if (!this.model.configured)
+      throw new ServiceUnavailableException(
+        "Configure the Guru provider API key and GURU_MODEL before preparing evaluation lessons.",
+      );
+    const source = BUILTIN_BOOKS.includes(record.bookId)
+      ? await this.evidence.builtin(record.bookId, String(record.physicalPage))
+      : await this.evidence.material(record.bookId, String(record.physicalPage));
+    const job = await this.queue.enqueue(
+      source,
+      { depth: record.depth as any, language: record.language },
+      user,
+    );
+    if (job.status === "DONE")
+      await this.prisma.guruEvaluationCase.update({
+        where: { id: caseId },
+        data: { artifactId: job.artifactId, sourceHash: source.sourceHash },
+      });
+    return { caseId, job };
   }
 
   /** Everything a reviewer needs, including server-held rubrics (reviewers are curators). */

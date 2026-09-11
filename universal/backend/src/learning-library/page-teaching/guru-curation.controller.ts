@@ -103,7 +103,7 @@ export class GuruCurationController {
     @Param("id") id: string,
     @Request() req: any,
   ) {
-    return this.evaluation.prepare(id, req.user.userId);
+    return this.evaluation.enqueuePrepare(id, req.user);
   }
   @Post("evaluation/cases/:id/reviews") review(
     @Param("id") id: string,

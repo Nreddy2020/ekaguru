@@ -55,11 +55,11 @@ export type GuruEvent = {
   kind: "next" | "back" | "restart" | "answer" | "help" | "question";
   answer?: string;
 };
-export async function guruRequest<T>(
+export async function guruFetch<T>(
   path: string,
   body?: unknown,
   signal?: AbortSignal,
-): Promise<T> {
+): Promise<{ status: number; data: T }> {
   const token = localStorage.getItem("token");
   const response = await fetch(base() + path, {
     method: body === undefined ? "GET" : "POST",
@@ -78,7 +78,72 @@ export async function guruRequest<T>(
         : "Guru service is unavailable. Your source reading remains available.",
     );
   }
-  return response.json();
+  return { status: response.status, data: (await response.json()) as T };
+}
+export async function guruRequest<T>(
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  return (await guruFetch<T>(path, body, signal)).data;
+}
+export interface GuruJob {
+  id: string;
+  status: "QUEUED" | "RUNNING" | "DONE" | "FAILED";
+  stage: string;
+  artifactId: string;
+  error?: string | null;
+}
+/** Human wording for generation stages reported by the server. */
+export function describeGuruStage(stage: string): string {
+  const text: Record<string, string> = {
+    queued: "Waiting for Guru to start on this page…",
+    starting: "Guru is opening the page…",
+    evidence: "Guru is reading the page evidence…",
+    vision: "Guru is reading the page…",
+    plan: "Guru is planning the lesson…",
+    repair: "Guru is fixing gaps the validator found…",
+    review: "Guru is checking the lesson against the page…",
+    persist: "Saving the lesson…",
+    done: "Lesson ready.",
+  };
+  return text[stage] || "Guru is working on this page…";
+}
+function delay(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) return reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    function onAbort() {
+      clearTimeout(timer);
+      reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+    }
+    signal?.addEventListener("abort", onAbort);
+  });
+}
+export const GURU_POLL_INTERVAL_MS = 3000;
+export const GURU_POLL_DEADLINE_MS = 20 * 60 * 1000;
+/** Waits for a queued generation job, reporting stages; rejects on failure, abort or deadline. */
+export async function waitForGuruJob(
+  job: GuruJob,
+  signal: AbortSignal | undefined,
+  onStage?: (stage: string) => void,
+): Promise<GuruJob> {
+  let current = job;
+  const started = Date.now();
+  onStage?.(current.stage);
+  while (current.status !== "DONE") {
+    if (current.status === "FAILED")
+      throw new Error(current.error || "Guru could not prepare this lesson. Source reading remains available.");
+    if (Date.now() - started > GURU_POLL_DEADLINE_MS)
+      throw new Error("Guru is taking longer than expected. Your request stays queued; reload later.");
+    await delay(GURU_POLL_INTERVAL_MS, signal);
+    current = await guruRequest<GuruJob>("/api/v2/guru/jobs/" + encodeURIComponent(current.id), undefined, signal);
+    onStage?.(current.stage);
+  }
+  return current;
 }
 export async function loadGuruLesson(
   page: PageEvidence,
@@ -87,6 +152,7 @@ export async function loadGuruLesson(
   age: number | undefined,
   signal: AbortSignal,
   learnerId?: string,
+  onStage?: (stage: string) => void,
 ) {
   const prefix = [
     "evs-class-5",
@@ -96,20 +162,23 @@ export async function loadGuruLesson(
   ].includes(page.bookId)
     ? "textbooks"
     : "learning-materials";
-  const result = await guruRequest<{
-    plan: PageLesson;
-    page: Partial<PageEvidence>;
-  }>(
+  const lessonPath =
     "/api/v2/" +
-      prefix +
-      "/" +
-      encodeURIComponent(page.bookId) +
-      "/pages/" +
-      page.physicalPage +
-      "/lesson",
-    { depth, language, age },
-    signal,
-  );
+    prefix +
+    "/" +
+    encodeURIComponent(page.bookId) +
+    "/pages/" +
+    page.physicalPage +
+    "/lesson";
+  type LessonResponse = { plan: PageLesson; page: Partial<PageEvidence> } | { job: GuruJob };
+  let response = await guruFetch<LessonResponse>(lessonPath, { depth, language, age }, signal);
+  if (response.status === 202 && "job" in response.data) {
+    await waitForGuruJob(response.data.job, signal, onStage);
+    response = await guruFetch<LessonResponse>(lessonPath, { depth, language, age }, signal);
+  }
+  if (!("plan" in response.data))
+    throw new Error("Guru lesson is not ready yet. Please retry.");
+  const result = response.data;
   if (
     result.page.bookId !== page.bookId ||
     result.page.physicalPage !== page.physicalPage ||
