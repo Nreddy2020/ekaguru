@@ -24,6 +24,8 @@ const BOOKS = [
 export class PageEvidenceService {
   private readonly logger = new Logger(PageEvidenceService.name);
   private cache = new Map<string, Promise<any>>();
+  /** Built-in scan files keyed by path: unchanged mtime and size means the revision (and evidence) is unchanged. */
+  private builtinFiles = new Map<string, { mtimeMs: number; size: number; sourceHash: string; totalPages: number }>();
   constructor(
     private readonly ocr: OcrDocumentVisionService,
     private readonly prisma: PrismaService,
@@ -75,9 +77,22 @@ export class PageEvidenceService {
       process.env.TEXTBOOK_SCAN_DIR ||
       path.resolve(process.cwd(), "../frontend/public/textbooks");
     const dir = path.join(base, bookId);
+    const file = path.join(dir, "page-" + page + ".png");
+    let stat: { mtimeMs: number; size: number };
+    try {
+      stat = await fs.stat(file);
+    } catch {
+      throw new NotFoundException("Physical scan unavailable");
+    }
+    // Fast path: the file has not changed, so neither has its hash or evidence; skip the 2 MB read and SHA-256.
+    const known = this.builtinFiles.get(file);
+    if (known && known.mtimeMs === stat.mtimeMs && known.size === stat.size) {
+      const memo = this.cache.get(bookId + ":" + page + ":" + known.sourceHash);
+      if (memo) return memo;
+    }
     let bytes: Buffer;
     try {
-      bytes = await fs.readFile(path.join(dir, "page-" + page + ".png"));
+      bytes = await fs.readFile(file);
     } catch {
       throw new NotFoundException("Physical scan unavailable");
     }
@@ -87,7 +102,14 @@ export class PageEvidenceService {
         .filter((f) => /^page-[0-9]+\.png$/.test(f))
         .map((f) => Number(f.match(/[0-9]+/)![0])),
     );
-    return this.fromImage(bookId, page, totalPages, bytes);
+    const evidence = await this.fromImage(bookId, page, totalPages, bytes);
+    this.builtinFiles.set(file, {
+      mtimeMs: stat.mtimeMs,
+      size: stat.size,
+      sourceHash: evidence.sourceHash,
+      totalPages,
+    });
+    return evidence;
   }
   async material(materialId: string, value: string) {
     const page = this.pageNumber(value);

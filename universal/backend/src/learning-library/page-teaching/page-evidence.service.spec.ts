@@ -168,6 +168,24 @@ describe("persisted page evidence", () => {
     expect(evidence).toMatchObject({ cached: "database", blocks: stored.blocks, status: "READY" });
     expect(evidence.imageDataUrl.startsWith("data:image/png;base64,")).toBe(true);
   });
+  it("skips reading and hashing an unchanged scan on repeat requests", async () => {
+    const { ocr, service } = build(null);
+    const fsp = require("fs").promises;
+    const readFile = jest.spyOn(fsp, "readFile");
+    const first = await service.builtin("evs-class-5", "1");
+    const second = await service.builtin("evs-class-5", "1");
+    expect(second).toBe(first);
+    expect(readFile).toHaveBeenCalledTimes(1);
+    expect(ocr.processPageVision).toHaveBeenCalledTimes(1);
+    // A changed file invalidates the fast path.
+    const file = path.join(dir, "evs-class-5", "page-1.png");
+    const canvas = require("@napi-rs/canvas").createCanvas(41, 30);
+    fs.writeFileSync(file, canvas.toBuffer("image/png"));
+    const third = await service.builtin("evs-class-5", "1");
+    expect(third.sourceHash).not.toBe(first.sourceHash);
+    expect(readFile).toHaveBeenCalledTimes(2);
+    readFile.mockRestore();
+  });
   it("keeps working when the cache is unavailable", async () => {
     const { prisma, service } = build(null);
     prisma.guruPageEvidence.findUnique.mockRejectedValue(new Error("db down"));
