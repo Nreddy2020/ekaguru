@@ -279,9 +279,9 @@ export function transition(
     ...state,
     index,
     feedback: null,
+    // Next always teaches the next step; Back reviews quietly until Play.
     playing:
       event !== "back" &&
-      state.playing &&
       !["ask", "summary"].includes(lesson.actions[index].kind),
   };
 }

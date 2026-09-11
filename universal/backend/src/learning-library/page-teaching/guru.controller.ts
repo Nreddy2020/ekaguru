@@ -85,8 +85,9 @@ export class GuruController {
     @Request() req: any,
     @Res({ passthrough: true }) res: any,
     @Query("regenerate") regenerate?: string,
+    @Query("cachedOnly") cachedOnly?: string,
   ) {
-    return this.plan(await this.evidence.builtin(bookId, page), prefs, req.user, res, regenerate === "1");
+    return this.plan(await this.evidence.builtin(bookId, page), prefs, req.user, res, regenerate === "1", cachedOnly === "1");
   }
   @Post("learning-materials/:materialId/pages/:page/lesson")
   @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
@@ -97,17 +98,24 @@ export class GuruController {
     @Request() req: any,
     @Res({ passthrough: true }) res: any,
     @Query("regenerate") regenerate?: string,
+    @Query("cachedOnly") cachedOnly?: string,
   ) {
-    return this.plan(await this.evidence.material(id, page), prefs, req.user, res, regenerate === "1");
+    return this.plan(await this.evidence.material(id, page), prefs, req.user, res, regenerate === "1", cachedOnly === "1");
   }
   /**
    * A cached lesson answers immediately (200). Otherwise the request never waits on the
    * model: a durable job is queued or reused and returned with 202 for the client to poll.
+   * With cachedOnly the answer is the cached lesson or 204, and nothing is queued: the client
+   * uses it to teach from another depth this page already has while the requested one prepares.
    */
-  private async plan(source: any, prefs: GuruPreferencesDto, user: any, res: any, regenerate = false) {
+  async plan(source: any, prefs: GuruPreferencesDto, user: any, res: any, regenerate = false, cachedOnly = false) {
     // A lesson from an earlier teaching blueprint keeps serving until the learner asks to regenerate.
     const cached = await this.planner.cached(source, prefs, !regenerate);
     if (cached) return { ...cached, plan: publicGuruPlan(cached.plan) };
+    if (cachedOnly) {
+      res?.status?.(204);
+      return undefined;
+    }
     const job = await this.queue.enqueue(source, prefs, user);
     if (job.status === "DONE") {
       const ready = await this.planner.cached(source, prefs);

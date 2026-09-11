@@ -211,7 +211,7 @@ Explain meaning, causal mechanisms, worked steps and connections; do not merely 
 ${pedagogyPromptSection(preferences.depth)}
 Build a sequential chalkboard lesson with small actions. Progressively draw the actual figure or a useful explanatory schematic, and explain each drawing. Equations and tables should be reconstructed step by step using text and line primitives. Use a normalized 1000 by 1000 drawing canvas; keep labels short and within bounds. Each draw action contains the full scene so far, ordered in the intended stroke sequence. Maximum 40 primitives per scene, 100 actions, 8 objectives.
 notes are 3 to 8 short takeaway sentences for the learner's printable page notes (never empty). Return {title,objectives:[string],notes:[string],actions:[{kind:"write"|"draw"|"explain"|"ask"|"summary",phase:string,text:string,speech:string,evidenceIds:[string],acknowledgement?:string,scene?:[{type:"line"|"rect"|"circle"|"text",x:number,y:number,x2?:number,y2?:number,width?:number,height?:number,radius?:number,text?:string,color:"white"|"yellow"|"green"|"blue"}],prompt?:string,rubric?:{expected:string,criteria:[string],hint:string,misconception:string}}]}.
-Every graded ask (guided, independent, transfer, misconception) requires an explanation rubric, hint and likely misconception; prior and reflection asks carry an acknowledgement instead of a rubric. Do not expose the expected answer in the question itself. Every action needs non-empty text (a short board caption), speech and a phase. Every action must reference real evidenceIds. Every source block must be taught by at least one action, or listed in omitted:[{evidenceId,reason}] with a short reason; only page numbers, running headers, decorative labels or text duplicated elsewhere may be omitted, and at most a quarter of the blocks. Last action must be summary. Source blocks: ${JSON.stringify(blocks)}`,
+Every graded ask (guided, independent, transfer, misconception) requires an explanation rubric, hint and likely misconception; prior and reflection asks carry an acknowledgement instead of a rubric. Do not expose the expected answer in the question itself. Every action needs non-empty text (a short board caption), speech and a phase. Every action must reference real evidenceIds. Every source block must be taught by at least one action, or listed in omitted:[{evidenceId,reason}] with a short reason; only page numbers, unit or chapter number banners, running headers, decorative labels or text duplicated elsewhere may be omitted, and at most about a third of the blocks. Learning outcomes, starting-point activities, discussion questions, tables to fill and captions are instructional: use the learning outcomes in the hook as the goal of the lesson, and use a starting-point or discussion activity as the prior-knowledge ask. Last action must be summary. Source blocks: ${JSON.stringify(blocks)}`,
       source.imageDataUrl,
       GURU_PLAN_RESPONSE_SCHEMA,
     );
@@ -223,32 +223,40 @@ Every graded ask (guided, independent, transfer, misconception) requires an expl
     try {
       plan = validateGuruPlan(planRaw, evidenceIds, preferences.depth, preferences.language, source.sourceHash);
     } catch (error) {
-      // One repair pass: the validator names the exact problem; the model returns a corrected full lesson.
-      const missing = uncoveredEvidence(planRaw, evidenceIds);
-      const problem = String((error as any)?.message || error);
-      this.logger.warn("Plan validation failed (" + stamp + "): " + problem + "; uncovered blocks: " + missing.length);
-      onStage?.("repair");
-      const repairedRaw = await this.model.json(
-        "The lesson below was rejected by the classroom validator with this problem: " + problem + ". " +
-          (missing.length
-            ? "These source blocks are neither taught nor listed in omitted: " +
-              JSON.stringify(blocks.filter((b: any) => missing.includes(b.blockId)).map((b: any) => ({ blockId: b.blockId, type: b.type, text: b.text }))) +
-              ". Teach each of them in an action that cites its blockId, or list it in omitted:[{evidenceId,reason}] (only page numbers, running headers, decorative labels or duplicated text; at most a quarter of all blocks). "
-            : "") +
-          "Return the complete corrected lesson JSON with the same schema. Keep every rule: every action has a phase, non-empty text and speech and cites real evidenceIds; the required phases for this depth appear in the teacher's order (hook first, prior knowledge and explanation before the worked example, worked example before guided and independent practice, summary last); drawings use the 1000 by 1000 canvas with at most 40 primitives; every graded ask has a rubric with expected, criteria, hint and misconception and prior/reflection asks have an acknowledgement; notes has 3 to 8 sentences. Learner preferences: " +
-          JSON.stringify(preferences) +
-          ". Lesson: " +
-          JSON.stringify(planRaw),
-        undefined,
-        GURU_PLAN_RESPONSE_SCHEMA,
-      );
-      await this.dump(stamp + "-3-repair", repairedRaw);
-      try {
-        plan = validateGuruPlan(repairedRaw, evidenceIds, preferences.depth, preferences.language, source.sourceHash);
-      } catch (repairError) {
-        this.logger.warn("Repaired plan still invalid (" + stamp + "): " + (repairError as any)?.message);
-        throw repairError;
+      // Up to two repair passes: the validator names the exact problem and the model returns a corrected full lesson.
+      let candidate: any = planRaw;
+      let problem = String((error as any)?.message || error);
+      let repaired: GuruPlan | null = null;
+      for (let attempt = 1; attempt <= 2 && !repaired; attempt++) {
+        const missing = uncoveredEvidence(candidate, evidenceIds);
+        this.logger.warn("Plan validation failed (" + stamp + ", attempt " + attempt + "): " + problem + "; uncovered blocks: " + missing.length);
+        onStage?.("repair");
+        candidate = await this.model.json(
+          "The lesson below was rejected by the classroom validator with this problem: " + problem + ". " +
+            (missing.length
+              ? "These source blocks are neither taught nor listed in omitted: " +
+                JSON.stringify(blocks.filter((b: any) => missing.includes(b.blockId)).map((b: any) => ({ blockId: b.blockId, type: b.type, text: b.text }))) +
+                ". Teach each of them in an action that cites its blockId, or list it in omitted:[{evidenceId,reason}] (only page numbers, unit or chapter banners, running headers, decorative labels or duplicated text; at most about a third of all blocks; learning outcomes and starting-point activities are instructional and must be taught). "
+              : "") +
+            "Keep every phase that is already present and add any that are missing. " +
+            pedagogyPromptSection(preferences.depth) +
+            "\nReturn the complete corrected lesson JSON with the same schema. Keep every rule: every action has a phase, non-empty text and speech and cites real evidenceIds; drawings use the 1000 by 1000 canvas with at most 40 primitives; every graded ask has a rubric with expected, criteria, hint and misconception and prior/reflection asks have an acknowledgement; notes has 3 to 8 sentences. Learner preferences: " +
+            JSON.stringify(preferences) +
+            ". Lesson: " +
+            JSON.stringify(candidate),
+          undefined,
+          GURU_PLAN_RESPONSE_SCHEMA,
+        );
+        await this.dump(stamp + "-3-repair-" + attempt, candidate);
+        try {
+          repaired = validateGuruPlan(candidate, evidenceIds, preferences.depth, preferences.language, source.sourceHash);
+        } catch (repairError) {
+          problem = String((repairError as any)?.message || repairError);
+          this.logger.warn("Repaired plan still invalid (" + stamp + ", attempt " + attempt + "): " + problem);
+          if (attempt === 2) throw repairError;
+        }
       }
+      plan = repaired!;
     }
     // Independent review pass: schema/citation validity alone cannot establish factual support.
     onStage?.("review");

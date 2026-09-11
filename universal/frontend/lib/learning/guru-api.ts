@@ -130,7 +130,7 @@ export async function guruFetch<T>(
         : "Guru service is unavailable. Your source reading remains available.",
     );
   }
-  return { status: response.status, data: (await response.json()) as T };
+  return { status: response.status, data: response.status === 204 ? (undefined as unknown as T) : ((await response.json()) as T) };
 }
 export async function guruRequest<T>(
   path: string,
@@ -197,6 +197,15 @@ export async function waitForGuruJob(
   }
   return current;
 }
+const DEPTH_ORDER: TeachingDepth[] = ["basis", "developing", "proficient", "advanced", "deep"];
+/** Depths to teach from while the requested one is prepared: nearest first, foundations before stretch. */
+export function fallbackDepths(depth: TeachingDepth): TeachingDepth[] {
+  const at = DEPTH_ORDER.indexOf(depth);
+  return DEPTH_ORDER.filter((d) => d !== depth).sort((a, b) => {
+    const gap = Math.abs(DEPTH_ORDER.indexOf(a) - at) - Math.abs(DEPTH_ORDER.indexOf(b) - at);
+    return gap || DEPTH_ORDER.indexOf(a) - DEPTH_ORDER.indexOf(b);
+  });
+}
 export async function loadGuruLesson(
   page: PageEvidence,
   depth: TeachingDepth,
@@ -226,11 +235,36 @@ export async function loadGuruLesson(
     (regenerate ? "?regenerate=1" : "");
   type LessonResponse = { plan: PageLesson; page: Partial<PageEvidence>; legacyBlueprint?: boolean } | { job: GuruJob };
   let response = await guruFetch<LessonResponse>(lessonPath, { depth, language, age }, signal);
+  let servedDepth: TeachingDepth = depth;
+  let pendingJob: GuruJob | undefined;
   if (response.status === 202 && "job" in response.data) {
-    await waitForGuruJob(response.data.job, signal, onStage);
-    response = await guruFetch<LessonResponse>(lessonPath, { depth, language, age }, signal);
+    const job = response.data.job;
+    // A teacher does not send the class away while a new lesson is written: teach from a lesson this
+    // page already has at the nearest depth, and let the requested depth finish in the background.
+    let fallback: { response: { status: number; data: LessonResponse }; depth: TeachingDepth } | null = null;
+    if (!regenerate) {
+      for (const candidate of fallbackDepths(depth)) {
+        const cachedOnly = await guruFetch<LessonResponse | undefined>(
+          lessonPath + (lessonPath.includes("?") ? "&" : "?") + "cachedOnly=1",
+          { depth: candidate, language, age },
+          signal,
+        );
+        if (cachedOnly.status < 300 && cachedOnly.data && "plan" in cachedOnly.data) {
+          fallback = { response: cachedOnly as { status: number; data: LessonResponse }, depth: candidate };
+          break;
+        }
+      }
+    }
+    if (fallback) {
+      response = fallback.response;
+      servedDepth = fallback.depth;
+      pendingJob = job;
+    } else {
+      await waitForGuruJob(job, signal, onStage);
+      response = await guruFetch<LessonResponse>(lessonPath, { depth, language, age }, signal);
+    }
   }
-  if (!("plan" in response.data))
+  if (!response.data || !("plan" in response.data))
     throw new Error("Guru lesson is not ready yet. Please retry.");
   const result = response.data;
   if (
@@ -238,7 +272,7 @@ export async function loadGuruLesson(
     result.page.physicalPage !== page.physicalPage ||
     result.page.sourceHash !== page.sourceHash ||
     result.plan.sourceHash !== page.sourceHash ||
-    result.plan.depth !== depth ||
+    result.plan.depth !== servedDepth ||
     result.plan.language !== language ||
     !Array.isArray(result.plan.actions) ||
     !result.plan.actions.length
@@ -258,5 +292,9 @@ export async function loadGuruLesson(
     page: { ...page, ...result.page } as PageEvidence,
     session,
     legacyBlueprint: result.legacyBlueprint === true,
+    requestedDepth: depth,
+    servedDepth,
+    /** Set when the lesson served is at another depth and the requested one is still being prepared. */
+    pendingJob,
   };
 }

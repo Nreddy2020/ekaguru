@@ -210,8 +210,13 @@ export function validateGuruPlan(
   );
   if (new Set(omitted.map((o) => o.evidenceId)).size !== omitted.length)
     return invalid("duplicate omission");
-  if (omitted.length > Math.max(2, Math.floor(evidenceIds.size * 0.25)))
-    return invalid("too many omitted blocks");
+  // Chapter openers carry unit banners, chapter numbers and page numbers; content must still dominate.
+  const omissionAllowance = Math.max(3, Math.floor(evidenceIds.size * 0.3));
+  if (omitted.length > omissionAllowance)
+    return invalid(
+      "too many omitted blocks: " + omitted.length + " omitted, at most " + omissionAllowance +
+        " allowed; learning outcomes, starting-point activities, discussion questions and captions are instructional and must be taught",
+    );
   // Source coverage is explicit; a generator cannot silently drop part of a page.
   const missing = [...evidenceIds].filter(
     (id) => !coverage.includes(id) && !omitted.some((o) => o.evidenceId === id),

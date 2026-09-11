@@ -1,6 +1,7 @@
 import {
   describeGuruStage,
   loadGuruLesson,
+  fallbackDepths,
   waitForGuruJob,
   GURU_POLL_INTERVAL_MS,
 } from "./guru-api";
@@ -42,6 +43,8 @@ it("polls a queued job until it is done, then loads the cached lesson and starts
   const calls: string[] = [];
   (global as any).fetch = jest.fn(async (url: string) => {
     calls.push(url);
+    // No other depth is cached for this page, so the loader has to wait for the job.
+    if (url.includes("cachedOnly=1")) return { ok: true, status: 204, json: async () => { throw new Error("no body"); } };
     if (url.endsWith("/pages/46/lesson"))
       return calls.filter((u) => u.endsWith("/lesson")).length === 1
         ? respond(202, { job: { id: "job-1", status: "QUEUED", stage: "queued", artifactId: "artifact-1" } })
@@ -87,4 +90,53 @@ it("stops polling when the caller aborts", async () => {
   await jest.advanceTimersByTimeAsync(10);
   expect((await settled).name).toBe("AbortError");
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it("orders fallback depths nearest first, foundations before stretch", () => {
+  expect(fallbackDepths("developing")).toEqual(["basis", "proficient", "advanced", "deep"]);
+  expect(fallbackDepths("basis")).toEqual(["developing", "proficient", "advanced", "deep"]);
+  expect(fallbackDepths("deep")).toEqual(["advanced", "proficient", "developing", "basis"]);
+});
+
+it("teaches from the nearest cached depth while the requested depth is prepared, skipping depths that answer 204", async () => {
+  const calls: { url: string; depth?: string }[] = [];
+  (global as any).fetch = jest.fn(async (url: string, init?: any) => {
+    const depth = init?.body ? JSON.parse(init.body).depth : undefined;
+    calls.push({ url, depth });
+    if (url.includes("/pages/46/lesson?cachedOnly=1"))
+      return depth === "proficient"
+        ? respond(200, { plan: { ...plan, id: "artifact-prof", depth: "proficient" }, page: { bookId: "evs-class-5", physicalPage: 46, sourceHash: "hash" } })
+        : { ok: true, status: 204, json: async () => { throw new Error("no body"); } };
+    if (url.endsWith("/pages/46/lesson"))
+      return respond(202, { job: { id: "job-7", status: "QUEUED", stage: "queued", artifactId: "artifact-dev" } });
+    if (url.endsWith("/sessions"))
+      return respond(201, { id: "s7", artifactId: "artifact-prof", learnerId: null, cursor: 0, revision: 0, checkpointPassed: false });
+    throw new Error("unexpected " + url);
+  });
+  const result = await loadGuruLesson(page, "developing", "en", undefined, new AbortController().signal);
+  expect(result.plan.id).toBe("artifact-prof");
+  expect(result.requestedDepth).toBe("developing");
+  expect(result.servedDepth).toBe("proficient");
+  expect(result.pendingJob?.id).toBe("job-7");
+  expect(calls.filter((c) => c.url.includes("cachedOnly=1")).map((c) => c.depth)).toEqual(["basis", "proficient"]);
+  // Nothing polled: the requested depth keeps preparing in the background.
+  expect(calls.some((c) => c.url.includes("/jobs/"))).toBe(false);
+});
+
+it("waits for the job when the learner asked to regenerate, without teaching from another depth", async () => {
+  const calls: string[] = [];
+  (global as any).fetch = jest.fn(async (url: string) => {
+    calls.push(url);
+    if (url.includes("/lesson?regenerate=1"))
+      return calls.filter((u) => u.includes("/lesson?regenerate=1")).length === 1
+        ? respond(202, { job: { id: "job-8", status: "DONE", stage: "done", artifactId: "artifact-1" } })
+        : respond(200, { plan, page: { bookId: "evs-class-5", physicalPage: 46, sourceHash: "hash" } });
+    if (url.endsWith("/sessions"))
+      return respond(201, { id: "s8", artifactId: "artifact-1", learnerId: null, cursor: 0, revision: 0, checkpointPassed: false });
+    throw new Error("unexpected " + url);
+  });
+  const result = await loadGuruLesson(page, "basis", "en", undefined, new AbortController().signal, undefined, undefined, true);
+  expect(result.servedDepth).toBe("basis");
+  expect(result.pendingJob).toBeUndefined();
+  expect(calls.some((u) => u.includes("cachedOnly=1"))).toBe(false);
 });

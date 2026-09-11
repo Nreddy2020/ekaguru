@@ -55,7 +55,8 @@ it("keeps the drawing available while explaining and cancels on unmount", () => 
   expect(
     screen.getByRole("img", { name: "Relationship from the page" }),
   ).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Play Guru" }));
+  // Moving on teaches the step straight away, so the control already offers Pause.
+  expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
   view.unmount();
   expect(jest.getTimerCount()).toBe(0);
 });
@@ -205,6 +206,12 @@ it("shows the teaching phase, hears an ungraded prior-knowledge ask and shows wh
   expect(onEvent).toHaveBeenCalledWith("answer", "They have three corners.");
   expect(screen.getByText("Lovely, hold on to that.")).toBeInTheDocument();
   expect(screen.queryByTestId("mastery-note")).toBeNull();
+  // Once the acknowledgement has been given, Guru moves on by itself.
+  expect(onEvent).not.toHaveBeenCalledWith("next", undefined);
+  await act(async () => {
+    jest.advanceTimersByTime(2000);
+  });
+  expect(onEvent).toHaveBeenCalledWith("next", undefined);
 });
 describe("voice presence", () => {
   afterEach(() => {

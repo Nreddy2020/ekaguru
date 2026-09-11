@@ -224,3 +224,51 @@ it("offers to regenerate a lesson prepared before the current teaching blueprint
     localStorage.clear();
   }
 });
+
+it("teaches from the page's cached basis lesson while the recommended depth is prepared, then offers the new lesson", async () => {
+  localStorage.setItem("token", "parent-token");
+  const actions = [
+    { id: "a0", kind: "explain", text: "Three sides", speech: "A triangle has three sides.", evidenceIds: ["b1"], durationMs: 1800 },
+    { id: "a1", kind: "summary", text: "Done", speech: "That is the page.", evidenceIds: ["b1"], durationMs: 1800 },
+  ];
+  const basisPlan = { id: "artifact-basis", title: "Triangles", depth: "basis", language: "en", mode: "guru", sourceHash: "one", notes: ["Three sides."], actions };
+  const developingPlan = { ...basisPlan, id: "artifact-dev", depth: "developing" };
+  let developingPrepared = false;
+  const calls: { url: string; depth?: string }[] = [];
+  global.fetch = jest.fn(async (url: any, init: any) => {
+    const u = String(url);
+    const depth = init?.body ? JSON.parse(init.body).depth : undefined;
+    calls.push({ url: u, depth });
+    if (u.includes("/guru/capabilities")) return { ok: true, json: async () => ({ reasoningAvailable: true, sourceReadingAvailable: true }) };
+    if (u.includes("/api/v2/learners")) return { ok: true, json: async () => ({ data: [] }) };
+    if (u.includes("/pages/1/evidence")) return { ok: true, json: async () => source };
+    if (u.includes("/pages/1/lesson?cachedOnly=1"))
+      return depth === "basis"
+        ? { ok: true, status: 200, json: async () => ({ plan: basisPlan, page: source }) }
+        : { ok: true, status: 204, json: async () => { throw new Error("no body"); } };
+    if (u.includes("/pages/1/lesson")) {
+      if (depth === "developing" && !developingPrepared) {
+        developingPrepared = true;
+        return { ok: true, status: 202, json: async () => ({ job: { id: "job-2", status: "DONE", stage: "done", artifactId: "artifact-dev" } }) };
+      }
+      return { ok: true, status: 200, json: async () => ({ plan: depth === "developing" ? developingPlan : basisPlan, page: source }) };
+    }
+    if (u.includes("/sessions")) return { ok: true, json: async () => ({ id: "s1", artifactId: "x", learnerId: null, cursor: 0, revision: 0, checkpointPassed: false }) };
+    return { ok: false, status: 404, json: async () => ({ message: "unexpected " + u }) };
+  }) as any;
+  try {
+    render(<PageGroundedStudio bookId="maths-class-5" />);
+    await screen.findByTestId("page-teaching-board");
+    fireEvent.click(screen.getByRole("button", { name: "developing" }));
+    const notice = await screen.findByTestId("depth-fallback");
+    await waitFor(() => expect(notice).toHaveTextContent("The Developing lesson for this page is ready."));
+    // The board kept teaching from the basis lesson in the meantime.
+    expect(screen.getByText(/basis · Action 1\/2/)).toBeInTheDocument();
+    expect(calls.filter((c) => c.url.includes("cachedOnly=1")).map((c) => c.depth)).toEqual(["basis"]);
+    fireEvent.click(screen.getByRole("button", { name: "Open it" }));
+    await waitFor(() => expect(screen.queryByTestId("depth-fallback")).toBeNull());
+    await screen.findByText(/developing · Action 1\/2/);
+  } finally {
+    localStorage.clear();
+  }
+});

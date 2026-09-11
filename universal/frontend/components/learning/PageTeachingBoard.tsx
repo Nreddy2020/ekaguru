@@ -58,6 +58,8 @@ export function PageTeachingBoard({
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const liveRef = useRef(true);
+  // A shared (ungraded) answer continues on its own once Guru has acknowledged it, like a teacher moving on.
+  const continueAfterAck = useRef(false);
   useEffect(() => {
     liveRef.current = true;
     return () => {
@@ -139,6 +141,8 @@ export function PageTeachingBoard({
       setMasteryNote(
         kind === "answer" ? describeMasteryOutcome(result.assessment) : "",
       );
+      continueAfterAck.current =
+        kind === "answer" && action.kind === "ask" && action.gating === false && result.cursor === state.index;
       if (kind === "next" || kind === "restart") setReviewNote(describeReview(result.review));
       setState((s) => ({
         ...s,
@@ -148,10 +152,13 @@ export function PageTeachingBoard({
           : kind === "answer"
             ? "retry"
             : null,
+        // Moving on always teaches the next step aloud; going back or restarting waits for Play.
         playing:
-          !["back", "restart"].includes(kind) &&
-          s.playing &&
-          !["ask", "summary"].includes(lesson.actions[result.cursor].kind),
+          kind === "next"
+            ? !["ask", "summary"].includes(lesson.actions[result.cursor].kind)
+            : !["back", "restart"].includes(kind) &&
+              s.playing &&
+              !["ask", "summary"].includes(lesson.actions[result.cursor].kind),
       }));
     } catch (error: any) {
       setSaveError(error.message);
@@ -196,8 +203,22 @@ export function PageTeachingBoard({
   useEffect(() => {
     if (suspended) return;
     if (!state.playing) {
-      if (!audio || action.kind !== "ask" || !("speechSynthesis" in window))
-        return;
+      if (action.kind !== "ask") return;
+      const shouldContinue = continueAfterAck.current;
+      let live = true;
+      const moveOn = () => {
+        if (!live || !continueAfterAck.current) return;
+        continueAfterAck.current = false;
+        send("next");
+      };
+      if (!audio || !("speechSynthesis" in window)) {
+        if (!shouldContinue) return;
+        const timer = setTimeout(moveOn, Math.max(1500, (serverFeedback || "").length * 35) / speed);
+        return () => {
+          live = false;
+          clearTimeout(timer);
+        };
+      }
       const prompt =
         action.assessment && serverFeedback
           ? serverFeedback
@@ -215,9 +236,13 @@ export function PageTeachingBoard({
         rate: (lesson.depth === "basis" ? 0.9 : 1) * speed,
         onStart: () => setVoiceActive(true),
         onBoundary: () => setPulse((n) => n + 1),
-        onEnd: () => setVoiceActive(false),
+        onEnd: () => {
+          setVoiceActive(false);
+          if (shouldContinue) moveOn();
+        },
       });
       return () => {
+        live = false;
         handle.cancel();
         setVoiceActive(false);
       };

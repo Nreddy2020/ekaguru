@@ -116,6 +116,10 @@ describe("teaching runtime", () => {
     const before = { ...initialRuntime, index: index - 1, playing: true };
     const state = transition(before, "next", lesson);
     expect(state.playing).toBe(false);
+    // Stepping forward from a paused explanation resumes teaching on the next step.
+    const explainIndex = lesson.actions.findIndex((a, i) => i > 0 && a.kind !== "ask" && a.kind !== "summary" && lesson.actions[i - 1].kind !== "ask");
+    if (explainIndex > 0)
+      expect(transition({ ...initialRuntime, index: explainIndex - 1, playing: false }, "next", lesson).playing).toBe(true);
     expect(transition(state, "next", lesson).index).toBe(index);
   });
   it("wrong response stays on source; correct response permits continuation", () => {

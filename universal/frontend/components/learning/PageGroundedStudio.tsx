@@ -35,6 +35,8 @@ import {
   GuruEvent,
   guruRequest,
   loadGuruLesson,
+  waitForGuruJob,
+  type GuruJob,
   describeGuruStage,
 } from "../../lib/learning/guru-api";
 export interface PageGroundedStudioProps {
@@ -63,6 +65,13 @@ const builtin = [
   "science-class-6",
   "social-class-5",
 ];
+const DEPTH_TITLES: Record<TeachingDepth, string> = {
+  basis: "Basis",
+  developing: "Developing",
+  proficient: "Proficient",
+  advanced: "Advanced",
+  deep: "Deep",
+};
 const depths: TeachingDepth[] = [
   "basis",
   "developing",
@@ -121,8 +130,18 @@ export function PageGroundedStudio({
     session: GuruSessionSnapshot;
     preferencesKey: string;
     legacyBlueprint?: boolean;
+    requestedDepth?: TeachingDepth;
+    servedDepth?: TeachingDepth;
+    pendingJob?: GuruJob;
   } | null>(null);
   const [regenerate, setRegenerate] = useState(false);
+  // The requested depth being prepared while the board teaches from another depth this page already has.
+  const [pendingLesson, setPendingLesson] = useState<{
+    depth: TeachingDepth;
+    status: "preparing" | "ready" | "failed";
+    stage: string;
+    error?: string;
+  } | null>(null);
   const sessionRef = useRef<GuruSessionSnapshot | null>(null);
   const pendingEvent = useRef<GuruEvent | null>(null);
   const preferencesKey = JSON.stringify([depth, language, age, learnerId]);
@@ -265,6 +284,7 @@ export function PageGroundedStudio({
     setGuru(null);
     setGuruError("");
     setGuruLoading(false);
+    setPendingLesson(null);
     sessionRef.current = null;
     pendingEvent.current = null;
     if (reasoningEnabled && rawActive && !bookId.startsWith("book-")) {
@@ -283,9 +303,22 @@ export function PageGroundedStudio({
         regenerate,
       )
         .then((result) => {
-          if (live) {
-            setGuru({ ...result, preferencesKey });
-            sessionRef.current = result.session;
+          if (!live) return;
+          setGuru({ ...result, preferencesKey });
+          sessionRef.current = result.session;
+          if (result.pendingJob && result.servedDepth !== depth) {
+            const requested = depth;
+            setPendingLesson({ depth: requested, status: "preparing", stage: result.pendingJob.stage });
+            waitForGuruJob(result.pendingJob, controller.signal, (stage) => {
+              if (live) setPendingLesson((p) => (p ? { ...p, stage } : p));
+            })
+              .then(() => {
+                if (live) setPendingLesson({ depth: requested, status: "ready", stage: "done" });
+              })
+              .catch((error) => {
+                if (live && error.name !== "AbortError")
+                  setPendingLesson({ depth: requested, status: "failed", stage: "failed", error: error.message });
+              });
           }
         })
         .catch((error) => {
@@ -757,6 +790,35 @@ export function PageGroundedStudio({
               </button>
             </p>
           )}
+          {currentGuru?.servedDepth &&
+            currentGuru.requestedDepth &&
+            currentGuru.servedDepth !== currentGuru.requestedDepth &&
+            !guruLoading && (
+              <p role="status" className={styles.notice} data-testid="depth-fallback">
+                {pendingLesson?.status === "ready"
+                  ? "The " + DEPTH_TITLES[currentGuru.requestedDepth] + " lesson for this page is ready. "
+                  : pendingLesson?.status === "failed"
+                    ? "The " +
+                      DEPTH_TITLES[currentGuru.requestedDepth] +
+                      " lesson could not be prepared now: " +
+                      pendingLesson.error +
+                      " Teaching from the " +
+                      DEPTH_TITLES[currentGuru.servedDepth] +
+                      " lesson instead."
+                    : "Guru is preparing the " +
+                      DEPTH_TITLES[currentGuru.requestedDepth] +
+                      " lesson for this page (" +
+                      describeGuruStage(pendingLesson?.stage || "queued").replace(/…$/, "") +
+                      "). Teaching from the " +
+                      DEPTH_TITLES[currentGuru.servedDepth] +
+                      " lesson meanwhile."}
+                {pendingLesson?.status === "ready" && (
+                  <button type="button" className="underline" onClick={() => setRetry((r) => r + 1)}>
+                    Open it
+                  </button>
+                )}
+              </p>
+            )}
           {compiled && active ? (
             <PageTeachingBoard
               key={compiled.id + ":" + retry}
