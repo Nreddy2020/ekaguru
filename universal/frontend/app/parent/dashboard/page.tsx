@@ -42,6 +42,17 @@ interface GuruActivitySession {
   masteryRecorded: number;
   events: GuruActivityEvent[];
 }
+interface GuruReviewItem {
+  sessionId: string;
+  bookId: string;
+  physicalPage: number;
+  title: string;
+  depth: string;
+  stageLabel: string;
+  nextReviewAt: string;
+  lastOutcome: string | null;
+  openPath: string;
+}
 interface GuruActivity {
   learnerId: string;
   summary: {
@@ -52,9 +63,11 @@ interface GuruActivity {
     attempts: number;
     questionsAsked: number;
     masteryRecorded: number;
+    reviewsDue?: number;
     misconceptions: { text: string; count: number }[];
   };
   sessions: GuruActivitySession[];
+  reviews?: { due: GuruReviewItem[]; upcoming: GuruReviewItem[] };
   explanation: string[];
 }
 
@@ -718,6 +731,29 @@ export default function ParentDashboard() {
                           </div>
                         ))}
                       </dl>
+                      {guruActivity.reviews && (guruActivity.reviews.due.length > 0 || guruActivity.reviews.upcoming.length > 0) && (
+                        <div data-testid="guru-reviews">
+                          <h4 className="font-semibold text-slate-800">Spaced reviews</h4>
+                          {guruActivity.reviews.due.length > 0 ? (
+                            <ul className="mt-1 space-y-1 text-sm">
+                              {guruActivity.reviews.due.map((r) => (
+                                <li key={r.sessionId} className="flex flex-wrap items-center gap-2">
+                                  <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">Due now</span>
+                                  <span>{r.title} · {r.bookId} page {r.physicalPage} · {r.depth} · {r.stageLabel}</span>
+                                  <Link href={r.openPath} className="text-indigo-700 underline">Open page</Link>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="mt-1 text-sm text-slate-600">Nothing is due today.</p>
+                          )}
+                          {guruActivity.reviews.upcoming.length > 0 && (
+                            <p className="mt-1 text-xs text-slate-500">
+                              Next up: {guruActivity.reviews.upcoming.slice(0, 3).map((r) => r.title + " on " + new Date(r.nextReviewAt).toLocaleDateString()).join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       {guruActivity.summary.misconceptions.length > 0 && (
                         <div>
                           <h4 className="font-semibold text-slate-800">Ideas worth talking about together</h4>

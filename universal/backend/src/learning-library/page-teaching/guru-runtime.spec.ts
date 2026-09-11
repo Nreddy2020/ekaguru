@@ -178,6 +178,7 @@ describe("Durable Guru runtime", () => {
         }),
       },
     };
+    db.guruTeachingEvent.findMany = jest.fn(async () => [...events.values()]);
     db.$transaction = jest.fn(async (fn) => fn(db));
     model = {
       json: jest.fn().mockResolvedValue({
@@ -241,6 +242,53 @@ describe("Durable Guru runtime", () => {
       masteryNote: "recorded",
     });
     expect(events.get("request-123").result.assessment.masteryUpdated).toBe(true);
+  });
+  it("schedules the first spaced review when a run reaches the summary, from what the run showed", async () => {
+    // Session fixture sits at the checkpoint (index 2 of 4); pass it, then advance to the summary.
+    await service.event("session", input("answer", "Light gives energy."), user);
+    session.cursor = 2;
+    session.checkpointPassed = true;
+    session.revision = 1;
+    const result: any = await service.event(
+      "session",
+      { ...input("next"), requestId: "request-next-1", revision: 1 },
+      user,
+    );
+    expect(result.cursor).toBe(3);
+    expect(result.review).toMatchObject({ stage: 1, label: "partial", lastOutcome: "INDEPENDENT", passedCheckpoints: 1, assistedCheckpoints: 0, firstCompletion: true });
+    const scheduled = new Date(result.review.nextReviewAt).getTime() - Date.now();
+    expect(scheduled).toBeGreaterThan(1.9 * 24 * 3600 * 1000);
+    expect(scheduled).toBeLessThanOrEqual(2 * 24 * 3600 * 1000);
+    const write = db.guruTeachingSession.updateMany.mock.calls.pop()[0];
+    expect(write.data).toMatchObject({ reviewStage: 1, lastReviewOutcome: "INDEPENDENT" });
+    expect(write.data.completedAt).toBeInstanceOf(Date);
+  });
+  it("moves a page down a stage when a review run needed help, and up when it did not", async () => {
+    await service.event("session", input("help"), user);
+    session.cursor = 2;
+    session.checkpointPassed = true;
+    session.revision = 1;
+    session.completedAt = new Date(Date.now() - 3 * 24 * 3600 * 1000);
+    session.reviewStage = 2;
+    const assisted: any = await service.event("session", { ...input("next"), requestId: "request-next-2", revision: 1 }, user);
+    expect(assisted.review).toMatchObject({ stage: 1, label: "partial", lastOutcome: "ASSISTED", firstCompletion: false });
+    // A later independent run from a restart counts only events after the restart.
+    events.clear();
+    session.cursor = 0;
+    session.revision = 2;
+    session.reviewStage = 1;
+    const restarted: any = await service.event("session", { ...input("restart"), requestId: "request-restart", revision: 2 }, user);
+    expect(db.guruTeachingSession.updateMany.mock.calls.pop()[0].data.runStartedAt).toBeInstanceOf(Date);
+    expect(restarted.review.stage).toBe(1);
+    session.runStartedAt = new Date();
+    session.cursor = 2;
+    session.checkpointPassed = false;
+    session.revision = 3;
+    await service.event("session", { ...input("answer", "Light gives energy."), requestId: "request-answer-2", revision: 3 }, user);
+    session.checkpointPassed = true;
+    session.revision = 4;
+    const independent: any = await service.event("session", { ...input("next"), requestId: "request-next-3", revision: 4 }, user);
+    expect(independent.review).toMatchObject({ stage: 2, label: "understood", lastOutcome: "INDEPENDENT", assistedCheckpoints: 0 });
   });
   it("never calls the bridge for assisted practice or questions", async () => {
     await service.event("session", input("help"), user);

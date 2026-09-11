@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
+import { stageLabel } from "./guru-review.policy";
 
 export interface GuruActivityEvent {
   at: Date;
@@ -28,6 +29,19 @@ export interface GuruActivitySession {
   masteryRecorded: number;
   events: GuruActivityEvent[];
 }
+export interface GuruReviewItem {
+  sessionId: string;
+  bookId: string;
+  physicalPage: number;
+  title: string;
+  depth: string;
+  stage: number;
+  stageLabel: string;
+  nextReviewAt: Date;
+  lastOutcome: string | null;
+  completedAt: Date | null;
+  openPath: string;
+}
 export interface GuruActivity {
   learnerId: string;
   generatedAt: Date;
@@ -39,9 +53,11 @@ export interface GuruActivity {
     attempts: number;
     questionsAsked: number;
     masteryRecorded: number;
+    reviewsDue: number;
     misconceptions: { text: string; count: number }[];
   };
   sessions: GuruActivitySession[];
+  reviews: { due: GuruReviewItem[]; upcoming: GuruReviewItem[] };
   explanation: string[];
 }
 
@@ -89,8 +105,11 @@ export class GuruActivityService {
       attempts: 0,
       questionsAsked: 0,
       masteryRecorded: 0,
+      reviewsDue: 0,
       misconceptions: [] as { text: string; count: number }[],
     };
+    const reviews = this.reviewItems(sessions);
+    summary.reviewsDue = reviews.due.length;
     const views: GuruActivitySession[] = sessions.map((session) => {
       const plan: any = (session.artifact.payload as any)?.plan || {};
       const total = Array.isArray(plan.actions) ? plan.actions.length : 0;
@@ -157,12 +176,42 @@ export class GuruActivityService {
       generatedAt: new Date(),
       summary,
       sessions: views,
+      reviews,
       explanation: [
         "Checkpoints passed count only answers the learner gave independently and Guru judged as meeting the page's rubric.",
         "Assisted checkpoints are ones where the learner asked Guru to teach again with help; they never count as independent understanding.",
         "Mastery recorded counts concept-mastery evidence written by the gated bridge; it stays at zero until curators verify the page's concept mapping and educators approve the teaching depth.",
         "Misconceptions are Guru's stated reading of an answer, kept for you to discuss with your child; they are not labels on the child.",
+        "Reviews follow spaced practice: a completed page comes back after 1, 2, 7 and then 21 days when it was worked through independently, and sooner when help was needed. Review stages describe practice on that page, not concept mastery.",
       ],
+    };
+  }
+
+  /** Spaced-review items derived from completed sessions; due first, then upcoming. */
+  reviewItems(sessions: any[]): { due: GuruReviewItem[]; upcoming: GuruReviewItem[] } {
+    const now = Date.now();
+    const items: GuruReviewItem[] = sessions
+      .filter((session) => session.nextReviewAt)
+      .map((session) => {
+        const plan: any = (session.artifact.payload as any)?.plan || {};
+        return {
+          sessionId: session.id,
+          bookId: session.artifact.bookId,
+          physicalPage: session.artifact.physicalPage,
+          title: typeof plan.title === "string" ? plan.title : "Page " + session.artifact.physicalPage,
+          depth: typeof plan.depth === "string" ? plan.depth : "basis",
+          stage: session.reviewStage ?? 0,
+          stageLabel: stageLabel(session.reviewStage ?? 0),
+          nextReviewAt: session.nextReviewAt,
+          lastOutcome: session.lastReviewOutcome ?? null,
+          completedAt: session.completedAt ?? null,
+          openPath: "/library/" + encodeURIComponent(session.artifact.bookId) + "?page=" + session.artifact.physicalPage,
+        };
+      })
+      .sort((a, b) => a.nextReviewAt.getTime() - b.nextReviewAt.getTime());
+    return {
+      due: items.filter((i) => i.nextReviewAt.getTime() <= now),
+      upcoming: items.filter((i) => i.nextReviewAt.getTime() > now),
     };
   }
 }

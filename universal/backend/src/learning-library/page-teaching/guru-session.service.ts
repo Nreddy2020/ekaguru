@@ -26,6 +26,7 @@ function shapeOf(value: any): string {
 }
 import { GuruUsageService } from "./guru-usage.service";
 import { GuruMasteryBridgeService } from "./guru-mastery-bridge.service";
+import { classifyRun, nextReviewDate, nextStage, stageLabel } from "./guru-review.policy";
 
 export interface GuruEventInput {
   requestId: string;
@@ -103,6 +104,7 @@ export class GuruSessionService {
     return this.snapshot(session);
   }
   private snapshot(session: any) {
+    const nextReviewAt: Date | null = session.nextReviewAt ?? null;
     return {
       id: session.id,
       artifactId: session.artifactId,
@@ -110,6 +112,14 @@ export class GuruSessionService {
       cursor: session.cursor,
       revision: session.revision,
       checkpointPassed: session.checkpointPassed,
+      completedAt: session.completedAt ?? null,
+      review: {
+        stage: session.reviewStage ?? 0,
+        label: stageLabel(session.reviewStage ?? 0),
+        nextReviewAt,
+        due: Boolean(nextReviewAt && nextReviewAt.getTime() <= Date.now()),
+        lastOutcome: session.lastReviewOutcome ?? null,
+      },
     };
   }
   private async get(id: string, user: any) {
@@ -160,6 +170,9 @@ export class GuruSessionService {
     let feedback = "";
     let assessment: any = null;
     let evidenceIds: string[] = [];
+    // Review scheduling changes only when a run reaches the final action or restarts.
+    const scheduling: any = {};
+    let review: any = null;
     if (input.kind === "question") {
       if (!input.answer?.trim() || input.answer.length > 6000)
         throw new BadRequestException(
@@ -290,12 +303,42 @@ export class GuruSessionService {
         );
       cursor = Math.min(plan.actions.length - 1, cursor + 1);
       passed = false;
+      const last = plan.actions.length - 1;
+      if (cursor === last && session.cursor < last) {
+        // A complete pass: schedule the next spaced review from what this run actually showed.
+        const since = session.runStartedAt || session.createdAt;
+        const runEvents = await this.prisma.guruTeachingEvent.findMany({
+          where: { sessionId: id, createdAt: { gte: since } },
+          select: { result: true },
+        });
+        const run = classifyRun(runEvents);
+        const now = new Date();
+        const stage = nextStage(session.reviewStage ?? 0, !session.completedAt, run.outcome);
+        const nextReviewAt = nextReviewDate(stage, now);
+        Object.assign(scheduling, {
+          completedAt: session.completedAt || now,
+          reviewStage: stage,
+          nextReviewAt,
+          lastReviewOutcome: run.outcome,
+        });
+        review = {
+          stage,
+          label: stageLabel(stage),
+          nextReviewAt,
+          due: false,
+          lastOutcome: run.outcome,
+          passedCheckpoints: run.passed,
+          assistedCheckpoints: run.assisted,
+          firstCompletion: !session.completedAt,
+        };
+      }
     } else if (input.kind === "back") {
       cursor = Math.max(0, cursor - 1);
       passed = false;
     } else if (input.kind === "restart") {
       cursor = 0;
       passed = false;
+      scheduling.runStartedAt = new Date();
     } else if (input.kind === "help") {
       if (action.kind !== "ask" || !action.rubric)
         throw new BadRequestException("No active checkpoint");
@@ -314,19 +357,21 @@ export class GuruSessionService {
       )
     )
       throw new BadRequestException("Unknown teaching action");
+    const base = this.snapshot({ ...session, ...scheduling });
     const result = {
-      ...this.snapshot(session),
+      ...base,
       cursor,
       checkpointPassed: passed,
       revision: session.revision + 1,
       feedback,
       assessment,
       evidenceIds,
+      review: review || base.review,
     };
     return this.prisma.$transaction(async (tx) => {
       const changed = await tx.guruTeachingSession.updateMany({
         where: { id, userId: session.userId, revision: input.revision },
-        data: { cursor, checkpointPassed: passed, revision: { increment: 1 } },
+        data: { cursor, checkpointPassed: passed, revision: { increment: 1 }, ...scheduling },
       });
       if (changed.count !== 1)
         throw new ConflictException(

@@ -6,6 +6,7 @@ import {
   GuruSessionSnapshot,
   GuruEvent,
   describeMasteryOutcome,
+  describeReview,
 } from "../../lib/learning/guru-api";
 import {
   PageEvidence,
@@ -56,6 +57,7 @@ export function PageTeachingBoard({
   }, []);
   const [serverFeedback, setServerFeedback] = useState("");
   const [masteryNote, setMasteryNote] = useState("");
+  const [reviewNote, setReviewNote] = useState(describeReview(session?.review));
   const [saveError, setSaveError] = useState("");
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
@@ -93,6 +95,7 @@ export function PageTeachingBoard({
       setMasteryNote(
         kind === "answer" ? describeMasteryOutcome(result.assessment) : "",
       );
+      if (kind === "next" || kind === "restart") setReviewNote(describeReview(result.review));
       setState((s) => ({
         ...s,
         index: result.cursor,
@@ -326,6 +329,11 @@ export function PageTeachingBoard({
         </p>
       )}
       {busy && <p role="status">Saving teaching progress…</p>}
+      {reviewNote && (
+        <p role="status" data-testid="review-note" className="my-2 rounded bg-black/25 px-3 py-2 text-xs text-emerald-100">
+          {reviewNote}
+        </p>
+      )}
       {masteryNote && (
         <p
           role="status"

@@ -1732,6 +1732,12 @@ model GuruTeachingSession {
   cursor      Int      @default(0)
   revision    Int      @default(0)
   checkpointPassed Boolean @default(false)
+  // Spaced review of practised pages (page practice, separate from canonical mastery)
+  runStartedAt     DateTime?
+  completedAt      DateTime?
+  reviewStage      Int      @default(0)
+  nextReviewAt     DateTime?
+  lastReviewOutcome String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   events      GuruTeachingEvent[]

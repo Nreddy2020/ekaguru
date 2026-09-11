@@ -8,6 +8,16 @@ export interface GuruAssessmentOutcome {
   conceptIds?: string[];
   masteryNote?: string;
 }
+export interface GuruReviewState {
+  stage: number;
+  label: string;
+  nextReviewAt: string | null;
+  due: boolean;
+  lastOutcome: string | null;
+  passedCheckpoints?: number;
+  assistedCheckpoints?: number;
+  firstCompletion?: boolean;
+}
 export interface GuruSessionSnapshot {
   id: string;
   artifactId: string;
@@ -15,9 +25,24 @@ export interface GuruSessionSnapshot {
   cursor: number;
   revision: number;
   checkpointPassed: boolean;
+  completedAt?: string | null;
+  review?: GuruReviewState | null;
   feedback?: string;
   evidenceIds?: string[];
   assessment?: GuruAssessmentOutcome | null;
+}
+/** Plain-language review scheduling line for the learner. */
+export function describeReview(review?: GuruReviewState | null): string {
+  if (!review || !review.nextReviewAt) return "";
+  const when = new Date(review.nextReviewAt);
+  const days = Math.max(0, Math.round((when.getTime() - Date.now()) / 86400000));
+  const stage = review.label === "introduced" ? "introduced" : review.label === "partial" ? "partly secure" : review.label === "understood" ? "understood" : "retained";
+  if (review.due) return "This page is due for a review. Restart the lesson and try the checkpoints without help.";
+  return (
+    "Page practice recorded as " + stage + ". Guru will suggest reviewing this page " +
+    (days <= 1 ? "tomorrow" : "in " + days + " days") +
+    (review.lastOutcome === "ASSISTED" ? ", sooner because help was used this time." : ".")
+  );
 }
 /** Plain-language, evidence-backed statement of what an assessed answer changed. */
 export function describeMasteryOutcome(

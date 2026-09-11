@@ -55,6 +55,10 @@ describe("GuruActivityService", () => {
             cursor: 0,
             createdAt: at(10),
             updatedAt: at(10),
+            reviewStage: 1,
+            nextReviewAt: new Date(Date.now() - 60000),
+            lastReviewOutcome: "INDEPENDENT",
+            completedAt: at(10),
             artifact: { bookId: "evs-class-5", physicalPage: 47, payload: { plan: { ...plan, title: "Water", actions: [{ id: "a0" }] } } },
             events: [],
           },
@@ -71,8 +75,12 @@ describe("GuruActivityService", () => {
       attempts: 3,
       questionsAsked: 1,
       masteryRecorded: 2,
+      reviewsDue: 1,
       misconceptions: [{ text: "Banks give money away for free", count: 2 }],
     });
+    expect(view.reviews.due).toHaveLength(1);
+    expect(view.reviews.due[0]).toMatchObject({ sessionId: "s2", title: "Water", stage: 1, stageLabel: "partial", lastOutcome: "INDEPENDENT", openPath: "/library/evs-class-5?page=47" });
+    expect(view.reviews.upcoming).toHaveLength(0);
     const first = view.sessions[0];
     expect(first).toMatchObject({
       bookId: "evs-class-5",
