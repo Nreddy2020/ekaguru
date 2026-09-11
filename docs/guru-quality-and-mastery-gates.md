@@ -30,7 +30,7 @@ Verdict rules are enforced by the server: any criterion at 0 or any gate criteri
 Workflow:
 
 1. Seed the manifest: `node scripts/seed_guru_evaluation_corpus.js` from `universal/backend`. The v1 manifest (`docs/evaluation/guru-evaluation-corpus.v1.json`) samples 37 real built-in pages across four books at all five depths, 185 cases in total, including the previously verified EVS pages 44 to 47 and 73.
-2. Prepare lessons: `POST /api/v2/guru/evaluation/cases/:id/prepare` (ADMIN). This uses the same planner learners use and therefore needs a configured provider key. No key is configured in this workspace, so no case has been prepared yet.
+2. Prepare lessons: `POST /api/v2/guru/evaluation/cases/:id/prepare` (ADMIN) or, serially from `universal/backend`, `node scripts/prepare_guru_evaluation_corpus.js --limit N`. This uses the same planner learners use and therefore needs a configured provider key. As of 11 September 2026 the five depths of EVS page 46 are prepared; the Gemini free tier's 20-requests-per-day quota blocks the rest until billing is enabled.
 3. Review: `GET /api/v2/guru/evaluation/cases/:id/packet.md` exports a Markdown packet with the rubric, the full lesson including server-held expected answers, and the source blocks. `POST /api/v2/guru/evaluation/cases/:id/reviews` records scores, verdict and notes.
 4. Track: `GET /api/v2/guru/evaluation/summary` groups cases by subject, depth and language and lists which depths have reached the approval threshold.
 
@@ -73,7 +73,7 @@ Endpoints: `POST /auth/recovery/request`, `POST /auth/recovery/confirm`, `POST /
 
 ## What remains unverified
 
-- No live provider call has been made; lesson quality, drawing accuracy and grading fairness are untested until a key is configured and the corpus is prepared.
+- Live lessons exist only for one page so far (EVS page 46, five depths) and one live grading; lesson quality, drawing accuracy and grading fairness across the corpus are untested until billing allows preparation and educators score the cases.
 - No educator has scored a case; the approval threshold has not been reached for any depth, so the bridge cannot record evidence yet even if enabled.
-- Concept mappings depend on extraction provenance; built-in scans have no `ConceptChunk` rows and need manual curator links.
+- Concept mappings depend on extraction provenance; built-in scans have no `ConceptChunk` rows and need manual curator links through the evaluation page's mapping panel.
 - Mail delivery needs a real webhook; it has been exercised only with the in-memory test outbox.
