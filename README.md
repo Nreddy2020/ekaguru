@@ -28,6 +28,10 @@ Ekaguru is a **cognitive-first AI tutoring platform** that mimics how great teac
 
 ## 🏗️ Architecture
 
+### Current application stack (September 2026)
+
+The product users run today lives under `universal/`: a NestJS + Prisma + PostgreSQL backend (`universal/backend`, port 20000) and a Next.js 14 frontend (`universal/frontend`). The source-grounded Guru page-teaching pipeline, verified authentication, the educator evaluation corpus and the gated mastery bridge are all implemented there. See `docs/page-teaching-architecture-review.md`, `docs/guru-quality-and-mastery-gates.md` and `docs/ekaguru-implementation-plan.md` for current status and evidence. The Python cognitive services below are an earlier, separately deployable research loop; the NestJS backend can call the orchestrator but does not depend on it.
+
 ### 8 Microservices (Cognitive Loop)
 
 ```

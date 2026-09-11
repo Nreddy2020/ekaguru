@@ -22,3 +22,7 @@ dist/
 *.cmd
 tmp/
 uploads/
+
+# Local OCR language data and copied binaries (never commit)
+eng.traineddata
+*.traineddata
