@@ -120,10 +120,28 @@ export function PageGroundedStudio({
     page: PageEvidence;
     session: GuruSessionSnapshot;
     preferencesKey: string;
+    legacyBlueprint?: boolean;
   } | null>(null);
+  const [regenerate, setRegenerate] = useState(false);
   const sessionRef = useRef<GuruSessionSnapshot | null>(null);
   const pendingEvent = useRef<GuruEvent | null>(null);
   const preferencesKey = JSON.stringify([depth, language, age, learnerId]);
+  // The teacher meets the learner where they are: suggest a depth from this learner's history in this book.
+  useEffect(() => {
+    if (!learnerId || !builtin.includes(bookId) || !localStorage.getItem("token")) return;
+    let live = true;
+    guruRequest<{ recommendedDepth: string | null }>(
+      "/api/v2/guru/learners/" + encodeURIComponent(learnerId) + "/context?bookId=" + encodeURIComponent(bookId),
+    )
+      .then((ctx) => {
+        if (!live || manualDepth.current) return;
+        if (ctx.recommendedDepth && depths.includes(ctx.recommendedDepth as any)) setDepth(ctx.recommendedDepth as any);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [learnerId, bookId]);
   useEffect(() => {
     let live = true;
     if (localStorage.getItem("token")) {
@@ -262,6 +280,7 @@ export function PageGroundedStudio({
         (stage) => {
           if (live) setGuruStage(stage);
         },
+        regenerate,
       )
         .then((result) => {
           if (live) {
@@ -721,6 +740,21 @@ export function PageGroundedStudio({
           {guruError && (
             <p role="alert" className={styles.notice}>
               {guruError}
+            </p>
+          )}
+          {currentGuru?.legacyBlueprint && !guruLoading && (
+            <p role="status" className={styles.notice} data-testid="legacy-blueprint">
+              This lesson was prepared before the current teaching blueprint (hook, prior knowledge, worked example, guided and independent practice).{" "}
+              <button
+                type="button"
+                className="underline"
+                onClick={() => {
+                  setRegenerate(true);
+                  setRetry((r) => r + 1);
+                }}
+              >
+                Prepare it again with the new methodology
+              </button>
             </p>
           )}
           {compiled && active ? (

@@ -133,6 +133,8 @@ it("lets a signed-in parent attribute a built-in book session to an owned learne
       return { ok: true, json: async () => ({ reasoningAvailable: true, sourceReadingAvailable: true }) };
     if (u.includes("/api/v2/learners"))
       return { ok: true, json: async () => ({ data: [{ id: "child-a", name: "Asha" }, { id: "child-b", name: "Bilal" }] }) };
+    if (u.includes("/context?bookId="))
+      return { ok: true, json: async () => ({ recommendedDepth: u.includes("child-b") ? "developing" : null }) };
     if (u.includes("/pages/1/evidence")) return { ok: true, json: async () => source };
     if (u.includes("/pages/1/lesson")) return { ok: true, json: async () => ({ plan, page: source }) };
     if (u.includes("/sessions"))
@@ -153,6 +155,9 @@ it("lets a signed-in parent attribute a built-in book session to an owned learne
       expect(calls.filter((c) => c.url.includes("/sessions")).pop()!.body).toEqual({ learnerId: "child-b" }),
     );
     expect(localStorage.getItem("guru.learnerId")).toBe("child-b");
+    // The learner's history in this book suggests the depth.
+    await waitFor(() => expect(calls.some((c) => c.url.includes("/guru/learners/child-b/context?bookId=maths-class-5"))).toBe(true));
+    await waitFor(() => expect(screen.getByRole("button", { name: "developing" })).toHaveAttribute("aria-pressed", "true"));
   } finally {
     localStorage.clear();
   }
@@ -178,4 +183,44 @@ it("loads server page scans from the cacheable image link instead of an inline d
   render(<PageGroundedStudio bookId="maths-class-5" />);
   const img = await screen.findByAltText("Original physical page 1");
   expect(img.getAttribute("src")).toMatch(/\/api\/v2\/textbooks\/maths-class-5\/pages\/1\/image\?v=abc$/);
+});
+it("offers to regenerate a lesson prepared before the current teaching blueprint", async () => {
+  localStorage.setItem("token", "parent-token");
+  const plan = {
+    id: "artifact-old",
+    title: "Triangles",
+    depth: "basis",
+    language: "en",
+    mode: "guru",
+    sourceHash: "one",
+    notes: ["Three sides."],
+    actions: [
+      { id: "a0", kind: "explain", text: "Three sides", speech: "A triangle has three sides.", evidenceIds: ["b1"], durationMs: 1800 },
+      { id: "a1", kind: "summary", text: "Done", speech: "That is the page.", evidenceIds: ["b1"], durationMs: 1800 },
+    ],
+  };
+  const calls: string[] = [];
+  global.fetch = jest.fn(async (url: any, init: any) => {
+    const u = String(url);
+    calls.push(u);
+    if (u.includes("/guru/capabilities")) return { ok: true, json: async () => ({ reasoningAvailable: true, sourceReadingAvailable: true }) };
+    if (u.includes("/api/v2/learners")) return { ok: true, json: async () => ({ data: [] }) };
+    if (u.includes("/pages/1/evidence")) return { ok: true, json: async () => source };
+    if (u.includes("/pages/1/lesson"))
+      return u.includes("regenerate=1")
+        ? { ok: true, status: 202, json: async () => ({ job: { id: "job-9", status: "FAILED", stage: "failed", artifactId: "x", error: "Guru's daily provider quota is exhausted for this model." } }) }
+        : { ok: true, status: 200, json: async () => ({ plan, page: source, legacyBlueprint: true }) };
+    if (u.includes("/sessions")) return { ok: true, json: async () => ({ id: "s1", artifactId: "artifact-old", learnerId: null, cursor: 0, revision: 0, checkpointPassed: false }) };
+    return { ok: false, status: 404, json: async () => ({ message: "unexpected " + u }) };
+  }) as any;
+  try {
+    render(<PageGroundedStudio bookId="maths-class-5" />);
+    const notice = await screen.findByTestId("legacy-blueprint");
+    expect(notice).toHaveTextContent("before the current teaching blueprint");
+    fireEvent.click(screen.getByRole("button", { name: "Prepare it again with the new methodology" }));
+    await waitFor(() => expect(calls.some((c) => c.includes("/pages/1/lesson?regenerate=1"))).toBe(true));
+    await screen.findByText(/daily provider quota is exhausted/);
+  } finally {
+    localStorage.clear();
+  }
 });

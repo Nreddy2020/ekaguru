@@ -2,6 +2,25 @@
 
 Added 11 September 2026. This document describes the four server-side gates that stand between a Guru page lesson and any claim about a learner. All of them are implemented and unit-tested; the parts that need a live model or human educators are marked as such.
 
+## 0. Teaching methodology
+
+Every Guru lesson follows a teacher's blueprint (`guru-pedagogy.ts`), enforced by the validator and shown on the board as phase labels:
+
+1. **Hook**: why this page matters, with a concrete situation.
+2. **Prior knowledge**: an ungraded ask that activates what the learner already knows; Guru acknowledges and moves on.
+3. **Explain**: the concept in the product's layer order, Experience, Intuition, Story, Visual (a drawing), Language (the page's terms), Symbol last.
+4. **Worked example (I do)**: every step and the reason for it.
+5. **Guided practice (we do)**: an ask whose hint walks the same steps on a new case.
+6. **Independent (you do)**: a graded ask the learner answers alone.
+7. **Misconception** (developing and above): the likely wrong idea, refuted with a counter-example.
+8. **Transfer** (proficient and above): apply the idea to a situation not on the page.
+9. **Reflection** (advanced and deep): an ungraded teach-back or "what would you investigate" ask.
+10. **Summary**: last, in the page's words.
+
+The order is checked (hook first; prior and explanation before the worked example; a drawing before the independent checkpoint; guided before independent; transfer and reflection after it; summary last), and each depth carries a stated cognitive demand, from recognise-and-describe at basis to first-principles inquiry at deep. Ungraded asks never block progression, cost no model calls and never reach the mastery bridge. Lessons generated before this blueprint keep serving (marked `legacyBlueprint`) and the classroom offers "Prepare it again with the new methodology", which requests the lesson with `?regenerate=1` and queues a `guru-v3` generation under the normal budget; nothing is regenerated silently.
+
+**Grounding in the learner's knowledge.** `GuruLearnerContextService` derives, from the ledger only, the pages this learner has completed in the same book and how each run went, canonical concepts with recorded mastery, and misconceptions Guru stated on earlier answers. Session start returns it as `personalization` and the board shows "Guru remembers …" before the lesson; a completed independent run suggests the next depth for the next page (`GET /api/v2/guru/learners/:id/context?bookId=`), an assisted run keeps the depth; and the grader is told this learner's earlier misconceptions so feedback can name a repeated one gently. None of this costs a model call or labels the learner.
+
 ## 1. Model budget per account
 
 Every paid model call reserves one unit from a per-account daily ledger (`GuruModelUsage`). Cached lessons cost nothing; a reservation happens only when a lesson must actually be generated, or when a learner asks a page question or submits an assessed answer.

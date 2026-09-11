@@ -29,6 +29,8 @@ import { GuruUsageService } from "./guru-usage.service";
 import { GuruMasteryBridgeService } from "./guru-mastery-bridge.service";
 import { GuruGenerationQueueService } from "./guru-generation-queue.service";
 import { GuruActivityService } from "./guru-activity.service";
+import { GuruLearnerContextService } from "./guru-learner-context.service";
+import { Query } from "@nestjs/common";
 
 export class GuruPreferencesDto {
   @IsIn(DEPTHS) depth: Depth = "basis";
@@ -56,6 +58,7 @@ export class GuruController {
     private readonly bridge: GuruMasteryBridgeService,
     private readonly queue: GuruGenerationQueueService,
     private readonly activity: GuruActivityService,
+    private readonly learnerContext: GuruLearnerContextService,
   ) {}
   @Get("guru/capabilities") capabilities() {
     return {
@@ -81,8 +84,9 @@ export class GuruController {
     @Body() prefs: GuruPreferencesDto,
     @Request() req: any,
     @Res({ passthrough: true }) res: any,
+    @Query("regenerate") regenerate?: string,
   ) {
-    return this.plan(await this.evidence.builtin(bookId, page), prefs, req.user, res);
+    return this.plan(await this.evidence.builtin(bookId, page), prefs, req.user, res, regenerate === "1");
   }
   @Post("learning-materials/:materialId/pages/:page/lesson")
   @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
@@ -92,15 +96,17 @@ export class GuruController {
     @Body() prefs: GuruPreferencesDto,
     @Request() req: any,
     @Res({ passthrough: true }) res: any,
+    @Query("regenerate") regenerate?: string,
   ) {
-    return this.plan(await this.evidence.material(id, page), prefs, req.user, res);
+    return this.plan(await this.evidence.material(id, page), prefs, req.user, res, regenerate === "1");
   }
   /**
    * A cached lesson answers immediately (200). Otherwise the request never waits on the
    * model: a durable job is queued or reused and returned with 202 for the client to poll.
    */
-  private async plan(source: any, prefs: GuruPreferencesDto, user: any, res: any) {
-    const cached = await this.planner.cached(source, prefs);
+  private async plan(source: any, prefs: GuruPreferencesDto, user: any, res: any, regenerate = false) {
+    // A lesson from an earlier teaching blueprint keeps serving until the learner asks to regenerate.
+    const cached = await this.planner.cached(source, prefs, !regenerate);
     if (cached) return { ...cached, plan: publicGuruPlan(cached.plan) };
     const job = await this.queue.enqueue(source, prefs, user);
     if (job.status === "DONE") {
@@ -109,6 +115,12 @@ export class GuruController {
     }
     res?.status?.(202);
     return { job };
+  }
+  /** What Guru knows about an owned learner before a page: prior pages, known concepts, suggested depth. */
+  @Get("guru/learners/:learnerId/context")
+  @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
+  learnerContextFor(@Param("learnerId") learnerId: string, @Query("bookId") bookId?: string) {
+    return this.learnerContext.forLearner(learnerId, typeof bookId === "string" && /^[A-Za-z0-9_-]{1,120}$/.test(bookId) ? bookId : null);
   }
   /** Parent-facing activity for an owned learner; the guard resolves learnerId ownership. */
   @Get("guru/learners/:learnerId/activity")

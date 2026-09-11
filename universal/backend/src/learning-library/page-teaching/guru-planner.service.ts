@@ -5,6 +5,7 @@ import * as path from "path";
 import { PrismaService } from "../prisma.service";
 import { GuruModelService } from "./guru-model.service";
 import { Depth, GURU_PLAN_RESPONSE_SCHEMA, GuruPlan, uncoveredEvidence, validateGuruPlan } from "./guru-plan.schema";
+import { pedagogyPromptSection } from "./guru-pedagogy";
 
 export interface GuruPreferences {
   depth: Depth;
@@ -16,7 +17,7 @@ export function publicGuruPlan(plan: GuruPlan) {
     ...plan,
     actions: plan.actions.map(({ rubric, ...action }) => ({
       ...action,
-      assessment: Boolean(rubric),
+      assessment: Boolean(rubric) || action.gating === false,
     })),
   };
 }
@@ -47,8 +48,10 @@ export class GuruPlannerService {
    * @param onGenerate Runs only when a new lesson must be generated (cache miss).
    * Callers reserve model budget here so cached lessons stay free.
    */
-  /** Deterministic lesson identity: page revision, preferences, model. */
-  artifactIdFor(source: any, preferences: GuruPreferences) {
+  static readonly BLUEPRINT = "guru-v3";
+  static readonly LEGACY_BLUEPRINTS = ["guru-v2"];
+  /** Deterministic lesson identity: page revision, preferences, model, blueprint. */
+  artifactIdFor(source: any, preferences: GuruPreferences, blueprint = GuruPlannerService.BLUEPRINT) {
     const normalized = {
       depth: preferences.depth,
       language: preferences.language,
@@ -62,17 +65,29 @@ export class GuruPlannerService {
           source.sourceHash,
           normalized,
           this.model.identity,
-          "guru-v2",
+          blueprint,
         ]),
       )
       .digest("hex");
   }
-  /** The stored lesson for this identity, or null. Never generates. */
-  async cached(source: any, preferences: GuruPreferences) {
+  /**
+   * The stored lesson for this identity, or null. Never generates.
+   * With allowLegacy, a lesson from an earlier blueprint is returned (marked) so learners
+   * keep their working lessons until a regeneration is requested.
+   */
+  async cached(source: any, preferences: GuruPreferences, allowLegacy = false) {
     const row = await this.prisma.guruLessonArtifact.findUnique({
       where: { id: this.artifactIdFor(source, preferences) },
     });
-    return row ? (row.payload as any) : null;
+    if (row) return { ...(row.payload as any), blueprint: GuruPlannerService.BLUEPRINT };
+    if (!allowLegacy) return null;
+    for (const legacy of GuruPlannerService.LEGACY_BLUEPRINTS) {
+      const old = await this.prisma.guruLessonArtifact.findUnique({
+        where: { id: this.artifactIdFor(source, preferences, legacy) },
+      });
+      if (old) return { ...(old.payload as any), blueprint: legacy, legacyBlueprint: true };
+    }
+    return null;
   }
   async build(
     source: any,
@@ -191,11 +206,12 @@ export class GuruPlannerService {
       );
     onStage?.("plan");
     const planRaw = await this.model.json(
-      `Teach this opened textbook page as a patient Guru. Learner preferences: ${JSON.stringify(preferences)}.
-Explain meaning, causal mechanisms, worked steps and connections; do not merely read or summarize. Cover every instructional region. Use simple concrete recognition at basis, connections at developing, application at proficient, evidence/assumptions at advanced, and first-principles inquiry at deep. Keep language appropriate for the given age. Label invented examples as examples, not quotations from the page. Never claim mastery. Use the requested language for narration, board labels and feedback.
-Build a sequential chalkboard lesson with small actions. Introduce an objective, write key ideas, progressively draw the actual figure or a useful explanatory schematic, explain each drawing, ask for learner reasoning, then summarize. Equations and tables should be reconstructed step by step using text and line primitives. Use a normalized 1000 by 1000 drawing canvas; keep labels short and within bounds. Each draw action contains the full scene so far, ordered in the intended stroke sequence. Maximum 40 primitives per scene, 100 actions, 8 objectives.
-notes are 3 to 8 short takeaway sentences for the learner's printable page notes (never empty). Return {title,objectives:[string],notes:[string],actions:[{kind:"write"|"draw"|"explain"|"ask"|"summary",text:string,speech:string,evidenceIds:[string],scene?:[{type:"line"|"rect"|"circle"|"text",x:number,y:number,x2?:number,y2?:number,width?:number,height?:number,radius?:number,text?:string,color:"white"|"yellow"|"green"|"blue"}],prompt?:string,rubric?:{expected:string,criteria:[string],hint:string,misconception:string}}]}.
-Every ask requires an explanation rubric, hint and likely misconception. Do not expose the expected answer in the question itself. Every action needs non-empty text (a short board caption) and speech. Every action must reference real evidenceIds. Every source block must be taught by at least one action, or listed in omitted:[{evidenceId,reason}] with a short reason; only page numbers, running headers, decorative labels or text duplicated elsewhere may be omitted, and at most a quarter of the blocks. Last action must be summary. Source blocks: ${JSON.stringify(blocks)}`,
+      `Teach this opened textbook page as an excellent classroom teacher would. Learner preferences: ${JSON.stringify(preferences)}.
+Explain meaning, causal mechanisms, worked steps and connections; do not merely read or summarize. Cover every instructional region. Keep language appropriate for the given age. Use the requested language for narration, board labels and feedback.
+${pedagogyPromptSection(preferences.depth)}
+Build a sequential chalkboard lesson with small actions. Progressively draw the actual figure or a useful explanatory schematic, and explain each drawing. Equations and tables should be reconstructed step by step using text and line primitives. Use a normalized 1000 by 1000 drawing canvas; keep labels short and within bounds. Each draw action contains the full scene so far, ordered in the intended stroke sequence. Maximum 40 primitives per scene, 100 actions, 8 objectives.
+notes are 3 to 8 short takeaway sentences for the learner's printable page notes (never empty). Return {title,objectives:[string],notes:[string],actions:[{kind:"write"|"draw"|"explain"|"ask"|"summary",phase:string,text:string,speech:string,evidenceIds:[string],acknowledgement?:string,scene?:[{type:"line"|"rect"|"circle"|"text",x:number,y:number,x2?:number,y2?:number,width?:number,height?:number,radius?:number,text?:string,color:"white"|"yellow"|"green"|"blue"}],prompt?:string,rubric?:{expected:string,criteria:[string],hint:string,misconception:string}}]}.
+Every graded ask (guided, independent, transfer, misconception) requires an explanation rubric, hint and likely misconception; prior and reflection asks carry an acknowledgement instead of a rubric. Do not expose the expected answer in the question itself. Every action needs non-empty text (a short board caption), speech and a phase. Every action must reference real evidenceIds. Every source block must be taught by at least one action, or listed in omitted:[{evidenceId,reason}] with a short reason; only page numbers, running headers, decorative labels or text duplicated elsewhere may be omitted, and at most a quarter of the blocks. Last action must be summary. Source blocks: ${JSON.stringify(blocks)}`,
       source.imageDataUrl,
       GURU_PLAN_RESPONSE_SCHEMA,
     );
@@ -219,7 +235,7 @@ Every ask requires an explanation rubric, hint and likely misconception. Do not 
               JSON.stringify(blocks.filter((b: any) => missing.includes(b.blockId)).map((b: any) => ({ blockId: b.blockId, type: b.type, text: b.text }))) +
               ". Teach each of them in an action that cites its blockId, or list it in omitted:[{evidenceId,reason}] (only page numbers, running headers, decorative labels or duplicated text; at most a quarter of all blocks). "
             : "") +
-          "Return the complete corrected lesson JSON with the same schema. Keep every rule: every action has non-empty text and speech and cites real evidenceIds; drawings use the 1000 by 1000 canvas with at most 40 primitives; every ask has a rubric with expected, criteria, hint and misconception; notes has 3 to 8 sentences; at least one draw, explain and ask; last action summary. Learner preferences: " +
+          "Return the complete corrected lesson JSON with the same schema. Keep every rule: every action has a phase, non-empty text and speech and cites real evidenceIds; the required phases for this depth appear in the teacher's order (hook first, prior knowledge and explanation before the worked example, worked example before guided and independent practice, summary last); drawings use the 1000 by 1000 canvas with at most 40 primitives; every graded ask has a rubric with expected, criteria, hint and misconception and prior/reflection asks have an acknowledgement; notes has 3 to 8 sentences. Learner preferences: " +
           JSON.stringify(preferences) +
           ". Lesson: " +
           JSON.stringify(planRaw),

@@ -4,7 +4,7 @@ import { stageLabel } from "./guru-review.policy";
 
 export interface GuruActivityEvent {
   at: Date;
-  kind: "answer" | "help" | "question" | "navigation";
+  kind: "answer" | "help" | "question" | "reflection" | "navigation";
   actionId: string | null;
   passed: boolean | null;
   confidence: number | null;
@@ -72,6 +72,8 @@ export class GuruActivityService {
   constructor(private readonly prisma: PrismaService) {}
 
   private classify(result: any): GuruActivityEvent["kind"] {
+    const assessed = result?.assessment?.kind;
+    if (assessed === "PRIOR_KNOWLEDGE" || assessed === "REFLECTION") return "reflection";
     if (typeof result?.kind === "string") {
       if (result.kind === "answer") return "answer";
       if (result.kind === "help") return "help";
@@ -141,7 +143,7 @@ export class GuruActivityService {
           misconception: typeof assessment?.misconception === "string" ? assessment.misconception.slice(0, 200) : null,
           masteryUpdated: assessment?.masteryUpdated === true,
           masteryNote: typeof assessment?.masteryNote === "string" ? assessment.masteryNote : null,
-          response: kind === "answer" || kind === "question" ? (typeof result.response === "string" ? result.response.slice(0, 500) : null) : null,
+          response: kind === "answer" || kind === "question" || kind === "reflection" ? (typeof result.response === "string" ? result.response.slice(0, 500) : null) : null,
           feedback: typeof result.feedback === "string" && result.feedback ? result.feedback.slice(0, 500) : null,
         };
       });

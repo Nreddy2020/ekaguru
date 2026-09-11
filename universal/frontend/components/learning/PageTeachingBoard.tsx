@@ -7,6 +7,7 @@ import {
   GuruEvent,
   describeMasteryOutcome,
   describeReview,
+  describePhase,
 } from "../../lib/learning/guru-api";
 import {
   PageEvidence,
@@ -261,6 +262,11 @@ export function PageTeachingBoard({
         </div>
         <span>
           {lesson.depth} · Action {state.index + 1}/{lesson.actions.length}
+          {describePhase(action.phase) && (
+            <span data-testid="phase-label" className="ml-2 rounded bg-black/30 px-2 py-0.5 text-xs text-amber-100">
+              {describePhase(action.phase)}
+            </span>
+          )}
         </span>
         <button
           onClick={() => send(state.playing ? "pause" : "play")}
@@ -284,7 +290,7 @@ export function PageTeachingBoard({
           disabled={
             busy ||
             state.index === lesson.actions.length - 1 ||
-            (action.kind === "ask" && state.feedback !== "correct")
+            (action.kind === "ask" && action.gating !== false && state.feedback !== "correct")
           }
         >
           Next
@@ -329,6 +335,11 @@ export function PageTeachingBoard({
         </p>
       )}
       {busy && <p role="status">Saving teaching progress…</p>}
+      {state.index === 0 && session?.personalization?.note && (
+        <p data-testid="guru-remembers" className="my-2 rounded bg-black/25 px-3 py-2 text-sm text-amber-100">
+          Guru remembers: {session.personalization.note}
+        </p>
+      )}
       {reviewNote && (
         <p role="status" data-testid="review-note" className="my-2 rounded bg-black/25 px-3 py-2 text-xs text-emerald-100">
           {reviewNote}
@@ -371,6 +382,7 @@ export function PageTeachingBoard({
               Open your textbook to Page {page.physicalPage}. Press Play to
               follow this page on the blackboard.
             </p>
+
             <button disabled={suspended} onClick={() => send("play")}>
               ▶ Start Blackboard Teaching
             </button>
@@ -450,7 +462,38 @@ export function PageTeachingBoard({
                 )}
               </svg>
             )}
-            {action.kind === "ask" && action.assessment && (
+            {action.kind === "ask" && action.assessment && action.gating === false && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void remote("answer", answer);
+                }}
+                className="space-y-3 rounded-xl bg-black/20 p-4"
+                data-testid="share-form"
+              >
+                <label className="block">
+                  {action.prompt || action.text}
+                  <textarea
+                    aria-label="Share your thinking"
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    maxLength={6000}
+                    className="mt-3 block w-full rounded p-3 text-slate-900"
+                  />
+                </label>
+                <button
+                  disabled={busy || !answer.trim()}
+                  type="submit"
+                  className="rounded bg-sky-700 px-3 py-2"
+                >
+                  Share and continue
+                </button>
+                <p className="text-xs">
+                  Guru listens here; this is not graded and never counts against you. You can also press Next.
+                </p>
+              </form>
+            )}
+            {action.kind === "ask" && action.assessment && action.gating !== false && (
               <form
                 onSubmit={(e) => {
                   e.preventDefault();

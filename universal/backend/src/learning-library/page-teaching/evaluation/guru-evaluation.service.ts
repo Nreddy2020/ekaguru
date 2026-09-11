@@ -323,7 +323,7 @@ export class GuruEvaluationService {
       lines.push("## Actions");
       (packet.lesson.actions || []).forEach((a: any, i: number) => {
         lines.push(
-          (i + 1) + ". [" + a.kind + "] " + a.text + "  \n   Speech: " + a.speech +
+          (i + 1) + ". [" + (a.phase ? a.phase + " · " : "") + a.kind + "] " + a.text + "  \n   Speech: " + a.speech +
             "  \n   Evidence: " + (a.evidenceIds || []).join(", "),
         );
         if (a.scene)

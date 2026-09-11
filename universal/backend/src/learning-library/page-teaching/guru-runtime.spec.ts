@@ -9,34 +9,40 @@ function rawPlan() {
     speech: "Let us trace how sunlight supports a plant.",
     evidenceIds: ["vision-0"],
   };
+  const rubric = {
+    expected: "Light supplies energy.",
+    criteria: ["Connect light and energy"],
+    hint: "Think about energy.",
+    misconception: "Plants eat soil.",
+  };
   return {
     title: "Plants",
     objectives: ["Explain the role of sunlight"],
     notes: ["Plants use light."],
     actions: [
-      { ...base, kind: "explain" },
+      { ...base, kind: "write", phase: "hook" },
+      { ...base, kind: "ask", phase: "prior", prompt: "What have you seen plants do in the sun?", acknowledgement: "Good noticing. Keep that in mind." },
+      { ...base, kind: "explain", phase: "explain" },
       {
         ...base,
         kind: "draw",
+        phase: "explain",
         scene: [
           { type: "circle", x: 100, y: 100, radius: 40, color: "yellow" },
         ],
       },
-      {
-        ...base,
-        kind: "ask",
-        prompt: "Explain the role of sunlight.",
-        rubric: {
-          expected: "Light supplies energy.",
-          criteria: ["Connect light and energy"],
-          hint: "Think about energy.",
-          misconception: "Plants eat soil.",
-        },
-      },
-      { ...base, kind: "summary" },
+      { ...base, kind: "explain", phase: "model", text: "Example: a plant on a windowsill." },
+      { ...base, kind: "ask", phase: "guided", prompt: "Explain the role of sunlight.", rubric },
+      { ...base, kind: "ask", phase: "independent", prompt: "Explain it for a plant in a dark room.", rubric },
+      { ...base, kind: "summary", phase: "summary" },
     ],
   };
 }
+// Fixture positions used by the runtime tests
+const PRIOR = 1;
+const DRAW = 3;
+const GUIDED = 5;
+const LAST = 7;
 const plan = () => ({
   ...validateGuruPlan(rawPlan(), new Set(["vision-0"]), "basis", "en", "hash"),
   id: "artifact",
@@ -44,7 +50,10 @@ const plan = () => ({
 describe("Guru plan contract", () => {
   it("keeps assessment rubrics on the server", () => {
     const publicPlan = publicGuruPlan(plan());
-    expect(publicPlan.actions[2].assessment).toBe(true);
+    expect(publicPlan.actions[GUIDED].assessment).toBe(true);
+    expect(publicPlan.actions[GUIDED].gating).toBe(true);
+    expect(publicPlan.actions[PRIOR]).toMatchObject({ gating: false, assessment: true, acknowledgement: "Good noticing. Keep that in mind." });
+    expect(publicPlan.actions.map((a: any) => a.phase)).toEqual(["hook", "prior", "explain", "explain", "model", "guided", "independent", "summary"]);
     expect(JSON.stringify(publicPlan)).not.toContain("Light supplies energy.");
   });
   it.each([
@@ -59,22 +68,22 @@ describe("Guru plan contract", () => {
     if (failure === "unknown-anchor") raw.actions[0].evidenceIds = ["made-up"];
     if (failure === "incomplete-coverage") ids.add("vision-1");
     if (failure === "unsafe-scene")
-      raw.actions[1].scene = [{ type: "html", x: 0, y: 0, text: "<script/>" }];
-    if (failure === "out-of-bounds") raw.actions[1].scene[0].radius = null;
-    if (failure === "missing-checkpoint") raw.actions.splice(2, 1);
+      raw.actions[DRAW].scene = [{ type: "html", x: 0, y: 0, text: "<script/>" }];
+    if (failure === "out-of-bounds") raw.actions[DRAW].scene[0].radius = null;
+    if (failure === "missing-checkpoint") raw.actions.splice(6, 1);
     expect(() => validateGuruPlan(raw, ids, "basis", "en", "hash")).toThrow(
       "Invalid Guru plan",
     );
   });
   it("clamps overshooting geometry into the canvas instead of failing the lesson", () => {
     const raw: any = rawPlan();
-    raw.actions[1].scene = [
+    raw.actions[DRAW].scene = [
       { type: "circle", x: 100, y: 100, radius: 200, color: "yellow" },
       { type: "rect", x: 900, y: 950, width: 400, height: 80.126, color: "white" },
       { type: "line", x: -5, y: 10, x2: 1200, y2: 20, color: "green" },
     ];
     const plan = validateGuruPlan(raw, new Set(["vision-0"]), "basis", "en", "hash");
-    expect(plan.actions[1].scene).toEqual([
+    expect(plan.actions[DRAW].scene).toEqual([
       expect.objectContaining({ type: "circle", radius: 100 }),
       expect.objectContaining({ type: "rect", width: 100, height: 50 }),
       expect.objectContaining({ type: "line", x: 0, x2: 1000 }),
@@ -124,6 +133,26 @@ describe("Guru plan contract", () => {
     expect(prisma.guruLessonArtifact.upsert).not.toHaveBeenCalled();
   });
 });
+describe("Lesson blueprint versions", () => {
+  const source = { bookId: "b", physicalPage: 2, sourceHash: "hash" };
+  const prefs = { depth: "basis" as const, language: "en" };
+  it("serves an earlier-blueprint lesson only when allowed, and marks it", async () => {
+    const planner = new GuruPlannerService({ identity: "gemini:m" } as any, {} as any);
+    const current = planner.artifactIdFor(source, prefs);
+    const legacy = planner.artifactIdFor(source, prefs, "guru-v2");
+    expect(current).not.toBe(legacy);
+    const prisma: any = {
+      guruLessonArtifact: {
+        findUnique: jest.fn(async ({ where }: any) => (where.id === legacy ? { payload: { plan: { id: legacy } } } : null)),
+      },
+    };
+    const withDb = new GuruPlannerService({ identity: "gemini:m" } as any, prisma);
+    expect(await withDb.cached(source, prefs)).toBeNull();
+    expect(await withDb.cached(source, prefs, true)).toMatchObject({ blueprint: "guru-v2", legacyBlueprint: true });
+    prisma.guruLessonArtifact.findUnique.mockImplementation(async ({ where }: any) => (where.id === current ? { payload: { plan: { id: current } } } : null));
+    expect(await withDb.cached(source, prefs, true)).toMatchObject({ blueprint: "guru-v3" });
+  });
+});
 describe("Durable Guru runtime", () => {
   let service: GuruSessionService;
   let db: any;
@@ -132,6 +161,7 @@ describe("Durable Guru runtime", () => {
   let events: Map<string, any>;
   let usage: any;
   let bridge: any;
+  let learnerContext: any;
   const user = { userId: "owner" };
   const input = (kind: any, answer?: string) => ({
     requestId: "request-123",
@@ -146,11 +176,13 @@ describe("Durable Guru runtime", () => {
       userId: "owner",
       artifactId: "artifact",
       learnerId: null,
-      cursor: 2,
+      cursor: GUIDED,
       revision: 0,
       checkpointPassed: false,
       artifact: {
         sourceHash: "hash",
+        bookId: "book-x",
+        physicalPage: 2,
         payload: {
           plan: plan(),
           page: {
@@ -189,6 +221,7 @@ describe("Durable Guru runtime", () => {
       }),
     };
     usage = { reserve: jest.fn().mockResolvedValue(undefined) };
+    learnerContext = { forLearner: jest.fn().mockResolvedValue({ misconceptions: [], priorPages: [], knownConcepts: [], note: "", recommendedDepth: null }) };
     bridge = {
       record: jest.fn().mockResolvedValue({
         masteryUpdated: false,
@@ -202,7 +235,35 @@ describe("Durable Guru runtime", () => {
       { verifyUserLearnerOwnership: jest.fn().mockResolvedValue(true) } as any,
       usage,
       bridge,
+      learnerContext,
     );
+  });
+  it("hears a prior-knowledge answer without a model call, acknowledges it and lets the learner continue", async () => {
+    session.cursor = PRIOR;
+    const heard: any = await service.event("session", input("answer", "Plants bend toward the window."), user);
+    expect(model.json).not.toHaveBeenCalled();
+    expect(usage.reserve).not.toHaveBeenCalled();
+    expect(heard.feedback).toBe("Good noticing. Keep that in mind.");
+    expect(heard.checkpointPassed).toBe(true);
+    expect(heard.assessment).toMatchObject({ kind: "PRIOR_KNOWLEDGE", passed: null, masteryUpdated: false, masteryNote: "not-assessed" });
+    expect(bridge.record).not.toHaveBeenCalled();
+    await expect(service.event("session", { ...input("help"), requestId: "request-help-prior", revision: 1 }, user)).rejects.toThrow("No active checkpoint");
+  });
+  it("lets the learner pass an ungraded ask without answering, but not a graded one", async () => {
+    session.cursor = PRIOR;
+    const moved: any = await service.event("session", input("next"), user);
+    expect(moved.cursor).toBe(PRIOR + 1);
+    session.cursor = GUIDED;
+    session.revision = 1;
+    await expect(service.event("session", { ...input("next"), requestId: "request-next-guided", revision: 1 }, user)).rejects.toThrow("Complete this checkpoint");
+  });
+  it("tells the grader about misconceptions this learner showed on earlier pages", async () => {
+    session.learnerId = "learner-1";
+    learnerContext.forLearner.mockResolvedValueOnce({ misconceptions: ["Plants eat soil."] });
+    await service.event("session", input("answer", "Light gives energy."), user);
+    expect(learnerContext.forLearner).toHaveBeenCalledWith("learner-1", "book-x");
+    expect(model.json.mock.calls[0][0]).toContain("Misconceptions this learner showed on earlier pages");
+    expect(model.json.mock.calls[0][0]).toContain("Plants eat soil.");
   });
   it("reserves query budget before every paid model call and stops when exhausted", async () => {
     usage.reserve.mockRejectedValueOnce(
@@ -246,7 +307,7 @@ describe("Durable Guru runtime", () => {
   it("schedules the first spaced review when a run reaches the summary, from what the run showed", async () => {
     // Session fixture sits at the checkpoint (index 2 of 4); pass it, then advance to the summary.
     await service.event("session", input("answer", "Light gives energy."), user);
-    session.cursor = 2;
+    session.cursor = LAST - 1;
     session.checkpointPassed = true;
     session.revision = 1;
     const result: any = await service.event(
@@ -254,7 +315,7 @@ describe("Durable Guru runtime", () => {
       { ...input("next"), requestId: "request-next-1", revision: 1 },
       user,
     );
-    expect(result.cursor).toBe(3);
+    expect(result.cursor).toBe(LAST);
     expect(result.review).toMatchObject({ stage: 1, label: "partial", lastOutcome: "INDEPENDENT", passedCheckpoints: 1, assistedCheckpoints: 0, firstCompletion: true });
     const scheduled = new Date(result.review.nextReviewAt).getTime() - Date.now();
     expect(scheduled).toBeGreaterThan(1.9 * 24 * 3600 * 1000);
@@ -265,7 +326,7 @@ describe("Durable Guru runtime", () => {
   });
   it("moves a page down a stage when a review run needed help, and up when it did not", async () => {
     await service.event("session", input("help"), user);
-    session.cursor = 2;
+    session.cursor = LAST - 1;
     session.checkpointPassed = true;
     session.revision = 1;
     session.completedAt = new Date(Date.now() - 3 * 24 * 3600 * 1000);
@@ -281,10 +342,11 @@ describe("Durable Guru runtime", () => {
     expect(db.guruTeachingSession.updateMany.mock.calls.pop()[0].data.runStartedAt).toBeInstanceOf(Date);
     expect(restarted.review.stage).toBe(1);
     session.runStartedAt = new Date();
-    session.cursor = 2;
+    session.cursor = GUIDED;
     session.checkpointPassed = false;
     session.revision = 3;
     await service.event("session", { ...input("answer", "Light gives energy."), requestId: "request-answer-2", revision: 3 }, user);
+    session.cursor = LAST - 1;
     session.checkpointPassed = true;
     session.revision = 4;
     const independent: any = await service.event("session", { ...input("next"), requestId: "request-next-3", revision: 4 }, user);
@@ -316,7 +378,7 @@ describe("Durable Guru runtime", () => {
       input("question", "How do plants use light?"),
       user,
     );
-    expect(result.cursor).toBe(2);
+    expect(result.cursor).toBe(GUIDED);
     expect(result.checkpointPassed).toBe(false);
     expect(result.evidenceIds).toEqual(["vision-0"]);
     expect(result.assessment).toBeNull();
@@ -446,13 +508,16 @@ describe("Session start with a chosen learner", () => {
       },
     };
     const access = { verifyUserLearnerOwnership: jest.fn().mockResolvedValue(owned) };
-    return { db, access, created, service: new GuruSessionService(db, {} as any, access as any, {} as any, {} as any) };
+    const learnerContext = { forLearner: jest.fn().mockResolvedValue({ recommendedDepth: "developing", priorPages: [], knownConcepts: [], misconceptions: [], note: "You have already worked through page 45." }) };
+    return { db, access, created, learnerContext, service: new GuruSessionService(db, {} as any, access as any, {} as any, {} as any, learnerContext as any) };
   }
   it("binds a built-in textbook session to an owned learner and keeps learners separate", async () => {
-    const { db, access, service } = build("evs-class-5", true);
-    const first = await service.start("artifact", { userId: "parent" }, "child-a");
+    const { db, access, service, learnerContext } = build("evs-class-5", true);
+    const first: any = await service.start("artifact", { userId: "parent" }, "child-a");
     expect(access.verifyUserLearnerOwnership).toHaveBeenCalledWith({ userId: "parent" }, "child-a");
     expect(first.learnerId).toBe("child-a");
+    expect(learnerContext.forLearner).toHaveBeenCalledWith("child-a", "evs-class-5");
+    expect(first.personalization).toMatchObject({ recommendedDepth: "developing", note: "You have already worked through page 45." });
     expect(db.guruTeachingSession.findFirst).toHaveBeenLastCalledWith(
       expect.objectContaining({ where: { userId: "parent", artifactId: "artifact", learnerId: "child-a" } }),
     );

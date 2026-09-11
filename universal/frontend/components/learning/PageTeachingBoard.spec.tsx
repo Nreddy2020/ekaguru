@@ -118,6 +118,8 @@ it("waits for a saved checkpoint before enabling advance", async () => {
 it("describes every mastery outcome in plain language", () => {
   expect(describeMasteryOutcome(null)).toBe("");
   expect(describeMasteryOutcome({ kind: "ASSISTED_PRACTICE", masteryUpdated: false })).toBe("");
+  expect(describeMasteryOutcome({ kind: "PRIOR_KNOWLEDGE", masteryUpdated: false })).toBe("");
+  expect(describeMasteryOutcome({ kind: "REFLECTION", masteryUpdated: false })).toBe("");
   expect(
     describeMasteryOutcome({ kind: "PAGE_EXPLANATION", masteryUpdated: true, conceptIds: ["a", "b"] }),
   ).toBe("Recorded toward concept mastery for 2 verified concepts on this page.");
@@ -161,4 +163,46 @@ it("cancels automatic advancement while the source dialog is open", () => {
   act(() => jest.advanceTimersByTime(60000));
   expect(screen.getByText(/Action 1/)).toBeInTheDocument();
   expect(jest.getTimerCount()).toBe(0);
+});
+it("shows the teaching phase, hears an ungraded prior-knowledge ask and shows what Guru remembers", async () => {
+  const lesson = compilePageLesson(page, "basis");
+  lesson.actions[0] = {
+    ...lesson.actions[0],
+    kind: "ask",
+    phase: "prior",
+    gating: false,
+    assessment: true,
+    prompt: "What do you already know about triangles?",
+    acknowledgement: "Lovely, hold on to that.",
+  };
+  const onEvent = jest.fn().mockResolvedValue({
+    id: "s",
+    artifactId: lesson.id,
+    cursor: 0,
+    revision: 1,
+    checkpointPassed: true,
+    feedback: "Lovely, hold on to that.",
+    assessment: { kind: "PRIOR_KNOWLEDGE", passed: null, masteryUpdated: false, masteryNote: "not-assessed" },
+  });
+  render(
+    <PageTeachingBoard
+      page={page}
+      lesson={lesson}
+      onHighlight={() => {}}
+      session={{ id: "s", artifactId: lesson.id, cursor: 0, revision: 0, checkpointPassed: false, personalization: { recommendedDepth: null, recommendationReason: null, priorPages: [], knownConcepts: ["Shapes"], misconceptions: [], note: "Ideas you have practised: Shapes." } }}
+      onEvent={onEvent}
+    />,
+  );
+  expect(screen.getByTestId("guru-remembers")).toHaveTextContent("Guru remembers: Ideas you have practised: Shapes.");
+  // A lesson that opens with an ask starts immediately; the phase label is visible at once.
+  expect(screen.getByTestId("phase-label")).toHaveTextContent("What you already know");
+  // Ungraded asks never block Next.
+  expect(screen.getByRole("button", { name: /^Next$/ })).not.toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Share your thinking"), { target: { value: "They have three corners." } });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Share and continue" }));
+  });
+  expect(onEvent).toHaveBeenCalledWith("answer", "They have three corners.");
+  expect(screen.getByText("Lovely, hold on to that.")).toBeInTheDocument();
+  expect(screen.queryByTestId("mastery-note")).toBeNull();
 });

@@ -27,6 +27,11 @@ export interface PageEvidence {
 export type BoardAction = {
   id: string;
   kind: "write" | "draw" | "explain" | "ask" | "summary";
+  /** Teaching phase from the server blueprint; absent on older lessons and local source reading. */
+  phase?: string;
+  /** false for prior-knowledge and reflection asks: heard, acknowledged, never graded or blocking. */
+  gating?: boolean;
+  acknowledgement?: string;
   text: string;
   speech: string;
   evidenceIds: string[];
@@ -164,6 +169,7 @@ export function compilePageLesson(
     notes.push(text);
     add({
       kind: "write",
+      phase: index === 0 ? "hook" : "explain",
       text,
       speech: level.scaffold + " The page says: " + text,
       evidenceIds: ids,
@@ -174,6 +180,7 @@ export function compilePageLesson(
     );
     add({
       kind: "draw",
+      phase: "explain",
       text: match ? "Read the relationship" : "Observe the source region",
       speech: match
         ? "Watch me connect " +
@@ -191,6 +198,7 @@ export function compilePageLesson(
     });
     add({
       kind: "explain",
+      phase: "explain",
       text,
       speech: text + " " + level.prompt,
       evidenceIds: ids,
@@ -199,6 +207,7 @@ export function compilePageLesson(
     if (word)
       add({
         kind: "ask",
+        phase: "independent",
         text: text.replace(word, "_____"),
         speech:
           "Let us check this part before moving on. Complete the missing word from the page.",
@@ -209,6 +218,7 @@ export function compilePageLesson(
   });
   add({
     kind: "summary",
+    phase: "summary",
     text: "Review your page notes",
     speech:
       "We have reached the end of this page. Review the notes and explain one idea in your own words. A completed reading is not a mastery assessment.",

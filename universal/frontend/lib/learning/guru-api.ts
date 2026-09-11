@@ -2,7 +2,7 @@ import { PageEvidence, PageLesson } from "./page-lesson-runtime";
 import { TeachingDepth } from "./teaching-package.types";
 const base = () => process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:20000";
 export interface GuruAssessmentOutcome {
-  kind?: "PAGE_EXPLANATION" | "ASSISTED_PRACTICE";
+  kind?: "PAGE_EXPLANATION" | "ASSISTED_PRACTICE" | "PRIOR_KNOWLEDGE" | "REFLECTION";
   passed?: boolean;
   masteryUpdated: boolean;
   conceptIds?: string[];
@@ -18,6 +18,30 @@ export interface GuruReviewState {
   assistedCheckpoints?: number;
   firstCompletion?: boolean;
 }
+export interface GuruPersonalization {
+  recommendedDepth: string | null;
+  recommendationReason: string | null;
+  priorPages: { bookId: string; physicalPage: number; title: string; depth: string; lastOutcome: string | null; stageLabel: string }[];
+  knownConcepts: string[];
+  misconceptions: string[];
+  note: string;
+}
+/** Board labels for the teaching phases (mirrors the server blueprint). */
+export function describePhase(phase?: string): string {
+  const labels: Record<string, string> = {
+    hook: "Why this matters",
+    prior: "What you already know",
+    explain: "Teacher explains",
+    model: "Worked example (I do)",
+    guided: "Guided practice (we do)",
+    independent: "Your turn (you do)",
+    misconception: "Common mistake",
+    transfer: "Use it somewhere new",
+    reflection: "Reflect and teach back",
+    summary: "Summary and notes",
+  };
+  return (phase && labels[phase]) || "";
+}
 export interface GuruSessionSnapshot {
   id: string;
   artifactId: string;
@@ -27,6 +51,7 @@ export interface GuruSessionSnapshot {
   checkpointPassed: boolean;
   completedAt?: string | null;
   review?: GuruReviewState | null;
+  personalization?: GuruPersonalization | null;
   feedback?: string;
   evidenceIds?: string[];
   assessment?: GuruAssessmentOutcome | null;
@@ -48,7 +73,8 @@ export function describeReview(review?: GuruReviewState | null): string {
 export function describeMasteryOutcome(
   assessment?: GuruAssessmentOutcome | null,
 ): string {
-  if (!assessment || assessment.kind === "ASSISTED_PRACTICE") return "";
+  // Only graded page explanations carry a mastery outcome; assisted practice and ungraded asks do not.
+  if (!assessment || assessment.kind !== "PAGE_EXPLANATION") return "";
   if (assessment.masteryUpdated)
     return (
       "Recorded toward concept mastery for " +
@@ -178,6 +204,7 @@ export async function loadGuruLesson(
   signal: AbortSignal,
   learnerId?: string,
   onStage?: (stage: string) => void,
+  regenerate = false,
 ) {
   const prefix = [
     "evs-class-5",
@@ -194,8 +221,9 @@ export async function loadGuruLesson(
     encodeURIComponent(page.bookId) +
     "/pages/" +
     page.physicalPage +
-    "/lesson";
-  type LessonResponse = { plan: PageLesson; page: Partial<PageEvidence> } | { job: GuruJob };
+    "/lesson" +
+    (regenerate ? "?regenerate=1" : "");
+  type LessonResponse = { plan: PageLesson; page: Partial<PageEvidence>; legacyBlueprint?: boolean } | { job: GuruJob };
   let response = await guruFetch<LessonResponse>(lessonPath, { depth, language, age }, signal);
   if (response.status === 202 && "job" in response.data) {
     await waitForGuruJob(response.data.job, signal, onStage);
@@ -228,5 +256,6 @@ export async function loadGuruLesson(
     plan: result.plan,
     page: { ...page, ...result.page } as PageEvidence,
     session,
+    legacyBlueprint: result.legacyBlueprint === true,
   };
 }

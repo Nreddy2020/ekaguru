@@ -1,4 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
+import { NON_GATING_PHASES, validatePedagogy } from "./guru-pedagogy";
 
 export const DEPTHS = [
   "basis",
@@ -24,6 +25,12 @@ export interface ScenePrimitive {
 export interface GuruAction {
   id: string;
   kind: "write" | "draw" | "explain" | "ask" | "summary";
+  /** Teaching phase from the lesson blueprint (guru-pedagogy.ts). */
+  phase: string;
+  /** Asks that invite thinking without grading or blocking progression (prior knowledge, reflection). */
+  gating?: boolean;
+  /** What Guru says after an ungraded ask, before moving on. */
+  acknowledgement?: string;
   text: string;
   speech: string;
   evidenceIds: string[];
@@ -108,9 +115,11 @@ export function validateGuruPlan(
     const anchors = list(a.evidenceIds, 100, "evidenceIds of action " + index + " (" + a.kind + ")").map((id) => text(id, 200, "evidence id"));
     if (anchors.some((id) => !evidenceIds.has(id)))
       return invalid("unknown evidence anchor");
+    const phase = typeof a.phase === "string" ? a.phase.trim().toLowerCase() : "";
     const action: GuruAction = {
       id: "action-" + index,
       kind: a.kind,
+      phase,
       text: text(a.text, 2000, "text of action " + index),
       speech: text(a.speech, 4000, "speech of action " + index),
       evidenceIds: anchors,
@@ -161,24 +170,33 @@ export function validateGuruPlan(
       });
     }
     if (a.kind === "ask") {
-      const rubric = object(a.rubric);
       action.prompt = text(a.prompt || a.text, 2000, "prompt of action " + index);
-      action.rubric = {
-        expected: text(rubric.expected, 2000, "rubric.expected of action " + index),
-        criteria: list(rubric.criteria, 8, "rubric.criteria of action " + index).map((c) => text(c, 500, "rubric criterion")),
-        hint: text(rubric.hint, 2000, "rubric.hint of action " + index),
-        misconception: text(rubric.misconception, 2000, "rubric.misconception of action " + index),
-      };
+      if ((NON_GATING_PHASES as readonly string[]).includes(phase)) {
+        // Prior-knowledge and reflection asks are heard and acknowledged, never graded.
+        action.gating = false;
+        action.acknowledgement =
+          typeof a.acknowledgement === "string" && a.acknowledgement.trim()
+            ? text(a.acknowledgement, 1000, "acknowledgement of action " + index)
+            : "Thank you for sharing that. Keep it in mind as we work through the page together.";
+      } else {
+        action.gating = true;
+        const rubric = object(a.rubric);
+        action.rubric = {
+          expected: text(rubric.expected, 2000, "rubric.expected of action " + index),
+          criteria: list(rubric.criteria, 8, "rubric.criteria of action " + index).map((c) => text(c, 500, "rubric criterion")),
+          hint: text(rubric.hint, 2000, "rubric.hint of action " + index),
+          misconception: text(rubric.misconception, 2000, "rubric.misconception of action " + index),
+        };
+      }
     }
     return action;
   });
-  if (
-    !actions.some((a) => a.kind === "draw") ||
-    !actions.some((a) => a.kind === "ask") ||
-    !actions.some((a) => a.kind === "explain") ||
-    actions[actions.length - 1].kind !== "summary"
-  )
-    return invalid("incomplete teaching cycle");
+  const pedagogy = validatePedagogy(
+    actions.map((a, index) => ({ phase: a.phase, kind: a.kind, index })),
+    depth,
+  );
+  if (pedagogy.length)
+    return invalid("teaching blueprint: " + pedagogy.map((i) => i.message).join("; "));
   const coverage = [...new Set(actions.flatMap((a) => a.evidenceIds))];
   // Omissions must be explicit, justified, few, and never overlap taught blocks.
   const omitted = (Array.isArray(plan.omitted) ? plan.omitted : []).map(
@@ -241,6 +259,8 @@ export const GURU_PLAN_RESPONSE_SCHEMA: any = {
         type: "OBJECT",
         properties: {
           kind: { type: "STRING", description: "write | draw | explain | ask | summary" },
+          phase: { type: "STRING", description: "hook | prior | explain | model | guided | independent | misconception | transfer | reflection | summary" },
+          acknowledgement: { type: "STRING", nullable: true, description: "for prior and reflection asks only" },
           text: STR,
           speech: STR,
           evidenceIds: { type: "ARRAY", items: STR },
@@ -277,7 +297,7 @@ export const GURU_PLAN_RESPONSE_SCHEMA: any = {
             required: ["expected", "criteria", "hint", "misconception"],
           },
         },
-        required: ["kind", "text", "speech", "evidenceIds", "scene", "prompt", "rubric"],
+        required: ["kind", "phase", "acknowledgement", "text", "speech", "evidenceIds", "scene", "prompt", "rubric"],
       },
     },
   },
