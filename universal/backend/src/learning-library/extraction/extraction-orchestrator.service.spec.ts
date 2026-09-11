@@ -1,3 +1,4 @@
+import { Readable } from 'stream';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExtractionOrchestratorService } from './extraction-orchestrator.service';
 import { PrismaService } from '../prisma.service';
@@ -73,6 +74,9 @@ describe('ExtractionOrchestratorService M2 Security, Idempotency & Batched Persi
         document: { update: jest.fn() },
         learningMaterial: { update: jest.fn() },
       })),
+      contentTopic: { count: jest.fn().mockResolvedValue(2) },
+      concept: { count: jest.fn().mockResolvedValue(3) },
+      conceptRelationship: { count: jest.fn().mockResolvedValue(1) },
       contentChunk: {
         findMany: jest.fn().mockResolvedValue([
           { id: 'chunk-1', sequenceNumber: 1, content: 'Chunk text', pageStart: 1, pageEnd: 1, chapter: null, topic: null, createdAt: new Date() },
@@ -83,6 +87,7 @@ describe('ExtractionOrchestratorService M2 Security, Idempotency & Batched Persi
 
     storageService = {
       fileExists: jest.fn().mockResolvedValue(true),
+      getFileStream: jest.fn().mockImplementation(async()=>Readable.from(['fixture bytes'])),
     };
 
     extractorFactory = {

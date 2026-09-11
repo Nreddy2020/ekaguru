@@ -86,6 +86,7 @@ describe('Universal Content Compiler & Zero-Code Ingestion Pipeline (Step 6)', (
           explanation: 'The Stratosphere is above the turbulent troposphere clouds, providing smooth, fuel-efficient cruising conditions.',
         },
         handsOnExperiment: {
+          steps: [{ stepNumber: 1, action: 'OBSERVE', instruction: 'Observe the inverted cup.' }],
           title: '🚰 The Inverted Cup Air Pressure Trick',
           objective: 'Prove that invisible atmospheric air exerts immense upward pressure',
           rewardBadge: '🌪️ Atmospheric Physicist',

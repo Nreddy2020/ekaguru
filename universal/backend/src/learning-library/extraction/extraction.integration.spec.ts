@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { authSigningSecret } from '../../auth/auth-config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -109,7 +110,7 @@ describe('Phase 2.3 Document Extraction & Chunks HTTP Integration Tests', () => 
   };
 
   beforeAll(async () => {
-    const secret = 'ekaguru-secret-key-change-in-production';
+    const secret = authSigningSecret();
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [
         PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -129,8 +130,8 @@ describe('Phase 2.3 Document Extraction & Chunks HTTP Integration Tests', () => 
     await app.init();
 
     jwtService = moduleRef.get<JwtService>(JwtService);
-    tokenUserA = jwtService.sign({ sub: 'parent-user-a', email: 'parentA@test.com', role: 'PARENT' });
-    tokenUserB = jwtService.sign({ sub: 'parent-user-b', email: 'parentB@test.com', role: 'PARENT' });
+    tokenUserA = jwtService.sign({ authVersion:2, sub: 'parent-user-a', email: 'parentA@test.com', role: 'PARENT' });
+    tokenUserB = jwtService.sign({ authVersion:2, sub: 'parent-user-b', email: 'parentB@test.com', role: 'PARENT' });
   });
 
   afterAll(async () => {

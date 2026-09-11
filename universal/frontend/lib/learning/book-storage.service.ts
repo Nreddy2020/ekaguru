@@ -52,6 +52,7 @@ export interface ChapterLessonModel {
 }
 
 export interface IngestedBookModel {
+  guruMaterial?: {id: string; learnerId: string; sourceChecksum: string};
   id: string;
   title: string;
   subject: string;
@@ -95,7 +96,7 @@ export class BookStorageService {
       if (!Array.isArray(parsed)) return [];
       return parsed.map((b) => ({
         ...b,
-        totalPages: Math.max(b.totalPages || 0, 116),
+        totalPages: b.totalPages || 0,
       }));
     } catch {
       return [];
@@ -134,12 +135,12 @@ export class BookStorageService {
     if (found) {
       return {
         ...found,
-        totalPages: Math.max(found.totalPages || 0, 116),
+        totalPages: found.totalPages || 0,
       };
     }
 
     // Default seeded fallback dynamically constructed from 18 real chapters
-    return this.generateDefaultRealBook(id);
+    return id === 'evs-class-5' ? this.generateDefaultRealBook(id) : undefined;
   }
 
   public static generateDefaultRealBook(customId: string): IngestedBookModel {
@@ -198,29 +199,7 @@ export class BookStorageService {
     const cleanTitle = title || fileName?.replace(/\.[^/.]+$/, '') || 'Environmental Studies: About Me & Our Planet';
     const cleanGrade = `CLASS ${grade.replace(/[^0-9]/g, '') || '5'}`;
 
-    const chapters: ChapterLessonModel[] = CANONICAL_TEXTBOOK_TOC.map((t) => ({
-      id: `ch-${t.chapterNumber}`,
-      chapterNumber: t.chapterNumber,
-      unitName: t.unitName,
-      title: t.title,
-      startPage: t.startPage,
-      endPage: t.endPage,
-      pageRangeText: t.pageRangeText,
-      sections: t.sections.map((s, idx) => ({
-        id: `sec-${t.chapterNumber}-${idx + 1}`,
-        sectionNumber: s.sectionNumber,
-        title: s.title,
-        page: s.page,
-      })),
-      concepts: t.concepts,
-      boardTitle: t.boardTitle,
-      boardSubtitle: t.boardSubtitle,
-      flowSteps: t.flowSteps,
-      subBoxTitle: t.subBoxTitle,
-      subBoxFormula: t.subBoxFormula,
-      keyIdea: t.keyIdea,
-      textbookExcerpt: `Source ground-truth extracted from Page ${t.startPage} of your uploaded textbook.`,
-    }));
+    const chapters: ChapterLessonModel[] = [];
 
     const newBook: IngestedBookModel = {
       id,
@@ -230,10 +209,10 @@ export class BookStorageService {
       curriculum,
       fileName,
       fileSizeBytes,
-      totalPages: 116,
+      totalPages: 0,
       status: 'UPLOADED',
-      progress: 15,
-      stageMessage: 'Preserving 116 physical single pages & detecting 18 chapters from Table of Contents',
+      progress: 0,
+      stageMessage: 'Saving the original PDF on this device',
       createdAt: new Date().toISOString(),
       chaptersCount: chapters.length,
       conceptsCount: chapters.reduce((acc, c) => acc + c.concepts.length, 0),

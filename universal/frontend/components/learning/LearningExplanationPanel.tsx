@@ -4,6 +4,7 @@ import React from 'react';
 import { UniversalKnowledgeUniverseStudio } from './UniversalKnowledgeUniverseStudio';
 
 export interface LearningExplanationPanelProps {
+  bookId?: string;
   sectionId?: string;
   sectionTitle?: string;
   conceptName?: string;
@@ -13,6 +14,7 @@ export interface LearningExplanationPanelProps {
 }
 
 export function LearningExplanationPanel({
+  bookId,
   sectionId = 'festivals-of-india',
   sectionTitle = 'Festivals of India',
   conceptName = 'Sankranthi & Harvest Festivals',
@@ -20,8 +22,12 @@ export function LearningExplanationPanel({
   sourceAnchor,
   className = '',
 }: LearningExplanationPanelProps) {
+  const sourceBookId = bookId || sourceAnchor?.bookId;
+  if (!sourceBookId) return <p role="status">Open a textbook to start page teaching.</p>;
   return (
     <UniversalKnowledgeUniverseStudio
+      bookId={sourceBookId}
+      physicalPage={sourceAnchor?.physicalPage || sourceAnchor?.pdfPage || 1}
       sectionId={sectionId}
       sectionTitle={sectionTitle}
       conceptName={conceptName}

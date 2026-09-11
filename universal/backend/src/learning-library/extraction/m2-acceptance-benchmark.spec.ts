@@ -1,3 +1,5 @@
+import { Readable } from 'stream';
+import { pdfDocumentFixture } from './pdf-test-fixture';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PdfExtractorService } from './extractors/pdf-extractor.service';
 import { StructureDetectorService } from './structure-detector.service';
@@ -15,8 +17,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pdfParse = require('pdf-parse');
-jest.mock('pdf-parse', () => jest.fn());
+const pdfParse = jest.fn();
 
 describe('M2 Document Intelligence Acceptance Benchmark', () => {
   let pdfExtractor: PdfExtractorService;
@@ -80,6 +81,7 @@ describe('M2 Document Intelligence Acceptance Benchmark', () => {
 
     const mockStorage = {
       fileExists: jest.fn().mockResolvedValue(true),
+      getFileStream: jest.fn().mockImplementation(async()=>Readable.from(['fixture bytes'])),
     };
 
     const mockAuthGuard = {
@@ -109,12 +111,13 @@ describe('M2 Document Intelligence Acceptance Benchmark', () => {
     }).compile();
 
     pdfExtractor = module.get<PdfExtractorService>(PdfExtractorService);
+    jest.spyOn(pdfExtractor, 'openDocument').mockImplementation(async () => pdfDocumentFixture((await pdfParse()).text.split('\f')));
     structureDetector = module.get<StructureDetectorService>(StructureDetectorService);
     knowledgeConstructor = module.get<KnowledgeConstructorService>(KnowledgeConstructorService);
     orchestrator = module.get<ExtractionOrchestratorService>(ExtractionOrchestratorService);
   });
 
-  it('Benchmark 1: High OCR Fidelity on Multilingual & Complex Scientific Content', async () => {
+  it('Benchmark 1: Native page text and explicit headings', async () => {
     fs.writeFileSync(tempPdfPath, 'fake-pdf-bytes');
     (pdfParse as jest.Mock).mockResolvedValueOnce({
       text: 'UNIT 1: HUMAN BIOLOGY\n\nChapter 2: The Circulatory System\n\n2.1 Heart Structure\nThe human heart is a muscular organ that pumps oxygenated blood throughout the circulatory system.\n\n• The left ventricle pumps blood into the aorta.\n• The right ventricle pumps blood into the pulmonary artery.\n\nFigure 2.1: Anatomy of the human heart\nName | Chamber | Function\nAorta | Left | Systemic Circulation',

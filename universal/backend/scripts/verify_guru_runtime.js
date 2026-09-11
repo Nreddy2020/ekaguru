@@ -1,0 +1,22 @@
+require('dotenv').config({quiet:true});
+require('ts-node/register');
+const {PrismaClient}=require('@prisma/client');
+const {randomUUID}=require('crypto');
+const {GuruSessionService}=require('../src/learning-library/page-teaching/guru-session.service');
+const p=new PrismaClient();const id='verify-'+randomUUID();
+(async()=>{
+ await p.guruLessonArtifact.create({data:{id,bookId:'evs-class-5',physicalPage:1,sourceHash:'fixture-source',payload:{page:{blocks:[{blockId:'source',text:'Plants use sunlight.'}]},plan:{language:'en',actions:[{id:'ask',kind:'ask',text:'What supplies energy?',evidenceIds:['source'],rubric:{expected:'Light',criteria:['Names light'],hint:'Look at sunlight'}},{id:'end',kind:'summary',text:'Done'}]}}}});
+ let evaluations=0;const model={json:async()=>{evaluations++;return {criteriaMet:[true],confidence:.95,feedback:'Light supplies energy.',misconception:null};}};
+ const service=new GuruSessionService(p,model,{verifyUserLearnerOwnership:async()=>true});
+ const user={userId:id};const session=await service.start(id,user);
+ const input={requestId:randomUUID(),revision:0,kind:'answer',answer:'Sunlight supplies energy.'};
+ await service.event(session.id,input,user);
+ await service.event(session.id,input,user);
+ const resumed=await new GuruSessionService(p,model,{}).start(id,user);
+ const events=await p.guruTeachingEvent.count({where:{sessionId:session.id}});
+ if(events!==1||evaluations!==1||resumed.revision!==1||!resumed.checkpointPassed)throw new Error('Persistence/replay failed');
+ await service.event(session.id,{requestId:randomUUID(),revision:1,kind:'next'},user);
+ const final=await service.read(session.id,user);
+ if(final.cursor!==1)throw new Error('Advance failed');
+ console.log(JSON.stringify({databasePersistence:true,idempotentReplay:true,resume:true,checkpointAdvance:true,model:'deterministic test double; no live model call'},null,2));
+})().catch(e=>{console.error(e.message);process.exitCode=1;}).finally(async()=>{await p.guruTeachingSession.deleteMany({where:{artifactId:id}});await p.guruLessonArtifact.deleteMany({where:{id}});await p.$disconnect();});

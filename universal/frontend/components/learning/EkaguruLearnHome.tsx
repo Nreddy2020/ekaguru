@@ -34,6 +34,7 @@ import {
   IngestedBookModel,
   IngestionStage,
 } from '../../lib/learning/book-storage.service';
+import {saveLocalPdf,LocalBookSourceStore} from '../../lib/learning/local-book-source';
 import { EnginePipelineTaskInspector } from './EnginePipelineTaskInspector';
 
 export function EkaguruLearnHome() {
@@ -79,47 +80,14 @@ export function EkaguruLearnHome() {
   };
 
   // Start Ingestion: Adds book to Learn Home immediately and runs pipeline in background
-  const handleStartIngestion = () => {
-    if (!uploadFile && !uploadTitle) return;
-
-    // 1. Create book in storage with UPLOADED status
-    const newBook = BookStorageService.createBook(
-      uploadTitle || uploadFile?.name || 'New Textbook',
-      uploadSubject,
-      uploadGrade,
-      uploadCurriculum,
-      uploadFile?.name,
-      uploadFile?.size
-    );
-
-    // Update state and close modal immediately to stay on Learn Home
+  const handleStartIngestion = async () => {
+    if(!uploadFile)return;
+    const file=uploadFile;
+    const book=BookStorageService.createBook(uploadTitle||file.name,uploadSubject,uploadGrade,uploadCurriculum,file.name,file.size);
+    setBooks(BookStorageService.getBooks());setShowUploadModal(false);setUploadFile(null);setUploadTitle('');
+    try{await saveLocalPdf(book.id,file);}
+    catch(error:any){BookStorageService.updateBook({...book,status:'FAILED_OCR',progress:0,stageMessage:'Original PDF could not be saved.',failureReason:error.message});}
     setBooks(BookStorageService.getBooks());
-    setShowUploadModal(false);
-    setUploadFile(null);
-    setUploadTitle('');
-
-    // 2. Progress through the live state machine
-    const stages: { stage: IngestionStage; progress: number; msg: string; delay: number }[] = [
-      { stage: 'OCR_PROCESSING', progress: 28, msg: 'Preserving 59 physical pages & running visual OCR...', delay: 900 },
-      { stage: 'OCR_COMPLETE', progress: 54, msg: 'OCR Complete (99.1% Confidence) • 42 diagrams extracted', delay: 1900 },
-      { stage: 'ANALYSING', progress: 76, msg: 'Table of Contents parsed: 12 Chapters & 5 Units mapped', delay: 3000 },
-      { stage: 'KNOWLEDGE_BUILDING', progress: 89, msg: 'Building canonical knowledge universe graph...', delay: 4100 },
-      { stage: 'VERIFYING', progress: 97, msg: 'Page sequence & chapter boundaries verified', delay: 5200 },
-      { stage: 'READY_TO_LEARN', progress: 100, msg: 'Ready to Learn • Verified canonical curriculum', delay: 6200 },
-    ];
-
-    stages.forEach(({ stage, progress, msg, delay }) => {
-      setTimeout(() => {
-        const bookToUpdate = BookStorageService.getBookById(newBook.id);
-        if (bookToUpdate) {
-          bookToUpdate.status = stage;
-          bookToUpdate.progress = progress;
-          bookToUpdate.stageMessage = msg;
-          BookStorageService.updateBook(bookToUpdate);
-          setBooks(BookStorageService.getBooks());
-        }
-      }, delay);
-    });
   };
 
   const renderCardIcon = (type: 'book' | 'math' | 'science' | 'heritage' | 'custom') => {
@@ -431,7 +399,7 @@ export function EkaguruLearnHome() {
                               </Link>
 
                               <Link
-                                href={`/learn/books/${book.id}/lessons/${book.chapters[0]?.id || 'festivals-of-india'}`}
+                                href={`/library/${encodeURIComponent(book.id)}?page=1`}
                                 className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-xl font-bold text-xs flex items-center gap-1 shadow-lg shadow-purple-600/30"
                               >
                                 <span>Open Book</span>
@@ -602,7 +570,7 @@ export function EkaguruLearnHome() {
                   {uploadFile ? uploadFile.name : 'Click to browse or drag & drop textbook PDF'}
                 </h4>
                 <p className="text-[10px] text-slate-400 mt-0.5">
-                  {uploadFile ? `${(uploadFile.size / (1024 * 1024)).toFixed(2)} MB • Verified` : 'Supports NCERT, CBSE, ICSE & State Textbooks (up to 200MB)'}
+                  {uploadFile ? `${(uploadFile.size / (1024 * 1024)).toFixed(2)} MB • Selected` : 'Supports NCERT, CBSE, ICSE & State Textbooks (up to 200MB)'}
                 </p>
               </div>
 
@@ -673,6 +641,7 @@ export function EkaguruLearnHome() {
                 </button>
                 <button
                   onClick={handleStartIngestion}
+                  disabled={!uploadFile}
                   className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-600/30"
                 >
                   <UploadCloud className="w-3.5 h-3.5" />
@@ -694,7 +663,7 @@ export function EkaguruLearnHome() {
             <div>
               <h3 className="text-base font-black">Delete Textbook?</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Are you sure you want to delete <span className="text-white font-bold">{bookToDelete.title}</span>? This will permanently remove its 116 pages, OCR index, and knowledge graph.
+                Are you sure you want to delete <span className="text-white font-bold">{bookToDelete.title}</span>? This removes the book and its saved PDF from this device.
               </p>
             </div>
             <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -705,7 +674,8 @@ export function EkaguruLearnHome() {
                 Cancel
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
+                  await LocalBookSourceStore.delete(bookToDelete.id);
                   BookStorageService.deleteBook(bookToDelete.id);
                   setBooks(BookStorageService.getBooks());
                   setBookToDelete(null);

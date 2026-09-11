@@ -9,6 +9,8 @@ import { BadRequestException, NotFoundException, ForbiddenException } from '@nes
 import { ProvenanceType } from './dto/upload-material.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import {Readable} from 'stream';
+import {createHash} from 'crypto';
 
 describe('UploadService Security & Remediation Tests', () => {
   let service: UploadService;
@@ -294,4 +296,22 @@ describe('UploadService Security & Remediation Tests', () => {
 
     if (fs.existsSync(tempFileDir)) fs.rmSync(tempFileDir, { recursive: true, force: true });
   });
+  it.each(['same','different','missing'])('checks actual original bytes when metadata matches: %s',async(kind)=>{
+    const bytes=Buffer.from('%PDF-1.7 original A');
+    const previous=kind==='different'?Buffer.from('%PDF-1.7 original B'):bytes;
+    prisma.learningMaterial.findFirst=jest.fn().mockResolvedValue({...mockMaterial,originalFileName:'same.pdf'});
+    storageService.saveFile.mockImplementation(async(stream)=>{stream.resume();return {storageKey:'new.pdf',fileSizeBytes:bytes.length,checksum:createHash('sha256').update(bytes).digest('hex')};});
+    storageService.getFileStream=kind==='missing'?jest.fn().mockRejectedValue(new Error('Missing original')):jest.fn().mockResolvedValue(Readable.from(previous));
+    const result=await service.handleFileUpload({learnerId:'learner-123',title:'Same title',materialType:MaterialType.TEXTBOOK},{originalname:'same.pdf',mimetype:'application/pdf',buffer:bytes,size:bytes.length} as any,{userId:'parent',role:'PARENT'});
+    expect(result.duplicate===true).toBe(kind==='same');
+    if(kind==='same'){
+      expect(prisma.learningMaterial.create).not.toHaveBeenCalled();
+      expect(storageService.deleteFile).toHaveBeenCalledWith('new.pdf');
+      expect(result.data.checksum).toBe(createHash('sha256').update(bytes).digest('hex'));
+    } else {
+      expect(prisma.learningMaterial.create).toHaveBeenCalled();
+      expect(storageService.deleteFile).not.toHaveBeenCalled();
+    }
+  });
+
 });

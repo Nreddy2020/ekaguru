@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
-import { createWorker } from 'tesseract.js';
+import { createWorker, PSM } from 'tesseract.js';
 
 export interface BoundingBox {
   x: number;
@@ -64,14 +64,15 @@ export class OcrDocumentVisionService {
 
   public async processPageVision(
     physicalPageNumber: number,
-    imagePath: string
+    imagePath: string | Buffer
   ): Promise<PageVisionResult> {
-    if (!fs.existsSync(imagePath)) {
+    if (typeof imagePath === 'string' && !fs.existsSync(imagePath)) {
       throw new Error(`Physical page scan not found: ${imagePath}`);
     }
 
-    const worker = await createWorker('eng');
+    const worker = await createWorker(process.env.OCR_LANGUAGES || 'eng', 1, process.env.TESSDATA_DIR ? { langPath: process.env.TESSDATA_DIR, gzip: false } : {});
     try {
+      await worker.setParameters({tessedit_pageseg_mode:PSM.AUTO});
       const ret: any = await worker.recognize(imagePath, {}, { blocks: true });
       const rawBlocks = ret.data?.blocks || [];
       const extractedBlocks: DocumentVisionBlockRecord[] = [];
@@ -85,7 +86,7 @@ export class OcrDocumentVisionService {
             if (!lineText) continue;
 
             const words: OcrWordRecord[] = (line.words || []).map((w: any) => {
-              const conf = (w.confidence || 80) / 100;
+              const conf = (w.confidence ?? 0) / 100;
               totalConfidenceSum += conf;
               totalWordCount++;
               return {
@@ -130,10 +131,6 @@ export class OcrDocumentVisionService {
               type = 'activity';
             }
 
-            // Multi-column assignment (left column x < 550, right column x >= 550 for 1200px width)
-            const lineX = line.bbox?.x0 || 0;
-            const columnIndex = lineX < 550 ? 1 : 2;
-
             extractedBlocks.push({
               blockId: `blk-${physicalPageNumber}-temp`,
               regionId: `reg-${physicalPageNumber}-temp`,
@@ -149,23 +146,14 @@ export class OcrDocumentVisionService {
               confidence: Number((words.reduce((a, w) => a + w.confidence, 0) / Math.max(1, words.length)).toFixed(3)),
               readingOrderIndex: 0,
               words,
-              columnIndex,
               subTypeMetadata,
             });
           }
         }
       }
 
-      // 2-Column Aware Reading Order Reconstruction:
-      // Sort by columnIndex first (Column 1 top-to-bottom, then Column 2 top-to-bottom)
-      const isMultiColumn = extractedBlocks.some((b) => b.columnIndex === 2) && extractedBlocks.some((b) => b.columnIndex === 1);
-      
-      if (isMultiColumn) {
-        extractedBlocks.sort((a, b) => {
-          if (a.columnIndex !== b.columnIndex) return (a.columnIndex || 1) - (b.columnIndex || 1);
-          return a.bbox.y - b.bbox.y;
-        });
-      }
+      // Preserve OCR layout traversal; a fixed x threshold corrupts mixed text/figure pages.
+      const isMultiColumn = false; // No independent column classifier is asserted.
 
       // Re-index reading order
       const blocks: DocumentVisionBlockRecord[] = extractedBlocks.map((b, idx) => ({
@@ -175,14 +163,14 @@ export class OcrDocumentVisionService {
         readingOrderIndex: idx + 1,
       }));
 
-      const avgConfidence = totalWordCount > 0 ? Number((totalConfidenceSum / totalWordCount).toFixed(3)) : 0.85;
+      const avgConfidence = totalWordCount > 0 ? Number((totalConfidenceSum / totalWordCount).toFixed(3)) : 0;
 
       return {
         physicalPageNumber,
         blocks,
         wordCount: totalWordCount,
         averageWordConfidence: avgConfidence,
-        hasFigures: blocks.length >= 2,
+        hasFigures: blocks.some((b) => b.type === 'figure'),
         hasTables: blocks.some((b) => b.type === 'table'),
         hasFormulas: blocks.some((b) => b.type === 'formula'),
         hasCallouts: blocks.some((b) => b.type === 'callout_box'),

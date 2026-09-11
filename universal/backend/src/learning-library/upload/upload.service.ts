@@ -12,6 +12,7 @@ import { UploadMaterialDto, ProvenanceType } from './dto/upload-material.dto';
 import { MaterialStatus, ProcessingStatus, DocumentStatus } from '@prisma/client';
 import { LearningLibraryAuthGuard } from '../learning-library-auth.guard';
 import { Readable } from 'stream';
+import { createHash } from 'crypto';
 import * as fs from 'fs';
 
 @Injectable()
@@ -34,6 +35,8 @@ export class UploadService {
       throw new BadRequestException('No file attached to upload request.');
     }
 
+    let storageKey: string | null = null;
+    try {
     if (!dto.learnerId || typeof dto.learnerId !== 'string' || dto.learnerId.trim().length === 0) {
       throw new BadRequestException('learnerId is required.');
     }
@@ -73,9 +76,6 @@ export class UploadService {
 
     const fileSource = file.path ? file.path : file.buffer;
 
-    let storageKey: string | null = null;
-
-    try {
       // 2. ORDER OF OPERATIONS: Validate File BEFORE Permanent Storage
       const validationResult = this.fileValidatorService.validateFileHeader(
         fileSource,
@@ -117,8 +117,8 @@ export class UploadService {
           orderBy: { createdAt: 'desc' },
         });
 
-        if (existingMaterial) {
-          this.logger.log(`Duplicate file detected for learner ${learnerId}: '${file.originalname}' matches material ${existingMaterial.id}`);
+        if (existingMaterial && await this.hasSameOriginal(existingMaterial.storageKey, storageResult.checksum, storageResult.fileSizeBytes)) {
+          this.logger.log(`Duplicate file detected for learner ${learnerId}: '${file.originalname}' matches the original bytes of material ${existingMaterial.id}`);
           // Clean up newly written duplicate storage file
           await this.storageService.deleteFile(storageResult.storageKey).catch(() => {});
           return {
@@ -126,6 +126,8 @@ export class UploadService {
             message: 'This material has already been uploaded.',
             data: {
               id: existingMaterial.id,
+              learnerId: existingMaterial.learnerId,
+              checksum: storageResult.checksum,
               title: existingMaterial.title,
               processingStatus: existingMaterial.processingStatus,
               originalFileName: existingMaterial.originalFileName,
@@ -217,4 +219,22 @@ export class UploadService {
       }
     }
   }
+  private async hasSameOriginal(storageKey: string | null, checksum: string, size: number): Promise<boolean> {
+    if(!storageKey)return false;
+    try {
+      const stream=await this.storageService.getFileStream(storageKey);
+      const hash=createHash('sha256');
+      let length=0;
+      for await (const chunk of stream) {
+        const bytes=Buffer.from(chunk);length+=bytes.length;
+        if(length>size)return false;
+        hash.update(bytes);
+      }
+      return length===size && hash.digest('hex')===checksum;
+    } catch {
+      // An unreadable old original is not proof of duplication. Preserve the new source.
+      return false;
+    }
+  }
+
 }

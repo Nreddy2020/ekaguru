@@ -257,6 +257,9 @@ enum UserRole {
 }
 
 model Parent {
+  credential ParentCredential?
+  emailVerifiedAt DateTime?
+  recoveryTokens ParentRecoveryToken[]
   id            String    @id @default(uuid())
   email         String    @unique
   name          String
@@ -575,6 +578,8 @@ model DocumentPage {
   text             String?
   imageStorageKey  String?
   ocrApplied       Boolean  @default(false)
+  evidence         Json?
+  sourceHash       String?
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -768,6 +773,7 @@ model Concept {
   curatorRules    CuratorRule[]
   curriculumNodes CurriculumNode[]
   conceptMasteries LearnerConceptMastery[]
+  guruMappings    GuruConceptMapping[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -1700,4 +1706,159 @@ model TeachingPackageRecord {
   @@index([bookId])
   @@index([chapterNumber])
   @@index([status])
+}
+
+// Versioned page lessons and server-owned teaching progress. Additive to legacy sessions.
+model GuruLessonArtifact {
+  id           String   @id
+  bookId       String
+  physicalPage Int
+  sourceHash   String
+  payload      Json
+  createdAt    DateTime @default(now())
+  sessions     GuruTeachingSession[]
+  conceptMappings GuruConceptMapping[]
+  evaluationCases GuruEvaluationCase[]
+
+  @@index([bookId, physicalPage, sourceHash])
+}
+
+model GuruTeachingSession {
+  id          String   @id @default(uuid())
+  userId      String
+  learnerId   String?
+  artifactId  String
+  artifact    GuruLessonArtifact @relation(fields: [artifactId], references: [id])
+  cursor      Int      @default(0)
+  revision    Int      @default(0)
+  checkpointPassed Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  events      GuruTeachingEvent[]
+
+  @@index([userId, artifactId])
+}
+
+model GuruTeachingEvent {
+  id          String @id @default(uuid())
+  sessionId   String
+  session     GuruTeachingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  requestId   String
+  payloadHash String
+  result      Json
+  createdAt   DateTime @default(now())
+
+  @@unique([sessionId, requestId])
+}
+
+model ParentCredential {
+  parentId String @id
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  passwordHash String
+  credentialVersion Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Guru page-teaching bridge: page lessons -> canonical concepts (verified only)
+// ---------------------------------------------------------------------------
+enum GuruMappingStatus {
+  PROPOSED
+  VERIFIED
+  REJECTED
+}
+enum GuruMappingMethod {
+  CHUNK_PAGE_RANGE
+  OBJECTIVE_NAME
+  MANUAL
+}
+model GuruConceptMapping {
+  id          String             @id @default(uuid())
+  artifactId  String
+  artifact    GuruLessonArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  conceptId   String
+  concept     Concept            @relation(fields: [conceptId], references: [id])
+  method      GuruMappingMethod
+  score       Float
+  status      GuruMappingStatus  @default(PROPOSED)
+  rationale   String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([artifactId, conceptId])
+  @@index([status])
+  @@index([conceptId])
+}
+
+// Educator-reviewed evaluation corpus for Guru teaching quality
+enum GuruReviewVerdict {
+  PASS
+  REVISE
+  FAIL
+}
+model GuruEvaluationCase {
+  id           String              @id @default(uuid())
+  bookId       String
+  physicalPage Int
+  sourceHash   String?
+  subject      String
+  gradeBand    GradeBand
+  language     String              @default("en")
+  depth        String
+  artifactId   String?
+  artifact     GuruLessonArtifact? @relation(fields: [artifactId], references: [id], onDelete: SetNull)
+  createdBy    String
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  reviews      GuruEvaluationReview[]
+
+  @@unique([bookId, physicalPage, depth, language])
+  @@index([subject, depth])
+}
+model GuruEvaluationReview {
+  id            String             @id @default(uuid())
+  caseId        String
+  case          GuruEvaluationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  reviewerId    String
+  rubricVersion Int
+  scores        Json
+  verdict       GuruReviewVerdict
+  notes         String?
+  createdAt     DateTime           @default(now())
+
+  @@unique([caseId, reviewerId, rubricVersion])
+  @@index([verdict])
+}
+
+// Per-account daily model usage ledger (cost and abuse control)
+model GuruModelUsage {
+  id        String   @id @default(uuid())
+  userId    String
+  day       String
+  lessons   Int      @default(0)
+  queries   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, day])
+}
+
+// Account recovery and email ownership verification
+enum RecoveryPurpose {
+  PASSWORD_RESET
+  EMAIL_VERIFY
+}
+model ParentRecoveryToken {
+  id        String          @id @default(uuid())
+  parentId  String
+  parent    Parent          @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  tokenHash String          @unique
+  purpose   RecoveryPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime        @default(now())
+
+  @@index([parentId, purpose])
 }

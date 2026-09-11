@@ -6,18 +6,26 @@ import { useRouter } from "next/navigation";
 
 export default function ChildSetupPage() {
     const router = useRouter();
+    const [age,setAge]=useState(10);
+    const [error,setError]=useState("");
     const [name, setName] = useState("");
     const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
     const avatars = ["👩‍🚀", "🦁", "🎨", "🤖", "🦕", "🦸", "🧚", "🐵"];
 
-    const handleContinue = () => {
-        if (!name || !selectedAvatar) return;
-        setLoading(true);
-        setTimeout(() => {
-            router.push("/subject/create"); // Navigate to Subject Creation
-        }, 1000);
+    const handleContinue = async () => {
+        if (!name.trim() || !selectedAvatar || loading || age<1 || age>120) return;
+        const token=localStorage.getItem("token");
+        if(!token){setError("Sign in before saving a learner profile.");return;}
+        setLoading(true);setError("");
+        try{
+            const response=await fetch((process.env.NEXT_PUBLIC_API_URL||"http://127.0.0.1:20000")+"/api/v2/parent/learners",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({name:name.trim(),age})});
+            const data=await response.json().catch(()=>null);
+            if(!response.ok||!data?.data?.id)throw new Error(typeof data?.message==="string"?data.message:"The learner profile could not be saved.");
+            const returnTo=new URLSearchParams(window.location.search).get("returnTo");
+            router.push(returnTo&&returnTo.startsWith("/library/")?returnTo:"/learn");
+        }catch(e:any){setError(e.message);}finally{setLoading(false);}
     };
 
     return (
@@ -85,6 +93,8 @@ export default function ChildSetupPage() {
                     </div>
                 </div>
 
+                <label className="block mb-4 font-bold text-slate-700">Age<input aria-label="Learner age" type="number" min={1} max={120} value={age} onChange={e=>setAge(Number(e.target.value))} className="block w-full mt-2 rounded-xl border p-3"/></label>
+                {error&&<p role="alert" className="mb-4 text-red-700">{error}</p>}
                 {/* Continue Button */}
                 <button
                     onClick={handleContinue}

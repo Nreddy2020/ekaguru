@@ -67,7 +67,7 @@ export default function BookChaptersPage({ params }: { params: { bookId: string 
           {book.chapters.map((ch) => (
             <Link
               key={ch.id}
-              href={`/learn/books/${book.id}/lessons/${ch.id}`}
+              href={`/learn/books/${book.id}/lessons/${ch.id}?page=${ch.startPage}`}
               className="p-4 rounded-2xl bg-[#0b1120] border border-slate-800 hover:border-purple-500/60 transition flex items-center justify-between group shadow-lg"
             >
               <div className="flex items-center gap-4">

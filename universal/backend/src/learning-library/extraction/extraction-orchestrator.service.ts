@@ -1,3 +1,6 @@
+import { promises as fs, createWriteStream } from 'fs';
+import * as os from 'os';
+import { pipeline } from 'stream/promises';
 import {
   Injectable,
   Logger,
@@ -108,22 +111,24 @@ export class ExtractionOrchestratorService {
 
     if (material.processingStatus === ProcessingStatus.READY) {
       this.logger.log(`Material '${materialId}' is already in READY state. Returning verified structure.`);
+      const document = await this.prisma.document.findFirst({ where: { materialId }, include: { _count: { select: { pages:true,units:true,chapters:true,specialSections:true,chunks:true } } } });
+      if (!document) throw new NotFoundException('Processed document is missing. Re-extract this material.');
       return {
         data: {
           materialId: material.id,
-          documentId: 'doc-ready-123',
+          documentId: document.id,
           processingStatus: ProcessingStatus.READY,
           currentStage: 'READY',
           progress: 100,
           failureReason: null,
-          pageCount: 59,
-          unitCount: 5,
-          chapterCount: 18,
-          specialSectionCount: 11,
-          topicCount: 59,
-          chunkCount: 59,
-          conceptCount: 54,
-          relationshipCount: 100,
+          pageCount: document._count?.pages || document.pageCount || 0,
+          unitCount: document._count?.units || 0,
+          chapterCount: document._count?.chapters || 0,
+          specialSectionCount: document._count?.specialSections || 0,
+          topicCount: await this.prisma.contentTopic.count({where:{chapter:{documentId:document.id}}}),
+          chunkCount: document._count?.chunks || 0,
+          conceptCount: await this.prisma.concept.count({where:{sourceChunks:{some:{chunk:{documentId:document.id}}}}}),
+          relationshipCount: await this.prisma.conceptRelationship.count({where:{source:{sourceChunks:{some:{chunk:{documentId:document.id}}}}}}),
           processedAt: new Date(),
         },
       };
@@ -152,12 +157,20 @@ export class ExtractionOrchestratorService {
         throw new NotFoundException(`Source file not found at storage key '${storageKey}'.`);
       }
 
-      const filePath = path.join(process.cwd(), 'uploads', storageKey);
+      const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'ekaguru-extract-'));
+      const filePath = path.join(staging, 'source');
       const ext = path.extname(material.originalFileName || storageKey);
       const extractor = this.extractorFactory.getExtractor(material.mimeType, ext);
 
       // Layer 1: Raw Document & Page Extraction
-      const extractedDoc = await extractor.extract(filePath, material.originalFileName || 'document.pdf');
+      let extractedDoc;
+      try {
+        await pipeline(await this.storageService.getFileStream(storageKey), createWriteStream(filePath, {flags:'wx'}));
+        extractedDoc = await extractor.extract(filePath, material.originalFileName || 'document.pdf');
+      } finally {
+        await fs.unlink(filePath).catch(() => {});
+        await fs.rmdir(staging).catch(() => {});
+      }
 
       // Layer 2: Structure & TOC Detection
       const structureResult = this.structureDetector.processStructure(extractedDoc);
@@ -225,7 +238,9 @@ export class ExtractionOrchestratorService {
               data: {
                 documentId: docId,
                 pageNumber: page.pageNumber,
-                text: page.rawText?.slice(0, 1000),
+                text: page.rawText,
+                evidence: JSON.parse(JSON.stringify({blocks:page.blocks,pageTruth:page.pageTruth})),
+                sourceHash: extractedDoc.metadata.checksum || null,
                 ocrApplied: page.classification === 'SCANNED',
               },
             });
