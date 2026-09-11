@@ -1,0 +1,497 @@
+<title>Ekaguru Teacher Engine</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #f6f7f4;
+    --paper-2: #eceee8;
+    --ink: #1b2a41;
+    --ink-2: #4a5568;
+    --pencil: #6a7383;
+    --rule: #d6d9d1;
+    --margin: #c8102e;
+    --board: #2f5d50;
+    --board-ink: #e9efe9;
+    --highlight: #f5d76e;
+    --highlight-ink: #4a3a00;
+    --done: #2f5d50;
+    --owner: #8a5a00;
+    --owner-bg: #fbeccb;
+    --chip-bg: #e4e8e0;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14201c;
+      --paper-2: #1b2a25;
+      --ink: #e6ebe7;
+      --ink-2: #c3ccc6;
+      --pencil: #9aa5a0;
+      --rule: #2b3a34;
+      --margin: #ff7a88;
+      --board: #23423a;
+      --board-ink: #e6ebe7;
+      --highlight: #e9c46a;
+      --highlight-ink: #2a2100;
+      --done: #7fbfa7;
+      --owner: #f2cf7a;
+      --owner-bg: #3a2f14;
+      --chip-bg: #253530;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14201c;
+    --paper-2: #1b2a25;
+    --ink: #e6ebe7;
+    --ink-2: #c3ccc6;
+    --pencil: #9aa5a0;
+    --rule: #2b3a34;
+    --margin: #ff7a88;
+    --board: #23423a;
+    --board-ink: #e6ebe7;
+    --highlight: #e9c46a;
+    --highlight-ink: #2a2100;
+    --done: #7fbfa7;
+    --owner: #f2cf7a;
+    --owner-bg: #3a2f14;
+    --chip-bg: #253530;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .page {
+    position: relative;
+    max-width: 78rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 5rem 5.5rem;
+  }
+  /* The double red margin rule of an Indian school notebook. */
+  .page::before {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; left: 3.6rem;
+    width: 0;
+    border-left: 1.5px solid var(--margin);
+    border-right: 1.5px solid var(--margin);
+    padding-left: 3px;
+    opacity: .75;
+  }
+  @media (max-width: 720px) {
+    .page { padding-left: 2.6rem; padding-right: 1rem; }
+    .page::before { left: 1.4rem; }
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  h1 {
+    font-family: "Kalam", "Segoe Print", cursive;
+    font-weight: 700;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.1;
+    color: var(--board);
+  }
+  .lede {
+    max-width: 66ch;
+    font-size: 1.15rem;
+    color: var(--ink-2);
+    margin: 1rem 0 0;
+  }
+  .meta {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .8rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--pencil);
+    margin-top: .75rem;
+  }
+  section { margin-top: 3.5rem; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--margin);
+    margin-bottom: .35rem;
+  }
+  h2 {
+    font-size: 1.6rem;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+  h3 {
+    font-size: 1.15rem;
+    margin-top: 1.75rem;
+    font-weight: 700;
+  }
+  p, li { max-width: 68ch; }
+  p { margin: .9rem 0 0; }
+  ul, ol { margin: .75rem 0 0; padding-left: 1.3rem; }
+  li + li { margin-top: .4rem; }
+  strong { font-weight: 700; }
+  .callout {
+    margin-top: 1.25rem;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid var(--margin);
+    background: var(--paper-2);
+    max-width: 72ch;
+  }
+  .callout p:first-child { margin-top: 0; }
+  .note {
+    margin-top: 1.25rem;
+    padding: .9rem 1.1rem;
+    background: var(--highlight);
+    color: var(--highlight-ink);
+    max-width: 72ch;
+    border-radius: 2px;
+  }
+  .note p { margin: 0; color: inherit; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 1.25rem;
+    font-size: .95rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .table-wrap { overflow-x: auto; }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: .6rem .75rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .74rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--pencil);
+    font-weight: 500;
+  }
+  td:first-child { font-weight: 700; }
+
+  /* Acceptance list: what the teacher does. */
+  .behaviours { counter-reset: b; list-style: none; padding: 0; margin-top: 1.25rem; display: grid; gap: .75rem; }
+  .behaviours li {
+    counter-increment: b;
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: .75rem;
+    max-width: 74ch;
+  }
+  .behaviours li::before {
+    content: counter(b);
+    font-family: "Kalam", cursive;
+    font-weight: 700;
+    font-size: 1.4rem;
+    line-height: 1.1;
+    color: var(--board);
+  }
+  .behaviours .say {
+    font-family: "Kalam", "Segoe Print", cursive;
+    color: var(--board);
+    font-size: 1.05rem;
+  }
+
+  /* Architecture board. */
+  .board {
+    margin-top: 1.5rem;
+    background: var(--board);
+    color: var(--board-ink);
+    padding: 1.25rem;
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .75rem;
+  }
+  .board .cell {
+    border: 1.5px dashed color-mix(in srgb, var(--board-ink) 55%, transparent);
+    border-radius: 3px;
+    padding: .8rem .9rem;
+    min-height: 9rem;
+  }
+  .board .cell.wide { grid-column: 1 / -1; min-height: 0; }
+  .board .cell h4 {
+    font-family: "Kalam", cursive;
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin: 0 0 .35rem;
+    color: var(--board-ink);
+  }
+  .board .cell p { margin: 0; font-size: .88rem; line-height: 1.4; max-width: none; color: var(--board-ink); }
+  .board .cell .tag {
+    display: inline-block;
+    margin-top: .5rem;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    opacity: .85;
+  }
+  .board .arrow {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .75rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .8;
+  }
+  @media (max-width: 860px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .board { grid-template-columns: 1fr; } }
+
+  /* Phases and tasks. */
+  .phase { margin-top: 2.25rem; }
+  .phase h3 {
+    display: flex;
+    align-items: baseline;
+    gap: .75rem;
+    margin-top: 0;
+  }
+  .phase h3 .num {
+    font-family: "Kalam", cursive;
+    color: var(--board);
+    font-size: 1.5rem;
+  }
+  .phase .why { color: var(--ink-2); margin-top: .25rem; }
+  .tasks { list-style: none; padding: 0; margin: 1rem 0 0; border-top: 1px solid var(--rule); }
+  .tasks li {
+    display: grid;
+    grid-template-columns: 3.4rem 1fr auto;
+    gap: .5rem 1rem;
+    padding: .8rem 0;
+    border-bottom: 1px solid var(--rule);
+    max-width: none;
+    align-items: start;
+  }
+  .tasks .id {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .85rem;
+    color: var(--pencil);
+    padding-top: .15rem;
+  }
+  .tasks .title { font-weight: 700; }
+  .tasks .accept {
+    grid-column: 2 / 3;
+    font-size: .92rem;
+    color: var(--ink-2);
+    max-width: 70ch;
+  }
+  .tasks .accept b { color: var(--pencil); font-weight: 700; font-family: "IBM Plex Mono", monospace; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; margin-right: .35rem; }
+  .chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .2rem .5rem;
+    border-radius: 999px;
+    background: var(--chip-bg);
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .chip.owner { background: var(--owner-bg); color: var(--owner); }
+  .chip.done { background: var(--done); color: var(--paper); }
+  .exists { color: var(--done); font-weight: 700; }
+  @media (max-width: 600px) {
+    .tasks li { grid-template-columns: 3rem 1fr; }
+    .tasks li .chip { grid-column: 2; justify-self: start; }
+    .tasks .accept { grid-column: 2; }
+  }
+  .footer {
+    margin-top: 4rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+    font-size: .9rem;
+    color: var(--pencil);
+    max-width: 68ch;
+  }
+  a { color: var(--board); }
+  :focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .board .cell { transition: transform .15s ease; }
+    .board .cell:hover { transform: translateY(-1px); }
+  }
+</style>
+
+<main class="page">
+  <header>
+    <div class="meta">Ekaguru · plan of record · 11 September 2026</div>
+    <h1>Teacher Engine</h1>
+    <p class="lede">A book goes in. Every page comes out prepared. On the board, Guru opens the lesson, teaches each idea in depth, stops on every new word, asks whether the child is following, takes doubts, and carries on. This page is the architecture and the ordered tasks to get there.</p>
+  </header>
+
+  <section id="quota">
+    <div class="eyebrow">First, the daily limit</div>
+    <h2>Free chat sessions are not the way out. Here is what is.</h2>
+    <p><strong>What is actually limited.</strong> The Gemini free tier allows 20 requests per model per day. That blocked <em>preparation</em>: writing a lesson costs three or four calls. Teaching is different. Once a lesson is prepared it is cached and every learner on that page uses it for nothing; a child's own turns are one small call each. The quota is a one-time cost per page, shared by all users, never a per-user cost.</p>
+    <div class="callout">
+      <p><strong>Why the app cannot drive ChatGPT, Gemini or Claude chat windows.</strong> Automating the consumer sites with a bot breaks their terms of use, and a banned account stops the app for every learner at once. Captchas, session limits and interface changes make every week an outage. Children's answers and uploaded textbooks would pass through a personal chat account outside any data agreement. And the consumer plans have hourly limits of their own. It is not a foundation a product can stand on, so it is not in this plan.</p>
+    </div>
+    <h3>What does remove the limit</h3>
+    <p>All of these are official, all keyed by a server-side secret that never appears in chat, and the provider layer in the architecture makes them interchangeable.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Option</th><th>Cost</th><th>Limit</th><th>Quality</th><th>Use it for</th></tr></thead>
+        <tbody>
+          <tr><td>Gemini pay-as-you-go, same project</td><td>About 3 to 5 cents per prepared lesson at list prices; a 116-page book at five depths on the order of 20 to 30 dollars, once</td><td>None that matters</td><td>What we have already verified</td><td>Preparation and grading now</td></tr>
+          <tr><td>Official free API tiers, pooled (Groq, OpenRouter free models, Mistral, Cerebras)</td><td>Nothing</td><td>Each has a daily cap; together about ten times today's</td><td>Varies by model; the validator and repair passes still apply</td><td>Development and overflow</td></tr>
+          <tr><td>Local open-weight model behind an OpenAI-compatible server (Ollama, vLLM, LM Studio)</td><td>Nothing per call</td><td>Unlimited, private</td><td>Good enough for structured lesson JSON with 9B to 27B models; below Gemini</td><td>Overnight book preparation; live turns only with a real GPU</td></tr>
+          <tr><td>Claude API</td><td>Per token</td><td>None that matters</td><td>Strong at dialogue and grading</td><td>Doubt answering in the conversation engine, if wanted</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p><strong>This machine:</strong> GeForce GT 730 with 4 GB and 48 GB of RAM. It cannot run a useful model on the GPU; the CPU can run a 4B to 9B model at a few tokens per second, enough to prepare pages overnight, not enough for a live turn. A 12 GB GPU or a cloud GPU changes that.</p>
+    </div>
+    <p><strong>Recommendation.</strong> Enable pay-as-you-go on the Gemini project for preparation and grading (your decision, it is money), and build the provider fabric so the same code runs on Gemini, on any OpenAI-compatible endpoint (local models and every free tier above) and on Claude, with automatic failover when one is out of quota. Prices are list prices from memory; check the pricing page before deciding.</p>
+  </section>
+
+  <section id="teacher">
+    <div class="eyebrow">Definition of done</div>
+    <h2>What "teach like a real teacher" means, on page 3 of EVS Class 5</h2>
+    <ol class="behaviours">
+      <li><div><strong>Open the lesson.</strong> <span class="say">"Today's lesson is I am Growing Up. By the end you will be able to say what living things do that non-living things do not, and you will know three new words: seed, sprout, grow."</span> Objectives come from the page's learning outcomes when it has them, from the prepared topic map when it does not.</div></li>
+      <li><div><strong>Explain each idea in depth, on the board.</strong> Heading, keywords and a diagram appear while Guru speaks; the concept follows the Experience to Symbol order the blueprint already enforces, with a real-life example from the child's world.</div></li>
+      <li><div><strong>Stop on every new word.</strong> When "baby plant" appears, Guru does not move on: how a baby plant is born (a seed with food inside, water, warmth, root first, then shoot), how it grows (light, water, soil, weeks to months), with a staged drawing. These term ladders are prepared in advance for every key term.</div></li>
+      <li><div><strong>Check understanding after each idea.</strong> <span class="say">"Are you with me? Tell me in your own words what a seed needs."</span> The child answers by voice or typing. Guru reads the answer as understood, partly, confused, a question, off topic, or silence, and responds to that.</div></li>
+      <li><div><strong>Re-explain differently when the child is lost.</strong> Not the same sentence louder: a second explanation with another analogy or a hands-on picture, then a third. Each concept carries a ladder of three prepared variants before a live model call is needed.</div></li>
+      <li><div><strong>Take doubts at any moment.</strong> <span class="say">"Guru, what is a root?"</span> interrupts the explanation. Guru answers from the page and the topic map, says plainly when the answer goes beyond this page, and returns to where the lesson was, with the board still marking the spot.</div></li>
+      <li><div><strong>Anticipate doubts.</strong> Every page has a prepared doubt bank, the questions children of this age ask about this content, so common doubts are answered instantly and consistently.</div></li>
+      <li><div><strong>Practise, then summarise.</strong> Worked example, guided practice, independent practice, summary in the page's words, and a teach-back, as the blueprint has today.</div></li>
+      <li><div><strong>Remember the child.</strong> What was understood, what confused them and what they asked feeds the next page. "Guru remembers" exists; it must now carry check-in outcomes and doubts.</div></li>
+      <li><div><strong>Sound like a teacher.</strong> One consistent persona, addressing the child by name, warm, never "as an AI"; every sentence spoken by the orb with captions under it.</div></li>
+    </ol>
+    <p>A lesson that does all ten for any page of an uploaded book, with no human preparing anything, is the definition of done for this stage.</p>
+  </section>
+
+  <section id="architecture">
+    <div class="eyebrow">Architecture</div>
+    <h2>Five parts. Green marks what already runs.</h2>
+    <div class="board" role="img" aria-label="Architecture: Model Fabric feeds the Book Preparation Engine and the Teacher Dialogue Engine; the Board and Voice layer is the classroom surface; the ledger and quality layer sits under all of them.">
+      <div class="cell">
+        <h4>A · Model Fabric</h4>
+        <p>Provider registry with roles: vision, prepare, converse, grade. Gemini, any OpenAI-compatible endpoint (local models, free tiers), Claude. Per-provider daily quota ledger and failover.</p>
+        <span class="tag">exists: Gemini live, budgets, quota detection</span>
+      </div>
+      <div class="cell">
+        <h4>B · Book Preparation</h4>
+        <p>On upload: read every page, build a topic map per page (terms, ladders, doubt bank, objectives), then lessons at five depths under blueprint v4, prioritised around where learners are.</p>
+        <span class="tag">exists: queued OCR, planner v3, lesson jobs</span>
+      </div>
+      <div class="cell">
+        <h4>C · Teacher Dialogue</h4>
+        <p>Beats with a stack instead of a straight line. Check-in loop with a six-label classifier and policies, grounded doubt answering, interrupts and resume, persona rules, transcript ledger.</p>
+        <span class="tag">exists: session runtime, graded asks, page questions</span>
+      </div>
+      <div class="cell">
+        <h4>D · Board and Voice</h4>
+        <p>Board plans written as spoken, staged diagrams, circle and underline on re-explain, "we are here" marker, listening mode with barge-in, doubt panel, preparation status.</p>
+        <span class="tag">exists: board, scenes, orb, speech in and out</span>
+      </div>
+      <div class="cell wide">
+        <h4>E · Understanding, memory, quality</h4>
+        <p>Check-in outcomes and doubts per learner and concept feed the next page and the parent view. Persona replay evaluations (confused, curious, silent, off-topic learners) run without humans; educators spot-check topic maps; latency and cost are measured. <span style="opacity:.85">Exists: mastery gate, spaced reviews, educator corpus.</span></p>
+      </div>
+    </div>
+    <h3>New data and endpoints</h3>
+    <p>Tables <code>GuruProviderUsage</code>, <code>GuruBookPreparation</code>, <code>GuruPageTopicMap</code>, <code>GuruDialogueTurn</code>; lesson artifacts gain blueprint v4 fields (orientation, term, check-in, ladder, board plan). Endpoints to prepare a book and read its status, to read a page's topic map, session events for check-in, doubt, resume and interrupt, and an admin view of provider health and quota.</p>
+  </section>
+
+  <section id="tasks">
+    <div class="eyebrow">Ordered tasks</div>
+    <h2>Five phases. Each unblocks the next.</h2>
+    <p>Every task has an acceptance line so "done" is not a matter of opinion. <span class="chip owner">owner</span> marks a decision or account only you can make.</p>
+
+    <div class="phase">
+      <h3><span class="num">0</span> Capacity</h3>
+      <p class="why">Without this, nothing else can be prepared or tested.</p>
+      <ul class="tasks">
+        <li><span class="id">0.1</span><span class="title">Enable pay-as-you-go on the Gemini project, or decide against it and accept local-only preparation speed</span><span class="chip owner">owner</span><span class="accept"><b>accept</b>A prepared lesson no longer fails on the daily quota.</span></li>
+        <li><span class="id">0.2</span><span class="title">Provider registry with roles and the OpenAI-compatible provider</span><span class="chip">build</span><span class="accept"><b>accept</b>The same lesson prepares on Gemini and on a local Ollama model with no code change; routing and failover unit-tested.</span></li>
+        <li><span class="id">0.3</span><span class="title">Per-provider daily quota ledger and failover</span><span class="chip">build</span><span class="accept"><b>accept</b>With the first provider out of quota, generation continues on the next and the classroom shows no quota error.</span></li>
+        <li><span class="id">0.4</span><span class="title">Claude provider for the converse and grade roles</span><span class="chip">build</span><span class="accept"><b>accept</b>A doubt answered live through Claude under the same grounding rules; live check recorded.</span></li>
+        <li><span class="id">0.5</span><span class="title">Local-model smoke test on this machine (CPU, 4B to 9B model)</span><span class="chip">measure</span><span class="accept"><b>accept</b>Validator pass rate on ten pages and time per lesson recorded, with a hardware recommendation.</span></li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <h3><span class="num">1</span> Book Preparation Engine</h3>
+      <p class="why">Turns an uploaded book into prepared pages with no human step.</p>
+      <ul class="tasks">
+        <li><span class="id">1.1</span><span class="title">Topic map schema, prompt, validator and storage, once per page revision</span><span class="chip">build</span><span class="accept"><b>accept</b>EVS pages 2 to 5 have topic maps whose every claim cites evidence or is flagged as beyond the page.</span></li>
+        <li><span class="id">1.2</span><span class="title">Term ladders and doubt bank with drawing specs</span><span class="chip">build</span><span class="accept"><b>accept</b>"Baby plant" on page 3 yields a ladder (born, grows, why) with a staged drawing; the doubt bank has at least eight grounded child questions.</span></li>
+        <li><span class="id">1.3</span><span class="title">Blueprint v4: orientation, term actions, check-in actions, explanation ladders, board plans</span><span class="chip">build</span><span class="accept"><b>accept</b>Pages 2 and 3 regenerate under v4 and pass; the board shows the orientation first.</span></li>
+        <li><span class="id">1.4</span><span class="title">Book preparation job and status: read every page, topic maps, then five depths with priority scheduling</span><span class="chip">build</span><span class="accept"><b>accept</b>A freshly uploaded 20-page PDF is fully prepared with no manual step; the library shows progress.</span></li>
+        <li><span class="id">1.5</span><span class="title">Batch preparation of the built-in books through the same pipeline</span><span class="chip">build</span><span class="accept"><b>accept</b>EVS Class 5 fully prepared at basis and developing; per-page cost and time recorded.</span></li>
+        <li><span class="id">1.6</span><span class="title">Curator view of a page's topic map with piecewise correction and regeneration</span><span class="chip">build</span><span class="accept"><b>accept</b>One correction round-trips without regenerating the page.</span></li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <h3><span class="num">2</span> Teacher Dialogue Engine</h3>
+      <p class="why">The mutual conversation: check-ins, re-explanations, doubts, memory.</p>
+      <ul class="tasks">
+        <li><span class="id">2.1</span><span class="title">Beats and a stack in the session runtime; check-in, doubt, resume and interrupt events; transcript ledger</span><span class="chip">build</span><span class="accept"><b>accept</b>A doubt in the middle of an explanation is answered and the lesson resumes from the same beat.</span></li>
+        <li><span class="id">2.2</span><span class="title">Response classifier (rules first, then the converse role) with six labels and policies</span><span class="chip">build</span><span class="accept"><b>accept</b>A labelled set of 60 child answers classifies at 90 percent agreement with two educators.</span></li>
+        <li><span class="id">2.3</span><span class="title">Re-explanation from the ladder, then live, with the board change</span><span class="chip">build</span><span class="accept"><b>accept</b>A confused answer produces a visibly different explanation three times before any repeat.</span></li>
+        <li><span class="id">2.4</span><span class="title">Grounded doubt answering: doubt bank, then page and topic map, then curriculum knowledge with the spoken "beyond this page" marker</span><span class="chip">build</span><span class="accept"><b>accept</b>Ten doubts on page 3 answered with citations; the marker appears exactly on the ones beyond the page.</span></li>
+        <li><span class="id">2.5</span><span class="title">Teacher persona per language applied to prepared text and live turns</span><span class="chip">build</span><span class="accept"><b>accept</b>A transcript review finds no system talk and one consistent voice.</span></li>
+        <li><span class="id">2.6</span><span class="title">Check-in outcomes and doubts into the learner ledger and "Guru remembers"</span><span class="chip">build</span><span class="accept"><b>accept</b>Confusion on "seed" on page 3 produces a recap beat at the start of page 4 for that learner.</span></li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <h3><span class="num">3</span> Board and voice</h3>
+      <p class="why">The classroom surface that makes the conversation visible and audible.</p>
+      <ul class="tasks">
+        <li><span class="id">3.1</span><span class="title">Board plan renderer: headings and keywords written as spoken, staged diagrams, circle and underline on re-explain, marker, scrollable history</span><span class="chip">build</span><span class="accept"><b>accept</b>Page 3 plays with the board matching speech beat by beat; reduced motion respected.</span></li>
+        <li><span class="id">3.2</span><span class="title">Check-in listening mode with barge-in, a bounded window, an "I have a doubt" button and hotword</span><span class="chip">build</span><span class="accept"><b>accept</b>Speaking while Guru talks pauses it within 300 ms; silence for the window yields the silent policy.</span></li>
+        <li><span class="id">3.3</span><span class="title">Doubt panel with citations and "back to the lesson"</span><span class="chip">build</span><span class="accept"><b>accept</b>Usable by keyboard and screen reader; verified in the in-app browser.</span></li>
+        <li><span class="id">3.4</span><span class="title">Preparation status in the library and classroom</span><span class="chip">build</span><span class="accept"><b>accept</b>A page still being prepared teaches from the nearest ready depth and says so.</span></li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <h3><span class="num">4</span> Quality, cost and evidence</h3>
+      <p class="why">Proof that it teaches, and that it stays affordable.</p>
+      <ul class="tasks">
+        <li><span class="id">4.1</span><span class="title">Persona replay evaluations in CI against prepared lessons with written pass criteria</span><span class="chip">build</span><span class="accept"><b>accept</b>Green on pages 2 to 5.</span></li>
+        <li><span class="id">4.2</span><span class="title">Educator spot checks of topic maps and ladders</span><span class="chip owner">owner</span><span class="accept"><b>accept</b>20 pages scored; corrections fed back through 1.6.</span></li>
+        <li><span class="id">4.3</span><span class="title">Latency and cost dashboard on the curator page</span><span class="chip">build</span><span class="accept"><b>accept</b>Turn latency percentiles, model calls avoided, cost per lesson and per learner-hour visible for a week of use.</span></li>
+        <li><span class="id">4.4</span><span class="title">Five-learner pilot on one chapter with you watching</span><span class="chip owner">owner</span><span class="accept"><b>accept</b>A written findings note and the next task list.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="cost">
+    <div class="eyebrow">Cost and capacity</div>
+    <h2>Prepared material is what makes teaching cheap</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Activity</th><th>When</th><th>Model calls</th><th>Role</th><th>Order of magnitude</th></tr></thead>
+        <tbody>
+          <tr><td>Read a page (OCR)</td><td>Once per page revision</td><td>0</td><td>Local Tesseract</td><td>Nothing</td></tr>
+          <tr><td>Topic map</td><td>Once per page revision</td><td>1 to 2</td><td>prepare</td><td>About a cent</td></tr>
+          <tr><td>Lesson plan, one depth</td><td>Once per page, depth, language</td><td>2 to 4</td><td>prepare (vision shared)</td><td>3 to 5 cents</td></tr>
+          <tr><td>Whole 116-page book, five depths</td><td>Once</td><td>About 2,000</td><td>prepare</td><td>Tens of dollars, once</td></tr>
+          <tr><td>Check-in classification</td><td>Per learner turn</td><td>0 when rules decide, else 1 small</td><td>converse</td><td>Well under a tenth of a cent</td></tr>
+          <tr><td>Doubt answer</td><td>Per novel doubt</td><td>1</td><td>converse</td><td>Well under a tenth of a cent</td></tr>
+          <tr><td>Grading</td><td>Per graded answer</td><td>1</td><td>grade</td><td>Under a cent</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>A class of a thousand children on the same chapter costs the preparation once, plus their own turns. The fabric lets each row use the cheapest provider that meets its quality bar, including a local one for preparation.</p>
+  </section>
+
+  <section id="forty">
+    <div class="eyebrow">The 40 percent</div>
+    <h2>When this stage is complete</h2>
+    <p>A book uploaded by a parent is prepared end to end with no human step. Any of its pages opens with the orientation. The ideas are taught on the board with new words explained in depth. The teacher checks understanding after each idea and reacts to the answer. Doubts are taken and answered at any moment and the lesson resumes where it was. All of it works by voice, on more than one provider, at a cost that does not grow with the number of learners. The evidence for each claim is the acceptance line of the task that delivers it, recorded in the repository's evaluation notes.</p>
+  </section>
+
+  <p class="footer">Source of record: <code>docs/teacher-engine-plan.md</code> in the Ekaguru repository. Prices quoted are list prices from memory and should be confirmed on the provider's pricing page before the billing decision.</p>
+</main>
