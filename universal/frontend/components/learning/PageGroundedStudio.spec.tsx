@@ -272,3 +272,32 @@ it("teaches from the page's cached basis lesson while the recommended depth is p
     localStorage.clear();
   }
 });
+
+it("shows the scan and waits while a page is read for the first time, then teaches from the stored text", async () => {
+  let evidenceCalls = 0;
+  const calls: string[] = [];
+  global.fetch = jest.fn(async (url: any) => {
+    const u = String(url);
+    calls.push(u);
+    if (u.includes("/guru/capabilities")) return { ok: true, json: async () => ({ reasoningAvailable: false, sourceReadingAvailable: true }) };
+    if (u.includes("/api/v2/learners")) return { ok: true, json: async () => ({ data: [] }) };
+    if (u.includes("/pages/1/evidence")) {
+      evidenceCalls++;
+      return evidenceCalls === 1
+        ? { ok: true, status: 202, json: async () => ({ ...source, status: "PENDING", blocks: [], job: { id: "evidence:e1", status: "QUEUED", stage: "ocr" } }) }
+        : { ok: true, status: 200, json: async () => source };
+    }
+    return { ok: false, status: 404, json: async () => ({ message: "unexpected " + u }) };
+  }) as any;
+  render(<PageGroundedStudio bookId="maths-class-5" />);
+  // The page is visible and the reading notice shows before any text exists.
+  await screen.findByAltText("Original physical page 1");
+  expect(await screen.findByTestId("evidence-reading")).toHaveTextContent("reading this scanned page for the first time");
+  expect(screen.queryByTestId("page-teaching-board")).toBeNull();
+  expect(screen.queryByText(/needs extraction review/)).toBeNull();
+  // The next poll returns the stored text and the board opens; no lesson was requested while the text was unread.
+  await screen.findByTestId("page-teaching-board", {}, { timeout: 6000 });
+  expect(evidenceCalls).toBe(2);
+  expect(screen.queryByTestId("evidence-reading")).toBeNull();
+  expect(calls.some((c) => c.includes("/pages/1/lesson"))).toBe(false);
+}, 10000);

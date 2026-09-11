@@ -12,7 +12,9 @@ export interface PageEvidence {
   /** Local (IndexedDB) pages carry the rendered image inline; server pages link to a cacheable image. */
   imageDataUrl?: string;
   imageUrl?: string;
-  status: "READY" | "NEEDS_REVIEW";
+  /** PENDING: the scan is available but its text is still being read by the server's evidence worker. */
+  status: "READY" | "NEEDS_REVIEW" | "PENDING";
+  job?: { id: string; status: string; stage: string };
   omittedBlockCount: number;
   blocks: {
     blockId: string;

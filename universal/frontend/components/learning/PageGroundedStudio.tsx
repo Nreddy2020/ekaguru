@@ -65,6 +65,8 @@ const builtin = [
   "science-class-6",
   "social-class-5",
 ];
+const EVIDENCE_POLL_MS = 3000;
+const EVIDENCE_DEADLINE_MS = 10 * 60 * 1000;
 const DEPTH_TITLES: Record<TeachingDepth, string> = {
   basis: "Basis",
   developing: "Developing",
@@ -135,6 +137,8 @@ export function PageGroundedStudio({
     pendingJob?: GuruJob;
   } | null>(null);
   const [regenerate, setRegenerate] = useState(false);
+  // Shown while the server's evidence worker reads a scanned page for the first time.
+  const [evidenceNote, setEvidenceNote] = useState("");
   // The requested depth being prepared while the board teaches from another depth this page already has.
   const [pendingLesson, setPendingLesson] = useState<{
     depth: TeachingDepth;
@@ -225,38 +229,55 @@ export function PageGroundedStudio({
       ? "textbooks"
       : "learning-materials";
     const token = localStorage.getItem("token");
-    (bookId.startsWith("book-")
-      ? readLocalPage(bookId, pageNumber)
-      : fetch(
-          base +
-            "/api/v2/" +
-            prefix +
-            "/" +
-            encodeURIComponent(bookId) +
-            "/pages/" +
-            pageNumber +
-            "/evidence",
-          {
-            signal: controller.signal,
-            headers: token ? { Authorization: "Bearer " + token } : {},
-          },
-        ).then(async (response) => {
-          if (!response.ok)
-            throw new Error(
-              response.status === 401
-                ? "Sign in to open this textbook."
-                : response.status === 403
-                  ? "You do not have access to this textbook."
-                  : "Page evidence is unavailable. Check the source and extraction service.",
-            );
-          return (await response.json()) as PageEvidence;
-        })
-    )
+    setEvidenceNote("");
+    const evidenceUrl =
+      base + "/api/v2/" + prefix + "/" + encodeURIComponent(bookId) + "/pages/" + pageNumber + "/evidence";
+    // The scan shows at once; a page whose text is still being read (202, PENDING) is polled until it is stored.
+    const readServerEvidence = async (): Promise<PageEvidence> => {
+      const started = Date.now();
+      for (;;) {
+        const response = await fetch(evidenceUrl, {
+          signal: controller.signal,
+          headers: token ? { Authorization: "Bearer " + token } : {},
+        });
+        if (!response.ok)
+          throw new Error(
+            response.status === 401
+              ? "Sign in to open this textbook."
+              : response.status === 403
+                ? "You do not have access to this textbook."
+                : "Page evidence is unavailable. Check the source and extraction service.",
+          );
+        const data = (await response.json()) as PageEvidence;
+        if (response.status !== 202 && data.status !== "PENDING") return data;
+        if (live) {
+          setPage(data);
+          setEvidenceNote(
+            "Guru is reading this scanned page for the first time. The text and the lesson appear here shortly; you can look at the page meanwhile.",
+          );
+        }
+        if (Date.now() - started > EVIDENCE_DEADLINE_MS)
+          throw new Error("Reading this page is taking longer than expected. Reload in a moment.");
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(resolve, EVIDENCE_POLL_MS);
+          controller.signal.addEventListener(
+            "abort",
+            () => {
+              clearTimeout(timer);
+              reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+            },
+            { once: true },
+          );
+        });
+      }
+    };
+    (bookId.startsWith("book-") ? readLocalPage(bookId, pageNumber) : readServerEvidence())
       .then((result: PageEvidence) => {
         if (result.bookId !== bookId || result.physicalPage !== pageNumber)
           throw new Error("The source does not match the opened page.");
         if (live) {
           setPage(result);
+          setEvidenceNote("");
           if (
             !manualDepth.current &&
             result.recommendedDepth &&
@@ -287,7 +308,7 @@ export function PageGroundedStudio({
     setPendingLesson(null);
     sessionRef.current = null;
     pendingEvent.current = null;
-    if (reasoningEnabled && rawActive && !bookId.startsWith("book-")) {
+    if (reasoningEnabled && rawActive && rawActive.status !== "PENDING" && !bookId.startsWith("book-")) {
       setGuruLoading(true);
       setGuruStage("");
       loadGuruLesson(
@@ -373,7 +394,7 @@ export function PageGroundedStudio({
   };
   const compiled = useMemo(() => {
     if (currentGuru) return currentGuru.plan;
-    if (!active) return null;
+    if (!active || active.status === "PENDING") return null;
     try {
       return compilePageLesson(active, depth);
     } catch {
@@ -846,6 +867,11 @@ export function PageGroundedStudio({
                 <div className={styles.welcome}>
                   <span className="text-4xl">👨‍🏫</span>
                   <h3>Welcome to Today’s Lesson</h3>
+                  {evidenceNote && !error && (
+                    <p role="status" data-testid="evidence-reading">
+                      {evidenceNote}
+                    </p>
+                  )}
                   {error ? (
                     <div role="alert">
                       <p>{error}</p>
@@ -853,7 +879,7 @@ export function PageGroundedStudio({
                         Retry
                       </button>
                     </div>
-                  ) : (
+                  ) : evidenceNote ? null : (
                     <p role={active ? "alert" : "status"}>
                       {active
                         ? "This page needs extraction review before Guru can teach it."

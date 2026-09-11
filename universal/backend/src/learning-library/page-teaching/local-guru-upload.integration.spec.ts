@@ -9,6 +9,7 @@ import {UploadController} from "../upload/upload.controller";
 import {UploadService} from "../upload/upload.service";
 import {FileValidatorService} from "../upload/file-validator.service";
 import {PageEvidenceController} from "./page-evidence.controller";
+import {PageEvidenceQueueService} from "./page-evidence-queue.service";
 import {PageEvidenceService} from "./page-evidence.service";
 import {OcrDocumentVisionService} from "../extraction/ocr-document-vision.service";
 import {LearningLibraryAuthGuard} from "../learning-library-auth.guard";
@@ -39,7 +40,7 @@ describe("Local PDF to authenticated Guru source (real database and storage)",()
    const module=await Test.createTestingModule({
      imports:[PassportModule.register({defaultStrategy:"jwt"}),JwtModule.register({secret})],
      controllers:[UploadController,PageEvidenceController,LearnerController,AuthController],
-     providers:[AuthService,AuthRateLimitGuard,RecoveryService,MailerService,UploadService,FileValidatorService,PageEvidenceService,OcrDocumentVisionService,StorageService,LocalStorageService,LearningLibraryAuthGuard,JwtStrategy,LearnerService,{provide:PrismaService,useValue:db}]
+     providers:[AuthService,AuthRateLimitGuard,RecoveryService,MailerService,UploadService,FileValidatorService,PageEvidenceService,PageEvidenceQueueService,OcrDocumentVisionService,StorageService,LocalStorageService,LearningLibraryAuthGuard,JwtStrategy,LearnerService,{provide:PrismaService,useValue:db}]
    }).compile();
    app=module.createNestApplication();app.useGlobalPipes(new ValidationPipe({whitelist:true,transform:true}));await app.init();
    storage=module.get(StorageService);const jwt=module.get(JwtService);

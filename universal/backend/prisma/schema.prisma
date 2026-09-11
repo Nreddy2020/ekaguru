@@ -1917,3 +1917,23 @@ model GuruPageEvidence {
 
   @@unique([bookId, physicalPage, sourceHash])
 }
+
+/// First-time reading (OCR) of a page revision runs in a worker, never inside a request.
+model GuruEvidenceJob {
+  id           String        @id @default(uuid())
+  bookId       String
+  physicalPage Int
+  sourceHash   String
+  requestedBy  String
+  status       GuruJobStatus @default(QUEUED)
+  stage        String        @default("queued")
+  attempts     Int           @default(0)
+  error        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  startedAt    DateTime?
+  finishedAt   DateTime?
+
+  @@index([status, createdAt])
+  @@index([bookId, physicalPage, sourceHash])
+}

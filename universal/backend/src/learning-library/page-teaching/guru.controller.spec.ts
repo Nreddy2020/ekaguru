@@ -8,6 +8,7 @@ import { GuruController } from "./guru.controller";
 function controllerWith(cachedPlan: any | null) {
   const planner = { cached: jest.fn(async () => cachedPlan) };
   const queue = { enqueue: jest.fn(async () => ({ id: "job-1", status: "QUEUED", stage: "queued", artifactId: "a1" })) };
+  const evidenceQueue = { enqueue: jest.fn(async () => ({ id: "evidence:e1", status: "QUEUED", stage: "queued", artifactId: "" })) };
   const controller = new GuruController(
     {} as any,
     planner as any,
@@ -18,8 +19,9 @@ function controllerWith(cachedPlan: any | null) {
     queue as any,
     {} as any,
     {} as any,
+    evidenceQueue as any,
   );
-  return { controller, planner, queue };
+  return { controller, planner, queue, evidenceQueue };
 }
 const source = { bookId: "evs-class-5", physicalPage: 3, sourceHash: "h", blocks: [] };
 const prefs = { depth: "developing", language: "en" } as any;
@@ -42,6 +44,19 @@ describe("lesson endpoint answers", () => {
     expect(answer).toBeUndefined();
     expect(res.status).toHaveBeenCalledWith(204);
     expect(queue.enqueue).not.toHaveBeenCalled();
+  });
+  it("queues page reading, not a lesson, while the page text is still unread", async () => {
+    const { controller, planner, queue, evidenceQueue } = controllerWith(null);
+    const res = { status: jest.fn() };
+    const answer: any = await controller.plan({ ...source, status: "PENDING" }, prefs, user, res, false, false);
+    expect(answer.job.id).toBe("evidence:e1");
+    expect(res.status).toHaveBeenCalledWith(202);
+    expect(evidenceQueue.enqueue).toHaveBeenCalledWith({ bookId: "evs-class-5", physicalPage: 3, sourceHash: "h" }, user);
+    expect(planner.cached).not.toHaveBeenCalled();
+    expect(queue.enqueue).not.toHaveBeenCalled();
+    const peek = { status: jest.fn() };
+    expect(await controller.plan({ ...source, status: "PENDING" }, prefs, user, peek, false, true)).toBeUndefined();
+    expect(peek.status).toHaveBeenCalledWith(204);
   });
   it("queues a durable job and answers 202 without cachedOnly", async () => {
     const { controller, queue } = controllerWith(null);

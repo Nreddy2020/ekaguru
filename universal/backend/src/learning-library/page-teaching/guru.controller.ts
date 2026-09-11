@@ -28,6 +28,7 @@ import { DEPTHS, Depth } from "./guru-plan.schema";
 import { GuruUsageService } from "./guru-usage.service";
 import { GuruMasteryBridgeService } from "./guru-mastery-bridge.service";
 import { GuruGenerationQueueService } from "./guru-generation-queue.service";
+import { EVIDENCE_JOB_PREFIX, PageEvidenceQueueService } from "./page-evidence-queue.service";
 import { GuruActivityService } from "./guru-activity.service";
 import { GuruLearnerContextService } from "./guru-learner-context.service";
 import { Query } from "@nestjs/common";
@@ -59,6 +60,7 @@ export class GuruController {
     private readonly queue: GuruGenerationQueueService,
     private readonly activity: GuruActivityService,
     private readonly learnerContext: GuruLearnerContextService,
+    private readonly evidenceQueue: PageEvidenceQueueService,
   ) {}
   @Get("guru/capabilities") capabilities() {
     return {
@@ -87,7 +89,7 @@ export class GuruController {
     @Query("regenerate") regenerate?: string,
     @Query("cachedOnly") cachedOnly?: string,
   ) {
-    return this.plan(await this.evidence.builtin(bookId, page), prefs, req.user, res, regenerate === "1", cachedOnly === "1");
+    return this.plan(await this.evidence.builtin(bookId, page, { performOcr: false }), prefs, req.user, res, regenerate === "1", cachedOnly === "1");
   }
   @Post("learning-materials/:materialId/pages/:page/lesson")
   @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
@@ -100,7 +102,7 @@ export class GuruController {
     @Query("regenerate") regenerate?: string,
     @Query("cachedOnly") cachedOnly?: string,
   ) {
-    return this.plan(await this.evidence.material(id, page), prefs, req.user, res, regenerate === "1", cachedOnly === "1");
+    return this.plan(await this.evidence.material(id, page, { performOcr: false }), prefs, req.user, res, regenerate === "1", cachedOnly === "1");
   }
   /**
    * A cached lesson answers immediately (200). Otherwise the request never waits on the
@@ -109,6 +111,19 @@ export class GuruController {
    * uses it to teach from another depth this page already has while the requested one prepares.
    */
   async plan(source: any, prefs: GuruPreferencesDto, user: any, res: any, regenerate = false, cachedOnly = false) {
+    // The page's text has not been read yet: no lesson can exist, so the reading job is what the client waits for.
+    if (source.status === "PENDING") {
+      if (cachedOnly) {
+        res?.status?.(204);
+        return undefined;
+      }
+      const job = await this.evidenceQueue.enqueue(
+        { bookId: source.bookId, physicalPage: source.physicalPage, sourceHash: source.sourceHash },
+        user,
+      );
+      res?.status?.(202);
+      return { job };
+    }
     // A lesson from an earlier teaching blueprint keeps serving until the learner asks to regenerate.
     const cached = await this.planner.cached(source, prefs, !regenerate);
     if (cached) return { ...cached, plan: publicGuruPlan(cached.plan) };
@@ -139,7 +154,7 @@ export class GuruController {
   @Get("guru/jobs/:id")
   @UseGuards(JwtAuthGuard)
   job(@Param("id") id: string, @Request() req: any) {
-    return this.queue.status(id, req.user);
+    return id.startsWith(EVIDENCE_JOB_PREFIX) ? this.evidenceQueue.status(id, req.user) : this.queue.status(id, req.user);
   }
   @Post("guru/lessons/:artifactId/sessions")
   @UseGuards(JwtAuthGuard)

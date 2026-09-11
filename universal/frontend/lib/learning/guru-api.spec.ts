@@ -140,3 +140,33 @@ it("waits for the job when the learner asked to regenerate, without teaching fro
   expect(result.pendingJob).toBeUndefined();
   expect(calls.some((u) => u.includes("cachedOnly=1"))).toBe(false);
 });
+
+it("waits for the page to be read, then for the lesson, when the page text is not extracted yet", async () => {
+  const calls: string[] = [];
+  (global as any).fetch = jest.fn(async (url: string) => {
+    calls.push(url);
+    if (url.includes("cachedOnly=1")) return { ok: true, status: 204, json: async () => { throw new Error("no body"); } };
+    if (url.endsWith("/pages/46/lesson")) {
+      const n = calls.filter((u) => u.endsWith("/pages/46/lesson")).length;
+      if (n === 1) return respond(202, { job: { id: "evidence:e1", status: "QUEUED", stage: "ocr", artifactId: "" } });
+      if (n === 2) return respond(202, { job: { id: "job-1", status: "QUEUED", stage: "queued", artifactId: "artifact-1" } });
+      return respond(200, { plan, page: { bookId: "evs-class-5", physicalPage: 46, sourceHash: "hash" } });
+    }
+    if (url.includes("/jobs/evidence%3Ae1")) return respond(200, { id: "evidence:e1", status: "DONE", stage: "done", artifactId: "" });
+    if (url.endsWith("/jobs/job-1")) return respond(200, { id: "job-1", status: "DONE", stage: "done", artifactId: "artifact-1" });
+    if (url.endsWith("/sessions"))
+      return respond(201, { id: "s1", artifactId: "artifact-1", learnerId: null, cursor: 0, revision: 0, checkpointPassed: false });
+    throw new Error("unexpected " + url);
+  });
+  const stages: string[] = [];
+  const pending = loadGuruLesson(page, "basis", "en", undefined, new AbortController().signal, undefined, (s) => stages.push(s));
+  await jest.advanceTimersByTimeAsync(GURU_POLL_INTERVAL_MS + 5);
+  await jest.advanceTimersByTimeAsync(GURU_POLL_INTERVAL_MS + 5);
+  const result = await pending;
+  expect(result.plan.id).toBe("artifact-1");
+  expect(stages).toEqual(["ocr", "done", "queued", "done"]);
+  expect(calls.filter((u) => u.endsWith("/pages/46/lesson"))).toHaveLength(3);
+  // No other depth can be cached while the page is unread, so nothing is probed until the lesson round.
+  expect(calls.findIndex((u) => u.includes("cachedOnly=1"))).toBeGreaterThan(calls.findIndex((u) => u.includes("/jobs/evidence%3Ae1")));
+  expect(describeGuruStage("ocr")).toMatch(/first time/);
+});

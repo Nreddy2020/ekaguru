@@ -9,6 +9,7 @@ import { GuruConceptMappingService } from './page-teaching/guru-concept-mapping.
 import { GuruMasteryBridgeService } from './page-teaching/guru-mastery-bridge.service';
 import { GuruEvaluationService } from './page-teaching/evaluation/guru-evaluation.service';
 import { GuruGenerationQueueService } from './page-teaching/guru-generation-queue.service';
+import { PageEvidenceQueueService } from './page-teaching/page-evidence-queue.service';
 import { GuruActivityService } from './page-teaching/guru-activity.service';
 import { GuruLearnerContextService } from './page-teaching/guru-learner-context.service';
 import { GuruCurationController } from './page-teaching/guru-curation.controller';
@@ -109,6 +110,7 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
     GuruMasteryBridgeService,
     GuruEvaluationService,
     GuruGenerationQueueService,
+    PageEvidenceQueueService,
     GuruActivityService,
     GuruLearnerContextService,
     RolesGuard,

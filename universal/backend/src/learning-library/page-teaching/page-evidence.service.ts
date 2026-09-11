@@ -20,6 +20,11 @@ const BOOKS = [
   "science-class-6",
   "social-class-5",
 ];
+export const BUILTIN_BOOKS = BOOKS;
+export interface EvidenceReadOptions {
+  /** false: answer from stored text or return a PENDING page without running OCR (request paths). */
+  performOcr?: boolean;
+}
 @Injectable()
 export class PageEvidenceService {
   private readonly logger = new Logger(PageEvidenceService.name);
@@ -69,7 +74,8 @@ export class PageEvidenceService {
       throw new BadRequestException("Invalid physical page");
     return Number(value);
   }
-  async builtin(bookId: string, value: string) {
+  async builtin(bookId: string, value: string, options: EvidenceReadOptions = {}) {
+    const performOcr = options.performOcr !== false;
     const page = this.pageNumber(value);
     if (!BOOKS.includes(bookId))
       throw new NotFoundException("Unknown textbook");
@@ -87,7 +93,7 @@ export class PageEvidenceService {
     // Fast path: the file has not changed, so neither has its hash or evidence; skip the 2 MB read and SHA-256.
     const known = this.builtinFiles.get(file);
     if (known && known.mtimeMs === stat.mtimeMs && known.size === stat.size) {
-      const memo = this.cache.get(bookId + ":" + page + ":" + known.sourceHash);
+      const memo = this.cache.get(this.cacheKey(bookId, page, known.sourceHash, performOcr));
       if (memo) return memo;
     }
     let bytes: Buffer;
@@ -102,7 +108,7 @@ export class PageEvidenceService {
         .filter((f) => /^page-[0-9]+\.png$/.test(f))
         .map((f) => Number(f.match(/[0-9]+/)![0])),
     );
-    const evidence = await this.fromImage(bookId, page, totalPages, bytes);
+    const evidence = await this.fromImage(bookId, page, totalPages, bytes, undefined, performOcr);
     this.builtinFiles.set(file, {
       mtimeMs: stat.mtimeMs,
       size: stat.size,
@@ -111,7 +117,8 @@ export class PageEvidenceService {
     });
     return evidence;
   }
-  async material(materialId: string, value: string) {
+  async material(materialId: string, value: string, options: EvidenceReadOptions = {}) {
+    const performOcr = options.performOcr !== false;
     const page = this.pageNumber(value);
     const material = await this.prisma.learningMaterial.findUnique({
       where: { id: materialId },
@@ -155,7 +162,7 @@ export class PageEvidenceService {
     if (material.mimeType?.startsWith("image/")) {
       if (page !== 1) throw new NotFoundException("Page unavailable");
       return {
-        ...(await this.fromImage(materialId, page, 1, bytes)),
+        ...(await this.fromImage(materialId, page, 1, bytes, undefined, performOcr)),
         recommendedDepth,
       };
     }
@@ -218,6 +225,7 @@ export class PageEvidenceService {
           doc.numPages,
           canvas.toBuffer("image/png"),
           nativeEvidence.length ? nativeEvidence : undefined,
+          performOcr,
         )),
         recommendedDepth,
       };
@@ -267,15 +275,20 @@ export class PageEvidenceService {
       this.logger.warn("Evidence cache write failed: " + (error?.message || error));
     }
   }
+  private cacheKey(bookId: string, page: number, hash: string, performOcr: boolean) {
+    return bookId + ":" + page + ":" + hash + (performOcr ? "" : ":peek");
+  }
   private async fromImage(
     bookId: string,
     page: number,
     totalPages: number,
     bytes: Buffer,
     nativeBlocks?: any[],
+    performOcr = true,
   ) {
     const hash = createHash("sha256").update(bytes).digest("hex");
-    const key = bookId + ":" + page + ":" + hash;
+    // Peeks (request paths) never share a promise with a running OCR pass, so they never wait on it.
+    const key = this.cacheKey(bookId, page, hash, performOcr);
     if (!this.cache.has(key)) {
       if (this.cache.size >= 24) {
         const firstKey = this.cache.keys().next().value;
@@ -314,6 +327,23 @@ export class PageEvidenceService {
             omittedBlockCount: stored.omittedBlockCount,
             cached: "database",
           };
+        if (!nativeBlocks && !performOcr)
+          // The scan is ready to show; its text is read by the evidence worker, not in this request.
+          return {
+            version: "page-evidence-v1",
+            provenance: "OCR",
+            bookId,
+            physicalPage: page,
+            totalPages,
+            sourceHash: hash,
+            width: image.width,
+            height: image.height,
+            imageDataUrl,
+            imageBytes,
+            status: "PENDING",
+            blocks: [],
+            omittedBlockCount: 0,
+          };
         const vision = nativeBlocks
           ? { blocks: nativeBlocks, averageWordConfidence: 1 }
           : await this.ocr.processPageVision(Number(page), bytes);
@@ -349,9 +379,14 @@ export class PageEvidenceService {
         return evidence;
       })();
       this.cache.set(key, pending);
-      pending.catch(() => {
-        if (this.cache.get(key) === pending) this.cache.delete(key);
-      });
+      pending
+        .then((result) => {
+          // A pending page is re-checked against stored text on the next request.
+          if (result?.status === "PENDING" && this.cache.get(key) === pending) this.cache.delete(key);
+        })
+        .catch(() => {
+          if (this.cache.get(key) === pending) this.cache.delete(key);
+        });
     }
     return this.cache.get(key);
   }

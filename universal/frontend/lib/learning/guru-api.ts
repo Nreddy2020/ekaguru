@@ -152,6 +152,7 @@ export function describeGuruStage(stage: string): string {
     queued: "Waiting for Guru to start on this page…",
     starting: "Guru is opening the page…",
     evidence: "Guru is reading the page evidence…",
+    ocr: "Guru is reading this scanned page for the first time…",
     vision: "Guru is reading the page…",
     plan: "Guru is planning the lesson…",
     repair: "Guru is fixing gaps the validator found…",
@@ -237,12 +238,15 @@ export async function loadGuruLesson(
   let response = await guruFetch<LessonResponse>(lessonPath, { depth, language, age }, signal);
   let servedDepth: TeachingDepth = depth;
   let pendingJob: GuruJob | undefined;
-  if (response.status === 202 && "job" in response.data) {
+  // A page read for the first time answers with a reading job before any lesson job; each round waits once.
+  for (let round = 0; response.status === 202 && "job" in response.data; round++) {
+    if (round >= 3) throw new Error("Guru is still preparing this page. Please retry in a moment.");
     const job = response.data.job;
+    const readingPage = job.id.startsWith("evidence:");
     // A teacher does not send the class away while a new lesson is written: teach from a lesson this
     // page already has at the nearest depth, and let the requested depth finish in the background.
     let fallback: { response: { status: number; data: LessonResponse }; depth: TeachingDepth } | null = null;
-    if (!regenerate) {
+    if (!regenerate && !readingPage) {
       for (const candidate of fallbackDepths(depth)) {
         const cachedOnly = await guruFetch<LessonResponse | undefined>(
           lessonPath + (lessonPath.includes("?") ? "&" : "?") + "cachedOnly=1",
@@ -259,10 +263,10 @@ export async function loadGuruLesson(
       response = fallback.response;
       servedDepth = fallback.depth;
       pendingJob = job;
-    } else {
-      await waitForGuruJob(job, signal, onStage);
-      response = await guruFetch<LessonResponse>(lessonPath, { depth, language, age }, signal);
+      break;
     }
+    await waitForGuruJob(job, signal, onStage);
+    response = await guruFetch<LessonResponse>(lessonPath, { depth, language, age }, signal);
   }
   if (!response.data || !("plan" in response.data))
     throw new Error("Guru lesson is not ready yet. Please retry.");

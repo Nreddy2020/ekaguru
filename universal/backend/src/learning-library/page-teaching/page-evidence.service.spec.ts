@@ -75,13 +75,27 @@ describe("page image delivery", () => {
     verifyImageSignature: jest.fn(() => false),
     signedMaterialImageUrl: jest.fn(() => "/signed"),
   };
-  const controller = new PageEvidenceController(svc);
-  it("returns evidence without the image and with a cacheable image link", async () => {
+  const queue: any = { enqueue: jest.fn(async () => ({ id: "evidence:job-1", status: "QUEUED", stage: "queued" })) };
+  const controller = new PageEvidenceController(svc, queue);
+  it("returns evidence without the image and with a cacheable image link, never running OCR in the request", async () => {
     const view: any = await controller.builtin("evs-class-5", "46");
     expect(view.imageDataUrl).toBeUndefined();
     expect(view.imageBytes).toBeUndefined();
     expect(view.imageUrl).toBe("/api/v2/textbooks/evs-class-5/pages/46/image?v=hash-46");
     expect(view.blocks).toEqual([{ blockId: "b1" }]);
+    expect(view.job).toBeUndefined();
+    expect(svc.builtin).toHaveBeenCalledWith("evs-class-5", "46", { performOcr: false });
+    expect(queue.enqueue).not.toHaveBeenCalled();
+  });
+  it("answers 202 with the scan and a reading job when the page text has not been read yet", async () => {
+    svc.builtin.mockResolvedValueOnce({ ...evidence, status: "PENDING", blocks: [] });
+    const res: any = { status: jest.fn() };
+    const view: any = await controller.builtin("evs-class-5", "46", { user: { userId: "p1" } }, res);
+    expect(res.status).toHaveBeenCalledWith(202);
+    expect(view.status).toBe("PENDING");
+    expect(view.imageUrl).toBe("/api/v2/textbooks/evs-class-5/pages/46/image?v=hash-46");
+    expect(view.job).toEqual({ id: "evidence:job-1", status: "QUEUED", stage: "queued" });
+    expect(queue.enqueue).toHaveBeenCalledWith({ bookId: "evs-class-5", physicalPage: 46, sourceHash: "hash-46" }, { userId: "p1" });
   });
   it("serves the PNG with an immutable cache policy and honours If-None-Match", async () => {
     const res = fakeRes();
@@ -158,6 +172,28 @@ describe("persisted page evidence", () => {
     expect(written.create.blocks).toHaveLength(1);
     expect(JSON.stringify(written.create)).not.toContain("data:image");
     expect(written.create.averageWordConfidence).toBe(0.9);
+  });
+  it("peeks without running OCR, then the worker pass reads and stores the text the next peek serves", async () => {
+    let stored: any = null;
+    const prisma: any = {
+      guruPageEvidence: {
+        findUnique: jest.fn(async () => stored),
+        upsert: jest.fn(async ({ create }: any) => (stored = create)),
+      },
+    };
+    const ocr: any = { processPageVision: jest.fn(async () => ocrResult) };
+    const service = new PageEvidenceService(ocr, prisma, {} as any);
+    const peek = await service.builtin("evs-class-5", "1", { performOcr: false });
+    expect(peek).toMatchObject({ status: "PENDING", blocks: [], width: 40, height: 30, totalPages: 1 });
+    expect(peek.imageBytes.length).toBeGreaterThan(0);
+    expect(ocr.processPageVision).not.toHaveBeenCalled();
+    const read = await service.builtin("evs-class-5", "1", { performOcr: true });
+    expect(read.status).toBe("READY");
+    expect(ocr.processPageVision).toHaveBeenCalledTimes(1);
+    const again = await service.builtin("evs-class-5", "1", { performOcr: false });
+    expect(again.status).toBe("READY");
+    expect(again.blocks.map((b: any) => b.blockId)).toEqual(["b1"]);
+    expect(ocr.processPageVision).toHaveBeenCalledTimes(1);
   });
   it("serves stored evidence for the same page revision without calling OCR", async () => {
     const stored = { provenance: "OCR", status: "READY", width: 40, height: 30, blocks: [{ blockId: "b1", text: "Seeds need water." }], omittedBlockCount: 1 };
