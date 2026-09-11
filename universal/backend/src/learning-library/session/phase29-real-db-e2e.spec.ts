@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { authSigningSecret } from '../../auth/auth-config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -53,6 +54,7 @@ describe('Phase 2.9 Real PostgreSQL DB E2E Runtime Journey Tests', () => {
   const conceptId2 = `concept2-${testId}`;
   const loId1 = `lo1-${testId}`;
   const loId2 = `lo2-${testId}`;
+  const structureVersion = Math.floor(Math.random()*1000000000)+100000;
   const structureId = `struct-${testId}`;
   const specId = `spec-${testId}`;
 
@@ -63,7 +65,7 @@ describe('Phase 2.9 Real PostgreSQL DB E2E Runtime Journey Tests', () => {
       return;
     }
 
-    const secret = 'ekaguru-secret-key-change-in-production';
+    const secret = authSigningSecret();
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -86,7 +88,7 @@ describe('Phase 2.9 Real PostgreSQL DB E2E Runtime Journey Tests', () => {
     jwtService = moduleFixture.get<JwtService>(JwtService);
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
-    tokenUser = jwtService.sign({
+    tokenUser = jwtService.sign({ authVersion:2,
       sub: parentId,
       email: `${testId}@test.com`,
       role: 'PARENT',
@@ -111,7 +113,7 @@ describe('Phase 2.9 Real PostgreSQL DB E2E Runtime Journey Tests', () => {
 
     // 3. Seed Curriculum Structure
     await prisma.curriculumStructure.create({
-      data: { id: structureId, domain: 'Mathematics', version: 9999, status: CurriculumStatus.PUBLISHED }
+      data: { id: structureId, domain: 'Mathematics', version: structureVersion, inputFingerprint: testId, status: CurriculumStatus.PUBLISHED }
     });
 
     // 4. Seed Curriculum Nodes
@@ -223,7 +225,7 @@ describe('Phase 2.9 Real PostgreSQL DB E2E Runtime Journey Tests', () => {
     await request(app.getHttpServer())
       .post('/api/v2/curriculum/enroll')
       .set('Authorization', `Bearer ${tokenUser}`)
-      .send({ learnerId: dbLearnerId, structureVersion: 9999 })
+      .send({ learnerId: dbLearnerId, structureVersion })
       .expect(201);
 
     // Verify list endpoint dynamically resolves active enrollment version
@@ -234,11 +236,11 @@ describe('Phase 2.9 Real PostgreSQL DB E2E Runtime Journey Tests', () => {
 
     const resolvedLearner2 = listRes2.body.data.find((l: any) => l.id === dbLearnerId);
     expect(resolvedLearner2.curriculumEnrollments.length).toBe(1);
-    expect(resolvedLearner2.curriculumEnrollments[0].structure.version).toBe(9999);
+    expect(resolvedLearner2.curriculumEnrollments[0].structure.version).toBe(structureVersion);
 
     // 3. Query initial frontier
     const frontierRes = await request(app.getHttpServer())
-      .get(`/api/v2/curriculum/frontier/${dbLearnerId}/9999`)
+      .get(`/api/v2/curriculum/frontier/${dbLearnerId}/${structureVersion}`)
       .set('Authorization', `Bearer ${tokenUser}`)
       .expect(200);
 
@@ -249,7 +251,7 @@ describe('Phase 2.9 Real PostgreSQL DB E2E Runtime Journey Tests', () => {
     const sessionRes = await request(app.getHttpServer())
       .post('/api/v2/sessions')
       .set('Authorization', `Bearer ${tokenUser}`)
-      .send({ learnerId: dbLearnerId, structureVersion: 9999, timeBudgetMinutes: 45 })
+      .send({ learnerId: dbLearnerId, structureVersion, timeBudgetMinutes: 45 })
       .expect(201);
 
     const sessionId = sessionRes.body.data.id;
@@ -359,7 +361,7 @@ describe('Phase 2.9 Real PostgreSQL DB E2E Runtime Journey Tests', () => {
 
     // 12. Query subsequent frontier and verify conceptId2 is unlocked dynamically
     const nextFrontierRes = await request(app.getHttpServer())
-      .get(`/api/v2/curriculum/frontier/${dbLearnerId}/9999`)
+      .get(`/api/v2/curriculum/frontier/${dbLearnerId}/${structureVersion}`)
       .set('Authorization', `Bearer ${tokenUser}`)
       .expect(200);
 

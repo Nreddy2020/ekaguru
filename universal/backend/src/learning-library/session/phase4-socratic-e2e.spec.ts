@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { authSigningSecret } from '../../auth/auth-config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -52,6 +53,7 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
   const learnerId = `learner-${testId}`;
   const conceptId = `concept-${testId}`;
   const loId = `lo-${testId}`;
+  const structureVersion = Math.floor(Math.random()*1000000000)+100000;
   const structureId = `struct-${testId}`;
   const specId = `spec-${testId}`;
   let sessionId: string;
@@ -64,7 +66,7 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
       return;
     }
 
-    const secret = 'ekaguru-secret-key-change-in-production';
+    const secret = authSigningSecret();
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -87,7 +89,7 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
     jwtService = moduleFixture.get<JwtService>(JwtService);
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
-    tokenUser = jwtService.sign({
+    tokenUser = jwtService.sign({ authVersion:2,
       sub: parentId,
       email: `${testId}@test.com`,
       role: 'PARENT',
@@ -118,6 +120,7 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
       data: {
         id: conceptId,
         canonicalName: `Adding Fractions ${testId}`,
+        definition: 'To add fractions with unlike denominators, express both as equivalent fractions with a common denominator. For example, 1/2 + 1/3 = 3/6 + 2/6 = 5/6.',
         normalizedName: `adding fractions ${testId}`,
         status: ConceptStatus.ACTIVE,
         domain: 'Mathematics',
@@ -136,9 +139,8 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
       }
     });
 
-    await prisma.curriculumStructure.deleteMany({ where: { version: 10001 } }).catch(() => {});
     await prisma.curriculumStructure.create({
-      data: { id: structureId, domain: 'Mathematics', version: 10001, status: CurriculumStatus.PUBLISHED }
+      data: { id: structureId, domain: 'Mathematics', version: structureVersion, inputFingerprint: testId, status: CurriculumStatus.PUBLISHED }
     });
 
     await prisma.curriculumNode.create({
@@ -186,7 +188,7 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v2/sessions')
       .set('Authorization', `Bearer ${tokenUser}`)
-      .send({ learnerId, structureVersion: 10001, timeBudgetMinutes: 30 })
+      .send({ learnerId, structureVersion, timeBudgetMinutes: 30 })
       .expect(201);
 
     sessionId = createRes.body.data.id;

@@ -90,7 +90,9 @@ describe('OBS-001 Step 5: ObserveController', () => {
 
   describe('GET /api/v2/observe/health', () => {
     it('should return UP for backend and database with healthy memory', async () => {
+      const memory=jest.spyOn(process,'memoryUsage').mockReturnValue({heapUsed:32*1024*1024,heapTotal:128*1024*1024,rss:160*1024*1024,external:0,arrayBuffers:0});
       const health = await controller.getHealth();
+      memory.mockRestore();
       expect(health.status).toBe('HEALTHY');
       expect(health.backend.status).toBe('UP');
       expect(health.database.status).toBe('UP');

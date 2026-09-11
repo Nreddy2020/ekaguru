@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { authSigningSecret } from '../../auth/auth-config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -517,7 +518,7 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
       { id: 'obj-3', conceptId: 'concept-3', code: 'OBJ-3', complexityLevel: 1, description: 'Multiply simple fractions.' },
     ];
 
-    const secret = 'ekaguru-secret-key-change-in-production';
+    const secret = authSigningSecret();
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [
         PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -537,8 +538,8 @@ describe('Phase 2.8 E2E Runtime Journey Integration Tests', () => {
     await app.init();
 
     jwtService = moduleRef.get<JwtService>(JwtService);
-    tokenUser = jwtService.sign({ sub: 'parent-user-a', email: 'parentA@test.com', role: 'PARENT' });
-    tokenAdmin = jwtService.sign({ sub: 'admin-user', email: 'admin@test.com', role: 'ADMIN' });
+    tokenUser = jwtService.sign({ authVersion:2, sub: 'parent-user-a', email: 'parentA@test.com', role: 'PARENT' });
+    tokenAdmin = jwtService.sign({ authVersion:2, sub: 'admin-user', email: 'admin@test.com', role: 'ADMIN' });
   });
 
   afterAll(async () => {
