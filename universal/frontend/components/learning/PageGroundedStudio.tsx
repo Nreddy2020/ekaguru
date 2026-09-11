@@ -47,6 +47,16 @@ export interface PageGroundedStudioProps {
   description?: string;
   className?: string;
 }
+/** Scroll the in-page container to a section; fragment navigation alone does not move the layout box. */
+const jumpTo = (id: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const target = document.getElementById(id);
+  if (!target) return;
+  event.preventDefault();
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  try {
+    history.replaceState(null, "", "#" + id);
+  } catch {}
+};
 const builtin = [
   "evs-class-5",
   "maths-class-5",
@@ -467,7 +477,10 @@ export function PageGroundedStudio({
         </button>
       </header>
       <div className={styles.layout}>
-        <aside className={styles.sidebar}>
+        <aside className={styles.sidebar} id="textbook-source">
+          <a href="#guru-board" className={styles.mobileJump} onClick={jumpTo("guru-board")}>
+            Jump to the Guru board ↓
+          </a>
           <div className={styles.sourceHeading}>
             <span className={styles.eyebrow}>FROM YOUR TEXTBOOK</span>
             <span className={styles.badge}>
@@ -585,7 +598,10 @@ export function PageGroundedStudio({
             View Full Book Index
           </button>
         </aside>
-        <main className={styles.main}>
+        <main className={styles.main} id="guru-board">
+          <a href="#textbook-source" className={styles.mobileJump} onClick={jumpTo("textbook-source")}>
+            ↑ Back to the textbook page
+          </a>
           <div className={styles.depthStrip}>
             <span className={styles.depthLabel}>
               <Sparkles size={14} />

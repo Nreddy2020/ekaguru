@@ -157,3 +157,16 @@ it("lets a signed-in parent attribute a built-in book session to an owned learne
     localStorage.clear();
   }
 });
+it("links the textbook panel and the Guru board both ways for small screens", async () => {
+  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => source });
+  render(<PageGroundedStudio bookId="maths-class-5" />);
+  await screen.findByTestId("page-teaching-board");
+  expect(screen.getByRole("link", { name: /Jump to the Guru board/ })).toHaveAttribute("href", "#guru-board");
+  expect(screen.getByRole("link", { name: /Back to the textbook page/ })).toHaveAttribute("href", "#textbook-source");
+  expect(document.getElementById("guru-board")).not.toBeNull();
+  expect(document.getElementById("textbook-source")).not.toBeNull();
+  const scrollIntoView = jest.fn();
+  (Element.prototype as any).scrollIntoView = scrollIntoView;
+  fireEvent.click(screen.getByRole("link", { name: /Jump to the Guru board/ }));
+  expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+});

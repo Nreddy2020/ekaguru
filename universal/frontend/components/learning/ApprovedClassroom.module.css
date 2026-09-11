@@ -623,3 +623,27 @@
 .viewer { display: flex; flex-direction: column; min-height: 180px; }
 .viewer .imageScroll { min-height: 0; overflow: auto; }
 .viewerTools, .sourceFooter { flex-shrink: 0; }
+
+/* Small screens: the board sits below the textbook panel, so give one-tap jumps both ways
+   and keep the scan short enough that the board is one flick away. */
+.mobileJump {
+  display: none;
+}
+@media (max-width: 850px) {
+  .mobileJump {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #2a1d4d;
+    color: #e9d5ff;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .imageScroll {
+    max-height: 38vh;
+  }
+  .layout {
+    scroll-behavior: smooth;
+  }
+}
