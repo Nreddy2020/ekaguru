@@ -173,7 +173,13 @@ export class TutorOrchestratorService {
 
     let statement = "";
     if (evalResult.outcome === 'CORRECT') {
-      statement = "Fractions Mastered! " + (evalResult.criticFeedback || "Great job!");
+      // The learner is told exactly what the ledger recorded: mastery only when the policy says so.
+      const masteryStatus = recordResult?.conceptMastery?.status;
+      statement =
+        masteryStatus === 'MASTERED'
+          ? canonicalName + " mastered! " + (evalResult.criticFeedback || "Great job!")
+          : "Correct! " + (evalResult.criticFeedback || "Great job!") +
+            " Mastery of " + canonicalName + " is recorded only after consistent correct work, so keep going.";
     } else if (evalResult.detectedMisconception) {
       statement = "I see what you tried. When adding fractions, we cannot simply add the denominators directly. " + (evalResult.criticFeedback || "");
     } else {

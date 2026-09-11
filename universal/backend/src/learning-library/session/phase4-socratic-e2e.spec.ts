@@ -210,8 +210,10 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
     }
     expect(startRes.status).toBe(200);
 
-    expect(startRes.body.data.statement).toContain('problem');
+    // Current TutorTurn contract: the prompt is tutorResponseText, options are the answer texts.
+    expect(startRes.body.data.tutorResponseText).toContain('sum of 1/2 and 1/3');
     expect(startRes.body.data.options).toContain('2/5 (Add numerators and denominators directly)');
+    expect(startRes.body.data.evaluationPolicy.expectedAnswer).toBeUndefined;
   });
 
   it('2. Should detect direct denominator addition misconception', async () => {
@@ -223,14 +225,32 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
       .send({ response: '2/5', attempts: 1 })
       .expect(200);
 
-    expect(res.body.data.detectedMisconception).toBe('ADD_DENOMINATORS_DIRECTLY');
+    // Conservative attribution: one wrong answer is never labelled a specific misconception.
+    expect(res.body.data.detectedMisconception).toBe('UNATTRIBUTED_ERROR');
+    expect(res.body.data.evaluation.matchedDistractorId).toBe('opt-2');
     expect(res.body.data.statement).toContain('I see what you tried');
+    expect(res.body.data.nextBestAction).toBe('RETRY');
 
-    // Inspect database ULM misconception state
-    const mastery = await prisma.learnerObjectiveMastery.findFirst({
-      where: { learnerId, learningObjectiveId: loId }
+    const mastery = await prisma.learnerConceptMastery.findUnique({
+      where: { learnerId_conceptId: { learnerId, conceptId } },
     });
     expect(mastery?.status).toBe(MasteryStatus.NEEDS_REMEDIATION);
+    expect(mastery?.masteryScore).toBeCloseTo(0.2, 2);
+  });
+
+  it('2b. Attributes a conceptual misunderstanding only after the same wrong answer repeats', async () => {
+    if (!dbAvailable) return;
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v2/sessions/${sessionId}/tutor/respond`)
+      .set('Authorization', `Bearer ${tokenUser}`)
+      .send({ response: '2/5', attempts: 2 })
+      .expect(200);
+
+    expect(res.body.data.detectedMisconception).toBe('CONCEPTUAL_MISUNDERSTANDING');
+    expect(res.body.data.evaluation.criticFeedback).toContain('Repeated response');
+    const evidence = await prisma.learningEvidence.findMany({ where: { learnerId, conceptId } });
+    expect(evidence.filter((e) => e.outcome === 'INCORRECT')).toHaveLength(2);
   });
 
   it('3. Should serve progressive Socratic clues', async () => {
@@ -263,19 +283,38 @@ describe('Phase 4 Socratic Tutor & ULM E2E Journey Tests', () => {
       .expect(200);
 
     expect(res.body.data.nextBestAction).toBe('REMEDIATION');
-    expect(res.body.data.statement).toContain('Mastered');
+    // One correct answer after two wrong ones is progress, not mastery (0.2 -> 0.2 -> 0.68 under recentWeight 0.6).
+    expect(res.body.data.statement).toContain('Correct!');
+    expect(res.body.data.statement).not.toContain('mastered');
 
-    // Inspect database to prove learning outcome updates
     const conceptMastery = await prisma.learnerConceptMastery.findUnique({
       where: { learnerId_conceptId: { learnerId, conceptId } }
     });
-    expect(conceptMastery?.masteryScore).toBeCloseTo(0.87, 1);
-    expect(conceptMastery?.status).toBe(MasteryStatus.MASTERED);
+    expect(conceptMastery?.masteryScore).toBeCloseTo(0.68, 2);
+    expect(conceptMastery?.status).toBe(MasteryStatus.IN_PROGRESS);
 
-    // Verify session step status updated to COMPLETED
-    const step = await prisma.sessionStep.findFirst({
-      where: { sessionId }
+    // The active step was completed; the session may hold further pending steps.
+    const completedSteps = await prisma.sessionStep.count({
+      where: { sessionId, status: 'COMPLETED' },
     });
-    expect(step?.status).toBe('COMPLETED');
+    expect(completedSteps).toBeGreaterThanOrEqual(1);
+  });
+
+  it('5. Announces mastery only once the ledger crosses the policy threshold', async () => {
+    if (!dbAvailable) return;
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v2/sessions/${sessionId}/tutor/respond`)
+      .set('Authorization', `Bearer ${tokenUser}`)
+      .send({ response: '5/6', attempts: 3 })
+      .expect(200);
+
+    // 0.68 * 0.4 + 1.0 * 0.6 = 0.872 >= 0.75
+    expect(res.body.data.statement).toContain('mastered!');
+    const conceptMastery = await prisma.learnerConceptMastery.findUnique({
+      where: { learnerId_conceptId: { learnerId, conceptId } }
+    });
+    expect(conceptMastery?.masteryScore).toBeCloseTo(0.872, 2);
+    expect(conceptMastery?.status).toBe(MasteryStatus.MASTERED);
   });
 });

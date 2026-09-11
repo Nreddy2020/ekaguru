@@ -26,7 +26,9 @@ The database check uses actual local PostgreSQL and uniquely identified disposab
 
 Automatic OCR layout improved the EVS test page from 1 retained line to 16 without lowering thresholds. Some regions remain omitted; this does not establish complete extraction. Model-vision boxes are estimates and the model review is not educator certification.
 
-## Remaining backend test failures
+## Remaining backend test failures (resolved 11 September 2026)
+
+Resolution: the legacy Socratic suite now asserts the current contract. The tutor turn exposes `tutorResponseText`; a first wrong answer is deliberately `UNATTRIBUTED_ERROR` (conservative attribution, consistent with the M3 learner-intelligence spec) and becomes `CONCEPTUAL_MISUNDERSTANDING` only when the same wrong answer repeats; one correct answer after two wrong ones scores 0.68 under the recent-weight policy and is `IN_PROGRESS`, a second correct answer reaches 0.872 and `MASTERED`. One production change was made while doing this: the tutor used to say "Fractions Mastered!" on any correct answer regardless of the ledger; it now announces mastery only when the recorded status is MASTERED and otherwise says the answer was correct and that mastery needs consistent work. The original notes follow for history.
 
 The existing phase4-socratic-e2e.spec.ts assumes an older Socratic API:
 - It expects data.statement on start, while the current TutorTurn returns tutorResponseText.
