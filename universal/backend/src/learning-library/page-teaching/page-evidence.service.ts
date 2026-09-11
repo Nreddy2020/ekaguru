@@ -2,6 +2,7 @@ import { nativePdfBlocks } from "../extraction/native-pdf-blocks";
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { promises as fs } from "fs";
@@ -20,6 +21,7 @@ const BOOKS = [
 ];
 @Injectable()
 export class PageEvidenceService {
+  private readonly logger = new Logger(PageEvidenceService.name);
   private cache = new Map<string, Promise<any>>();
   constructor(
     private readonly ocr: OcrDocumentVisionService,
@@ -168,6 +170,47 @@ export class PageEvidenceService {
       await doc.destroy();
     }
   }
+  private async storedEvidence(identity: {
+    bookId: string;
+    physicalPage: number;
+    sourceHash: string;
+  }): Promise<any | null> {
+    try {
+      const row = await this.prisma.guruPageEvidence?.findUnique({
+        where: { bookId_physicalPage_sourceHash: identity },
+      });
+      return row && Array.isArray(row.blocks) ? row : null;
+    } catch (error: any) {
+      this.logger.warn("Evidence cache read failed: " + (error?.message || error));
+      return null;
+    }
+  }
+  /** Blocks only; the image is regenerated from the source bytes on every read. */
+  private async persistEvidence(
+    identity: { bookId: string; physicalPage: number; sourceHash: string },
+    evidence: any,
+    averageWordConfidence: number,
+  ) {
+    try {
+      const data = {
+        provenance: evidence.provenance,
+        status: evidence.status,
+        width: evidence.width,
+        height: evidence.height,
+        blocks: evidence.blocks,
+        omittedBlockCount: evidence.omittedBlockCount,
+        averageWordConfidence,
+      };
+      await this.prisma.guruPageEvidence?.upsert({
+        where: { bookId_physicalPage_sourceHash: identity },
+        create: { ...identity, ...data },
+        update: data,
+      });
+    } catch (error: any) {
+      // The lesson never depends on the cache write.
+      this.logger.warn("Evidence cache write failed: " + (error?.message || error));
+    }
+  }
   private async fromImage(
     bookId: string,
     page: number,
@@ -193,6 +236,27 @@ export class PageEvidenceService {
           image.height,
         );
         png.getContext("2d").drawImage(image, 0, 0);
+        const imageDataUrl =
+          "data:image/png;base64," + png.toBuffer("image/png").toString("base64");
+        const identity = { bookId, physicalPage: page, sourceHash: hash };
+        // Evidence for this exact page revision may already exist from another process or an earlier run.
+        const stored = await this.storedEvidence(identity);
+        if (stored)
+          return {
+            version: "page-evidence-v1",
+            provenance: stored.provenance,
+            bookId,
+            physicalPage: page,
+            totalPages,
+            sourceHash: hash,
+            width: stored.width,
+            height: stored.height,
+            imageDataUrl,
+            status: stored.status,
+            blocks: stored.blocks,
+            omittedBlockCount: stored.omittedBlockCount,
+            cached: "database",
+          };
         const vision = nativeBlocks
           ? { blocks: nativeBlocks, averageWordConfidence: 1 }
           : await this.ocr.processPageVision(Number(page), bytes);
@@ -206,7 +270,7 @@ export class PageEvidenceService {
             b.bbox.width > 0 &&
             b.bbox.height > 0,
         );
-        return {
+        const evidence = {
           version: "page-evidence-v1",
           provenance: nativeBlocks ? "PDF_NATIVE" : "OCR",
           bookId,
@@ -215,9 +279,7 @@ export class PageEvidenceService {
           sourceHash: hash,
           width: image.width,
           height: image.height,
-          imageDataUrl:
-            "data:image/png;base64," +
-            png.toBuffer("image/png").toString("base64"),
+          imageDataUrl,
           status:
             blocks.length && vision.averageWordConfidence >= 0.65
               ? "READY"
@@ -225,6 +287,8 @@ export class PageEvidenceService {
           blocks,
           omittedBlockCount: vision.blocks.length - blocks.length,
         };
+        await this.persistEvidence(identity, evidence, vision.averageWordConfidence);
+        return evidence;
       })();
       this.cache.set(key, pending);
       pending.catch(() => {

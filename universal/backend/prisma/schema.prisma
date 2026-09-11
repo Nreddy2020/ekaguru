@@ -1893,3 +1893,21 @@ model GuruLessonJob {
   @@index([artifactId])
   @@index([requestedBy])
 }
+
+// Persisted page evidence (blocks only, never the image): OCR runs once per page revision across restarts and replicas
+model GuruPageEvidence {
+  id                    String   @id @default(uuid())
+  bookId                String
+  physicalPage          Int
+  sourceHash            String
+  provenance            String
+  status                String
+  width                 Int
+  height                Int
+  blocks                Json
+  omittedBlockCount     Int      @default(0)
+  averageWordConfidence Float?
+  createdAt             DateTime @default(now())
+
+  @@unique([bookId, physicalPage, sourceHash])
+}
