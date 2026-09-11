@@ -32,6 +32,7 @@ export function describePhase(phase?: string): string {
     hook: "Why this matters",
     prior: "What you already know",
     explain: "Teacher explains",
+    reallife: "From your life",
     model: "Worked example (I do)",
     guided: "Guided practice (we do)",
     independent: "Your turn (you do)",

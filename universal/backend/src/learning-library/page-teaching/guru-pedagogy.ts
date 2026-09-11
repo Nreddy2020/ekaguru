@@ -15,6 +15,7 @@ export const GURU_PHASES = [
   "hook",
   "prior",
   "explain",
+  "reallife",
   "model",
   "guided",
   "independent",
@@ -29,6 +30,7 @@ export const PHASE_LABELS: Record<GuruPhase, string> = {
   hook: "Why this matters",
   prior: "What you already know",
   explain: "Teacher explains",
+  reallife: "From your life",
   model: "Worked example (I do)",
   guided: "Guided practice (we do)",
   independent: "Your turn (you do)",
@@ -43,6 +45,7 @@ export const PHASE_KINDS: Record<GuruPhase, readonly string[]> = {
   hook: ["write", "explain"],
   prior: ["ask"],
   explain: ["write", "draw", "explain"],
+  reallife: ["write", "draw", "explain"],
   model: ["write", "draw", "explain"],
   guided: ["ask"],
   independent: ["ask"],
@@ -55,6 +58,11 @@ export const PHASE_KINDS: Record<GuruPhase, readonly string[]> = {
 /** Asks in these phases invite thinking but never block progression or grade the learner. */
 export const NON_GATING_PHASES: readonly GuruPhase[] = ["prior", "reflection"];
 
+/** How many explain-phase actions a lesson needs before it counts as in-depth teaching. */
+export const MIN_EXPLAIN_ACTIONS = 2;
+/** How many everyday examples the lesson must carry. */
+export const MIN_REAL_LIFE_EXAMPLES = 1;
+
 export interface LessonBlueprint {
   required: GuruPhase[];
   /** Cognitive demand the checkpoints must carry at this depth. */
@@ -65,35 +73,35 @@ export interface LessonBlueprint {
 
 export const LESSON_BLUEPRINTS: Record<Depth, LessonBlueprint> = {
   basis: {
-    required: ["hook", "prior", "explain", "model", "guided", "independent", "summary"],
+    required: ["hook", "prior", "explain", "reallife", "model", "guided", "independent", "summary"],
     demand:
       "Checkpoints ask the learner to recognise, name and describe with the page's words and one concrete example of their own.",
     introduction:
       "Start from a concrete experience the learner has had, ask an intuition question, tell a short story or scenario, draw the picture, only then introduce the textbook terms; no formula before the idea is felt.",
   },
   developing: {
-    required: ["hook", "prior", "explain", "model", "guided", "independent", "misconception", "summary"],
+    required: ["hook", "prior", "explain", "reallife", "model", "guided", "independent", "misconception", "summary"],
     demand:
       "Checkpoints ask the learner to connect two ideas on the page and explain how one leads to the other, in their own words.",
     introduction:
       "Experience, intuition question, story, drawing, then terms; make the causal links between parts of the page explicit, and name the common wrong idea.",
   },
   proficient: {
-    required: ["hook", "prior", "explain", "model", "guided", "independent", "misconception", "transfer", "summary"],
+    required: ["hook", "prior", "explain", "reallife", "model", "guided", "independent", "misconception", "transfer", "summary"],
     demand:
       "Checkpoints ask the learner to apply the idea to a situation not on the page and justify each step with page evidence.",
     introduction:
       "Brief experience and intuition, then a precise explanation with a drawing and terms; the worked example shows every step and the reason for it.",
   },
   advanced: {
-    required: ["hook", "prior", "explain", "model", "guided", "independent", "misconception", "transfer", "reflection", "summary"],
+    required: ["hook", "prior", "explain", "reallife", "model", "guided", "independent", "misconception", "transfer", "reflection", "summary"],
     demand:
       "Checkpoints ask the learner to analyse: what evidence on the page supports the claim, what assumptions it rests on, and what would change if an assumption failed.",
     introduction:
       "Open with the question the page answers, expose the reasoning chain, draw the mechanism, and use terms precisely; examples should include a counter-case.",
   },
   deep: {
-    required: ["hook", "prior", "explain", "model", "guided", "independent", "misconception", "transfer", "reflection", "summary"],
+    required: ["hook", "prior", "explain", "reallife", "model", "guided", "independent", "misconception", "transfer", "reflection", "summary"],
     demand:
       "Checkpoints demand first-principles inquiry: derive or reconstruct the idea, evaluate the page's evidence, propose an investigation that could test it, and connect it to another discipline. A question that only asks for recall is not acceptable at this depth.",
     introduction:
@@ -108,7 +116,8 @@ export function pedagogyPromptSection(depth: Depth): string {
     "TEACHING METHODOLOGY. Teach this page the way an excellent classroom teacher would, in phases. Every action carries a phase from: " +
       GURU_PHASES.join(", ") + ".",
     "Required phases at depth '" + depth + "', in this order: " + b.required.join(" -> ") + ". Optional phases may be added where they help.",
-    "hook: one action that says why this page matters to the learner's life, with a concrete situation. prior: one ask that activates what the learner already knows (it is not graded; give an acknowledgement sentence in acknowledgement). explain: introduce the concept using the layers Experience -> Intuition -> Story -> Visual (a draw action) -> Language (the page's terms) -> Symbol (formulas or notation, always last). " + b.introduction,
+    "hook: one action that says why this page matters to the learner's life, with a concrete situation. prior: one ask that activates what the learner already knows (it is not graded; give an acknowledgement sentence in acknowledgement). explain: introduce the concept in depth, at least " + MIN_EXPLAIN_ACTIONS + " actions, using the layers Experience -> Intuition -> Story -> Visual (a draw action) -> Language (the page's terms) -> Symbol (formulas or notation, always last); the drawing comes before any symbol and before the worked example. " + b.introduction,
+    "reallife (From your life): at least " + MIN_REAL_LIFE_EXAMPLES + " action(s) that explain the concept through a concrete example from the learner's everyday world right now (home, school, market, transport, weather, festivals, phones, money, play), current and local to the learner's language and region, explained in depth: what happens, why it happens, and how each part maps to the page's words. Not a definition, not a quotation; a scene the learner can picture. At basis use the learner's own home and school; at proficient use a situation with a decision to make; at deep use a real system, dataset or current event and its evidence. Place it after the concept is introduced and before the worked example.",
     "model: a worked example labelled 'Example' that shows every step and the reason for each step (I do). guided: an ask where the hint walks the learner through the same steps on a new case (we do). independent: an ask the learner must answer alone, graded by the rubric (you do). misconception: name the most likely wrong idea about this page and refute it with a counter-example. transfer: an ask that applies the idea to a situation not on the page. reflection: an ungraded ask for the learner to explain the idea in their own words or to say what they would investigate next (teach-back). summary: the last action, restating the key ideas in the page's words.",
     "Cognitive demand at this depth: " + b.demand,
     "Examples must build on knowledge a learner at this depth already has; say what prior idea each example rests on. Label invented examples as examples, never as quotations from the page. Never claim mastery.",
@@ -152,6 +161,17 @@ export function validatePedagogy(
   if (phases.filter((p) => p === "summary").length !== 1) issues.push({ message: "exactly one summary action" });
   if (first("prior") > first("model")) issues.push({ message: "activate prior knowledge before the worked example" });
   if (first("explain") > first("model")) issues.push({ message: "explain the concept before the worked example" });
+  if (phases.filter((p) => p === "explain").length < MIN_EXPLAIN_ACTIONS)
+    issues.push({ message: "explain the concept in depth: at least " + MIN_EXPLAIN_ACTIONS + " explain-phase actions" });
+  if (phases.filter((p) => p === "reallife").length < MIN_REAL_LIFE_EXAMPLES)
+    issues.push({ message: "give at least " + MIN_REAL_LIFE_EXAMPLES + " real-life example (From your life)" });
+  if (first("reallife") !== -1 && first("reallife") < first("explain"))
+    issues.push({ message: "the real-life example comes after the concept is introduced" });
+  if (first("reallife") !== -1 && last("reallife") > first("model"))
+    issues.push({ message: "the real-life example comes before the worked example" });
+  const firstDrawIndex = actions.findIndex((a) => a.kind === "draw");
+  if (firstDrawIndex !== -1 && firstDrawIndex > first("model"))
+    issues.push({ message: "draw the visual before the worked example (visual before symbols)" });
   const firstDraw = actions.findIndex((a) => a.kind === "draw");
   if (firstDraw === -1 || firstDraw > first("independent"))
     issues.push({ message: "draw the visual before the independent checkpoint" });

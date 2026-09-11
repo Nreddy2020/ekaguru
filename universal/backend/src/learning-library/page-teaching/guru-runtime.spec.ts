@@ -31,6 +31,7 @@ function rawPlan() {
           { type: "circle", x: 100, y: 100, radius: 40, color: "yellow" },
         ],
       },
+      { ...base, kind: "explain", phase: "reallife", text: "Think of the tulsi plant at home: it leans to the window because light is its food." },
       { ...base, kind: "explain", phase: "model", text: "Example: a plant on a windowsill." },
       { ...base, kind: "ask", phase: "guided", prompt: "Explain the role of sunlight.", rubric },
       { ...base, kind: "ask", phase: "independent", prompt: "Explain it for a plant in a dark room.", rubric },
@@ -41,8 +42,8 @@ function rawPlan() {
 // Fixture positions used by the runtime tests
 const PRIOR = 1;
 const DRAW = 3;
-const GUIDED = 5;
-const LAST = 7;
+const GUIDED = 6;
+const LAST = 8;
 const plan = () => ({
   ...validateGuruPlan(rawPlan(), new Set(["vision-0"]), "basis", "en", "hash"),
   id: "artifact",
@@ -53,7 +54,7 @@ describe("Guru plan contract", () => {
     expect(publicPlan.actions[GUIDED].assessment).toBe(true);
     expect(publicPlan.actions[GUIDED].gating).toBe(true);
     expect(publicPlan.actions[PRIOR]).toMatchObject({ gating: false, assessment: true, acknowledgement: "Good noticing. Keep that in mind." });
-    expect(publicPlan.actions.map((a: any) => a.phase)).toEqual(["hook", "prior", "explain", "explain", "model", "guided", "independent", "summary"]);
+    expect(publicPlan.actions.map((a: any) => a.phase)).toEqual(["hook", "prior", "explain", "explain", "reallife", "model", "guided", "independent", "summary"]);
     expect(JSON.stringify(publicPlan)).not.toContain("Light supplies energy.");
   });
   it.each([
@@ -70,7 +71,7 @@ describe("Guru plan contract", () => {
     if (failure === "unsafe-scene")
       raw.actions[DRAW].scene = [{ type: "html", x: 0, y: 0, text: "<script/>" }];
     if (failure === "out-of-bounds") raw.actions[DRAW].scene[0].radius = null;
-    if (failure === "missing-checkpoint") raw.actions.splice(6, 1);
+    if (failure === "missing-checkpoint") raw.actions.splice(7, 1);
     expect(() => validateGuruPlan(raw, ids, "basis", "en", "hash")).toThrow(
       "Invalid Guru plan",
     );

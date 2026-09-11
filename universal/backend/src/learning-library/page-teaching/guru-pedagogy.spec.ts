@@ -14,6 +14,7 @@ const basisLesson = () =>
     ["prior", "ask"],
     ["explain", "explain"],
     ["explain", "draw"],
+    ["reallife", "explain"],
     ["model", "explain"],
     ["guided", "ask"],
     ["independent", "ask"],
@@ -26,7 +27,7 @@ describe("teaching methodology blueprint", () => {
     for (const depth of ["basis", "developing", "proficient", "advanced", "deep"] as const) {
       expect(LESSON_BLUEPRINTS[depth].required[0]).toBe("hook");
       expect(LESSON_BLUEPRINTS[depth].required.at(-1)).toBe("summary");
-      expect(LESSON_BLUEPRINTS[depth].required).toEqual(expect.arrayContaining(["prior", "model", "independent"]));
+      expect(LESSON_BLUEPRINTS[depth].required).toEqual(expect.arrayContaining(["prior", "explain", "reallife", "model", "independent"]));
     }
     expect(LESSON_BLUEPRINTS.deep.required).toEqual(expect.arrayContaining(["misconception", "transfer", "reflection"]));
     expect(NON_GATING_PHASES).toEqual(["prior", "reflection"]);
@@ -39,6 +40,8 @@ describe("teaching methodology blueprint", () => {
     expect(text).toContain("(we do)");
     expect(text).toContain("(you do)");
     expect(text).toContain("first-principles inquiry");
+    expect(text).toContain("From your life");
+    expect(text).toContain("what happens, why it happens, and how each part maps to the page's words");
     expect(pedagogyPromptSection("basis")).toContain("no formula before the idea is felt");
   });
   it("accepts a well-formed basis lesson", () => {
@@ -60,6 +63,7 @@ describe("teaching methodology blueprint", () => {
       ["explain", "explain"],
       ["independent", "ask"],
       ["explain", "draw"],
+      ["reallife", "explain"],
       ["guided", "ask"],
       ["summary", "summary"],
     );
@@ -70,9 +74,15 @@ describe("teaching methodology blueprint", () => {
         "explain the concept before the worked example",
         "draw the visual before the independent checkpoint",
         "guided practice comes before the independent checkpoint",
+        "the real-life example comes before the worked example",
+        "draw the visual before the worked example (visual before symbols)",
       ]),
     );
-    const noSummaryLast = [...basisLesson(), { phase: "explain", kind: "explain", index: 8 }];
+    const shallow = basisLesson().filter((a, i) => !(a.phase === "explain" && i === 3));
+    expect(validatePedagogy(shallow, "basis").map((i) => i.message)).toEqual(
+      expect.arrayContaining(["explain the concept in depth: at least 2 explain-phase actions"]),
+    );
+    const noSummaryLast = [...basisLesson(), { phase: "explain", kind: "explain", index: 9 }];
     expect(validatePedagogy(noSummaryLast, "basis").map((i) => i.message)).toContain("the last action must be the summary");
   });
   it("requires misconception, transfer and reflection as depth rises", () => {
@@ -87,6 +97,7 @@ describe("teaching methodology blueprint", () => {
       ["prior", "ask"],
       ["explain", "explain"],
       ["explain", "draw"],
+      ["reallife", "explain"],
       ["model", "explain"],
       ["misconception", "explain"],
       ["guided", "ask"],
