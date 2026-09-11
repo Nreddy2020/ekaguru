@@ -97,7 +97,7 @@ export class LearningLibraryAuthGuard implements CanActivate {
     }
 
     // If target is a materialId, resolve material's learnerId
-    if (!targetLearnerId && request.params?.id && request.route?.path?.includes('/learning-materials/')) {
+    if (request.params?.id && request.route?.path?.includes('/learning-materials/')) {
       const material = await this.prisma.learningMaterial.findUnique({
         where: { id: request.params.id },
         select: { learnerId: true },
@@ -105,11 +105,12 @@ export class LearningLibraryAuthGuard implements CanActivate {
       if (!material) {
         throw new NotFoundException(`LearningMaterial '${request.params.id}' not found.`);
       }
+      if (targetLearnerId && targetLearnerId !== material.learnerId) throw new ForbiddenException('Resource mismatch: Material does not belong to the target learner.');
       targetLearnerId = material.learnerId;
     }
 
     // If target is a materialId in nested path (e.g., /learning-materials/:materialId/documents)
-    if (!targetLearnerId && request.params?.materialId) {
+    if (request.params?.materialId) {
       const material = await this.prisma.learningMaterial.findUnique({
         where: { id: request.params.materialId },
         select: { learnerId: true },
@@ -117,11 +118,12 @@ export class LearningLibraryAuthGuard implements CanActivate {
       if (!material) {
         throw new NotFoundException(`LearningMaterial '${request.params.materialId}' not found.`);
       }
+      if (targetLearnerId && targetLearnerId !== material.learnerId) throw new ForbiddenException('Resource mismatch: Material does not belong to the target learner.');
       targetLearnerId = material.learnerId;
     }
 
     // If target is a documentId (/api/v2/documents/:id)
-    if (!targetLearnerId && request.params?.id && request.route?.path?.includes('/documents/')) {
+    if (request.params?.id && request.route?.path?.includes('/documents/')) {
       const doc = await this.prisma.document.findUnique({
         where: { id: request.params.id },
         select: { material: { select: { learnerId: true } } },
@@ -129,6 +131,7 @@ export class LearningLibraryAuthGuard implements CanActivate {
       if (!doc) {
         throw new NotFoundException(`Document '${request.params.id}' not found.`);
       }
+      if (targetLearnerId && targetLearnerId !== doc.material.learnerId) throw new ForbiddenException('Resource mismatch: Document does not belong to the target learner.');
       targetLearnerId = doc.material.learnerId;
     }
 
@@ -160,7 +163,7 @@ export class LearningLibraryAuthGuard implements CanActivate {
 
     if (user.role === 'PARENT') {
       // Demo parent bypass for development environment
-      if (user.email === 'demo@ekaguru.com' || user.userId === 'parent-001' || user.userId?.startsWith('parent_')) {
+      if (process.env.NODE_ENV !== 'production' && (user.email === 'demo@ekaguru.com' || user.userId === 'parent-001' || user.userId?.startsWith('parent_'))) {
         return true;
       }
       // Parent owns child if legacyChild.parentId === user.userId

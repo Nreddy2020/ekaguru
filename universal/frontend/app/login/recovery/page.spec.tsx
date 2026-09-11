@@ -1,0 +1,42 @@
+import React from "react";
+import {render,screen,fireEvent,waitFor} from "@testing-library/react";
+import RecoveryPage from "./page";
+const ok=(body:any)=>Promise.resolve({ok:true,json:()=>Promise.resolve(body)});
+const fail=(message:string,status=401)=>Promise.resolve({ok:false,status,json:()=>Promise.resolve({message})});
+beforeEach(()=>{(global as any).fetch=jest.fn();window.history.replaceState({},"","/login/recovery");});
+afterEach(()=>{jest.resetAllMocks();localStorage.clear();});
+it("requests a recovery link without revealing whether the account exists",async()=>{
+ (fetch as jest.Mock).mockReturnValue(ok({ok:true,message:"If an account exists for that email, a recovery link has been sent."}));
+ render(<RecoveryPage/>);
+ fireEvent.change(screen.getByLabelText("Email"),{target:{value:"parent@example.invalid"}});
+ fireEvent.click(screen.getByRole("button",{name:"Send recovery link"}));
+ await screen.findByText(/recovery link has been sent/);
+ expect((fetch as jest.Mock).mock.calls[0][0]).toMatch(/\/auth\/recovery\/request$/);
+ expect(JSON.parse((fetch as jest.Mock).mock.calls[0][1].body)).toEqual({email:"parent@example.invalid"});
+});
+it("removes the token from the address bar and requires matching passwords before confirming",async()=>{
+ window.history.replaceState({},"","/login/recovery?token=abcdefghijklmnopqrstuvwxyz0123456789ABCDEF");
+ (fetch as jest.Mock).mockReturnValue(ok({ok:true,message:"Password updated. Sign in with your new password."}));
+ localStorage.setItem("token","old-session");
+ render(<RecoveryPage/>);
+ await screen.findByRole("heading",{name:"Choose a new password"});
+ expect(window.location.search).toBe("");
+ fireEvent.change(screen.getByLabelText("New password"),{target:{value:"correct-horse-battery"}});
+ fireEvent.change(screen.getByLabelText("Repeat new password"),{target:{value:"correct-horse-battery-2"}});
+ fireEvent.click(screen.getByRole("button",{name:"Update password"}));
+ await screen.findByRole("alert");
+ expect(fetch).not.toHaveBeenCalled();
+ fireEvent.change(screen.getByLabelText("Repeat new password"),{target:{value:"correct-horse-battery"}});
+ fireEvent.click(screen.getByRole("button",{name:"Update password"}));
+ await screen.findByText(/Password updated/);
+ expect(JSON.parse((fetch as jest.Mock).mock.calls[0][1].body)).toEqual({token:"abcdefghijklmnopqrstuvwxyz0123456789ABCDEF",password:"correct-horse-battery"});
+ expect(localStorage.getItem("token")).toBeNull();
+});
+it("confirms email ownership automatically from a verification link and surfaces failures",async()=>{
+ window.history.replaceState({},"","/login/recovery?verify=abcdefghijklmnopqrstuvwxyz0123456789ABCDEF");
+ (fetch as jest.Mock).mockReturnValue(fail("This link has expired or was already used. Request a new one."));
+ render(<RecoveryPage/>);
+ await waitFor(()=>expect(fetch).toHaveBeenCalled());
+ expect((fetch as jest.Mock).mock.calls[0][0]).toMatch(/\/auth\/verify-email\/confirm$/);
+ await screen.findByText(/expired or was already used/);
+});
