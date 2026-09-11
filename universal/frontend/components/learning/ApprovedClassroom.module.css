@@ -647,3 +647,81 @@
     scroll-behavior: smooth;
   }
 }
+
+/* Guru voice orb: breathes when idle, kicks on each spoken word, ripples while listening, turns while thinking. */
+.orbWrap {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+.orbRingOuter,
+.orbRingInner,
+.orbCore {
+  position: absolute;
+  border-radius: 50%;
+  inset: 0;
+}
+.orbRingOuter {
+  border: 2px solid rgba(253, 224, 71, 0.35);
+  transform: scale(1.12);
+}
+.orbRingInner {
+  border: 2px solid rgba(110, 231, 183, 0.45);
+  transform: scale(1.02);
+}
+.orbCore {
+  inset: 14%;
+  background: radial-gradient(circle at 35% 30%, #fff3b0 0%, #fbbf24 35%, #059669 100%);
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.45), 0 0 60px rgba(5, 150, 105, 0.35);
+  animation: orbBreathe 3.6s ease-in-out infinite;
+}
+.orbWrap[data-state="speaking"] .orbCore {
+  animation: orbKick 0.42s ease-out 1;
+}
+.orbWrap[data-state="speaking"] .orbRingInner {
+  animation: orbRipple 0.9s ease-out infinite;
+}
+.orbWrap[data-state="listening"] .orbRingOuter,
+.orbWrap[data-state="listening"] .orbRingInner {
+  animation: orbRipple 1.6s ease-out infinite;
+}
+.orbWrap[data-state="listening"] .orbRingInner {
+  animation-delay: 0.8s;
+}
+.orbWrap[data-state="listening"] .orbCore {
+  background: radial-gradient(circle at 35% 30%, #dbeafe 0%, #60a5fa 40%, #1d4ed8 100%);
+  box-shadow: 0 0 24px rgba(96, 165, 250, 0.5);
+}
+.orbWrap[data-state="thinking"] .orbRingOuter {
+  border-style: dashed;
+  animation: orbTurn 2.4s linear infinite;
+}
+@keyframes orbBreathe {
+  0%, 100% { transform: scale(0.96); }
+  50% { transform: scale(1.04); }
+}
+@keyframes orbKick {
+  0% { transform: scale(0.98); }
+  35% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes orbRipple {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+@keyframes orbTurn {
+  to { transform: scale(1.12) rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbCore, .orbRingOuter, .orbRingInner { animation: none !important; }
+}
+.captions {
+  font: italic 15px/1.5 Georgia, serif;
+  color: #fef3c7;
+}
+.voiceRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}

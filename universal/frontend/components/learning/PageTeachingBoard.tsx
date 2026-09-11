@@ -2,6 +2,14 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import styles from "./ApprovedClassroom.module.css";
 import { GuruScene } from "./GuruScene";
+import { GuruVoiceOrb } from "./GuruVoiceOrb";
+import {
+  OrbState,
+  createRecognizer,
+  recognitionSupported,
+  speak,
+  voiceSupported,
+} from "../../lib/learning/guru-voice";
 import {
   GuruSessionSnapshot,
   GuruEvent,
@@ -68,7 +76,42 @@ export function PageTeachingBoard({
       );
   }, []);
   const [speed, setSpeed] = useState(1);
-  const [audio, setAudio] = useState(false);
+  // Voice-first: Guru speaks by default wherever the browser can; the toggle mutes.
+  const [audio, setAudio] = useState(() => voiceSupported());
+  const [voiceActive, setVoiceActive] = useState(false);
+  const [pulse, setPulse] = useState(0);
+  const [micActive, setMicActive] = useState(false);
+  const [micError, setMicError] = useState("");
+  const recognizerRef = useRef<ReturnType<typeof createRecognizer>>(null);
+  const stopListening = () => {
+    recognizerRef.current?.stop();
+    recognizerRef.current = null;
+    setMicActive(false);
+  };
+  const listenForAnswer = () => {
+    if (micActive) {
+      stopListening();
+      return;
+    }
+    const recognizer = createRecognizer(lesson.language);
+    if (!recognizer) {
+      setMicError("This browser cannot hear you; please type your answer.");
+      return;
+    }
+    setMicError("");
+    recognizerRef.current = recognizer;
+    setMicActive(true);
+    const base = answer.trim();
+    recognizer.start({
+      onResult: (text) => setAnswer((base ? base + " " : "") + text),
+      onEnd: () => {
+        recognizerRef.current = null;
+        setMicActive(false);
+      },
+      onError: (message) => setMicError(message === "not-allowed" ? "Microphone access was refused; please type your answer." : "Could not hear clearly; try again or type."),
+    });
+  };
+  useEffect(() => () => stopListening(), []);
   const [answer, setAnswer] = useState("");
   const [reflection, setReflection] = useState("");
   const [progress, setProgress] = useState(0);
@@ -129,6 +172,13 @@ export function PageTeachingBoard({
     }
     setState((s) => transition(s, event, lesson));
   };
+  const orbState: OrbState = busy
+    ? "thinking"
+    : voiceActive
+      ? "speaking"
+      : micActive || (started && action.kind === "ask" && !state.playing)
+        ? "listening"
+        : "idle";
   const currentNotes = useMemo(
     () =>
       lesson.actions
@@ -160,11 +210,17 @@ export function PageTeachingBoard({
             : state.feedback === "correct"
               ? "Recall checked. " + action.prompt
               : action.speech;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(prompt);
-      utterance.lang = lesson.language || "en";
-      window.speechSynthesis.speak(utterance);
-      return () => window.speechSynthesis.cancel();
+      const handle = speak(prompt, {
+        language: lesson.language,
+        rate: (lesson.depth === "basis" ? 0.9 : 1) * speed,
+        onStart: () => setVoiceActive(true),
+        onBoundary: () => setPulse((n) => n + 1),
+        onEnd: () => setVoiceActive(false),
+      });
+      return () => {
+        handle.cancel();
+        setVoiceActive(false);
+      };
     }
     let live = true;
     let completed = false;
@@ -197,15 +253,19 @@ export function PageTeachingBoard({
       }
     }, 30);
     let speechTimer: ReturnType<typeof setTimeout> | undefined;
-    if (audio && typeof window !== "undefined" && "speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(action.speech);
-      utterance.lang = lesson.language || "en";
-      utterance.rate = (lesson.depth === "basis" ? 0.85 : 1) * speed;
-      utterance.onend = utterance.onerror = () => {
-        spoken = true;
-        finish();
-      };
-      window.speechSynthesis.speak(utterance);
+    let voice: { cancel: () => void } | undefined;
+    if (audio && voiceSupported()) {
+      voice = speak(action.speech, {
+        language: lesson.language,
+        rate: (lesson.depth === "basis" ? 0.9 : 1) * speed,
+        onStart: () => setVoiceActive(true),
+        onBoundary: () => setPulse((n) => n + 1),
+        onEnd: () => {
+          setVoiceActive(false);
+          spoken = true;
+          finish();
+        },
+      });
       // Browser engines occasionally omit end/error; allow a conservative spoken-duration fallback.
       speechTimer = setTimeout(
         () => {
@@ -225,7 +285,8 @@ export function PageTeachingBoard({
       live = false;
       clearInterval(interval);
       clearTimeout(speechTimer);
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      voice?.cancel();
+      setVoiceActive(false);
     };
   }, [
     suspended,
@@ -306,7 +367,7 @@ export function PageTeachingBoard({
           Restart
         </button>
         <button aria-pressed={audio} onClick={() => setAudio((a) => !a)}>
-          {audio ? "Mute" : "Enable voice"}
+          {audio ? "Mute voice" : "Enable voice"}
         </button>
         <label>
           Pace{" "}
@@ -360,7 +421,31 @@ export function PageTeachingBoard({
         </p>
       )}
       <div className={styles.narration}>
-        <div className={styles.narrationLabel}>Guru Speaks</div>
+        <div className={styles.voiceRow}>
+          <GuruVoiceOrb
+            state={orbState}
+            pulse={pulse}
+            reducedMotion={reducedMotion}
+            size={88}
+          />
+          <div className="min-w-0 flex-1">
+            <div className={styles.narrationLabel}>
+              <span>{audio ? "Guru speaks" : "Guru speaks (voice muted)"}</span>
+              <span data-testid="orb-status" className="text-xs font-normal text-emerald-200">
+                {orbState === "speaking"
+                  ? "Speaking…"
+                  : orbState === "listening"
+                    ? micActive
+                      ? "Listening to you…"
+                      : "Waiting for your answer"
+                    : orbState === "thinking"
+                      ? "Thinking…"
+                      : "Ready"}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className={styles.narrationLabel} style={{ display: "none" }}>Guru Speaks</div>
         <p aria-live="polite">
           {state.feedback === "retry"
             ? "Let us revisit the source: " +
@@ -488,6 +573,12 @@ export function PageTeachingBoard({
                 >
                   Share and continue
                 </button>
+                {recognitionSupported() && (
+                  <button type="button" onClick={listenForAnswer} aria-pressed={micActive} className="ml-3 underline">
+                    {micActive ? "Stop listening" : "Speak your answer"}
+                  </button>
+                )}
+                {micError && <p role="alert" className="text-xs">{micError}</p>}
                 <p className="text-xs">
                   Guru listens here; this is not graded and never counts against you. You can also press Next.
                 </p>
@@ -518,6 +609,12 @@ export function PageTeachingBoard({
                 >
                   Discuss my answer
                 </button>
+                {recognitionSupported() && (
+                  <button type="button" onClick={listenForAnswer} aria-pressed={micActive} className="ml-3 underline">
+                    {micActive ? "Stop listening" : "Speak your answer"}
+                  </button>
+                )}
+                {micError && <p role="alert" className="text-xs">{micError}</p>}
                 <button
                   disabled={busy}
                   type="button"

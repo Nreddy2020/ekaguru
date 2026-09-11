@@ -22,6 +22,10 @@ The order is checked (hook first; prior and explanation before the worked exampl
 
 **Grounding in the learner's knowledge.** `GuruLearnerContextService` derives, from the ledger only, the pages this learner has completed in the same book and how each run went, canonical concepts with recorded mastery, and misconceptions Guru stated on earlier answers. Session start returns it as `personalization` and the board shows "Guru remembers …" before the lesson; a completed independent run suggests the next depth for the next page (`GET /api/v2/guru/learners/:id/context?bookId=`), an assisted run keeps the depth; and the grader is told this learner's earlier misconceptions so feedback can name a repeated one gently. None of this costs a model call or labels the learner.
 
+## 0b. Voice presence
+
+Guru teaches by voice first. The board shows a voice orb that breathes when idle, kicks on every spoken word (from the synthesis engine's word boundaries), ripples while it waits for or listens to the learner, and turns while the server grades. Voice is on by default wherever the browser can synthesise speech, with a mute toggle; the best available voice for the lesson language is chosen (region first, natural or neural engines preferred, novelty voices excluded) and the pace control changes speaking rate. Captions of what Guru says stay under the orb. At any checkpoint the learner can answer by speaking; the transcript lands in the answer box and is graded exactly like typed text. No audio is sent to the server: synthesis and recognition run in the browser, so this costs nothing and works offline. A server-side neural voice (for example a Gemini TTS model) can be added later behind the same `speak()` boundary; it is not implemented.
+
 ## 1. Model budget per account
 
 Every paid model call reserves one unit from a per-account daily ledger (`GuruModelUsage`). Cached lessons cost nothing; a reservation happens only when a lesson must actually be generated, or when a learner asks a page question or submits an assessed answer.

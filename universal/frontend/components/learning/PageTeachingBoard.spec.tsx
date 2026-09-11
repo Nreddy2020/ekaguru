@@ -206,3 +206,65 @@ it("shows the teaching phase, hears an ungraded prior-knowledge ask and shows wh
   expect(screen.getByText("Lovely, hold on to that.")).toBeInTheDocument();
   expect(screen.queryByTestId("mastery-note")).toBeNull();
 });
+describe("voice presence", () => {
+  afterEach(() => {
+    delete (window as any).speechSynthesis;
+    delete (window as any).SpeechSynthesisUtterance;
+    delete (window as any).webkitSpeechRecognition;
+  });
+  it("shows the orb, speaks by default when the browser can, pulses per word and returns to ready", () => {
+    const spoken: any[] = [];
+    (window as any).SpeechSynthesisUtterance = function (this: any, text: string) {
+      this.text = text;
+    };
+    (window as any).speechSynthesis = { cancel: jest.fn(), speak: jest.fn((u: any) => spoken.push(u)), getVoices: () => [] };
+    const lesson = compilePageLesson(page, "basis");
+    render(<PageTeachingBoard page={page} lesson={lesson} onHighlight={() => {}} />);
+    expect(screen.getByTestId("guru-orb")).toHaveAttribute("data-state", "idle");
+    expect(screen.getByRole("button", { name: "Mute voice" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Play Guru" }));
+    expect(spoken).toHaveLength(1);
+    expect(spoken[0].text).toBe(lesson.actions[0].speech);
+    act(() => spoken[0].onstart());
+    expect(screen.getByTestId("guru-orb")).toHaveAttribute("data-state", "speaking");
+    expect(screen.getByTestId("orb-status")).toHaveTextContent("Speaking…");
+    act(() => spoken[0].onboundary({ charIndex: 4 }));
+    act(() => spoken[0].onboundary({ charIndex: 9 }));
+    expect(screen.getByTestId("guru-orb")).toHaveAttribute("data-pulse", "2");
+    act(() => jest.advanceTimersByTime(lesson.actions[0].durationMs + 100));
+    act(() => spoken[0].onend());
+    expect(screen.getByTestId("guru-orb")).not.toHaveAttribute("data-state", "speaking");
+  });
+  it("listens at a checkpoint and lets the learner answer by speaking", async () => {
+    const instances: any[] = [];
+    (window as any).webkitSpeechRecognition = function (this: any) {
+      this.start = jest.fn();
+      this.stop = jest.fn();
+      instances.push(this);
+    };
+    const lesson = compilePageLesson(page, "basis");
+    lesson.actions[0] = { ...lesson.actions[0], kind: "ask", phase: "independent", gating: true, assessment: true, prompt: "Why three sides?" };
+    const onEvent = jest.fn().mockResolvedValue({ id: "s", artifactId: lesson.id, cursor: 0, revision: 1, checkpointPassed: true, feedback: "Right." });
+    render(
+      <PageTeachingBoard
+        page={page}
+        lesson={lesson}
+        onHighlight={() => {}}
+        session={{ id: "s", artifactId: lesson.id, cursor: 0, revision: 0, checkpointPassed: false }}
+        onEvent={onEvent}
+      />,
+    );
+    expect(screen.getByTestId("guru-orb")).toHaveAttribute("data-state", "listening");
+    fireEvent.click(screen.getByRole("button", { name: "Speak your answer" }));
+    expect(screen.getByTestId("orb-status")).toHaveTextContent("Listening to you…");
+    const r = instances[0];
+    act(() => r.onresult({ results: [Object.assign([{ transcript: "It has three corners" }], { isFinal: true })] }));
+    expect(screen.getByLabelText("Explain your reasoning")).toHaveValue("It has three corners");
+    act(() => r.onend());
+    expect(screen.getByRole("button", { name: "Speak your answer" })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Discuss my answer" }));
+    });
+    expect(onEvent).toHaveBeenCalledWith("answer", "It has three corners");
+  });
+});
