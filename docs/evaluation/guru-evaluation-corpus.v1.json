@@ -1,0 +1,1487 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-11T02:46:59.741Z",
+  "rubricVersion": 1,
+  "cases": [
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 12,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 12,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 12,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 12,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 12,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 26,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 26,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 26,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 26,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 26,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 40,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 40,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 40,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 40,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 40,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 44,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 44,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 44,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 44,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 44,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 45,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 45,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 45,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 45,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 45,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 46,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 46,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 46,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 46,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 46,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 47,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 47,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 47,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 47,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 47,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 54,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 54,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 54,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 54,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 54,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 68,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 68,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 68,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 68,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 68,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 73,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 73,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 73,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 73,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 73,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 82,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 82,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 82,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 82,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 82,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 96,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 96,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 96,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 96,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 96,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 110,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 110,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 110,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 110,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "evs-class-5",
+      "physicalPage": 110,
+      "subject": "Environmental Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 10,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 10,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 10,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 10,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 10,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 22,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 22,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 22,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 22,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 22,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 33,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 33,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 33,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 33,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 33,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 45,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 45,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 45,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 45,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 45,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 56,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 56,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 56,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 56,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 56,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 68,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 68,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 68,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 68,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 68,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 79,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 79,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 79,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 79,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 79,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 91,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 91,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 91,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 91,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "maths-class-5",
+      "physicalPage": 91,
+      "subject": "Mathematics",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 12,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 12,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 12,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 12,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 12,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 28,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 28,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 28,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 28,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 28,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 43,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 43,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 43,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 43,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 43,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 59,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 59,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 59,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 59,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 59,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 74,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 74,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 74,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 74,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 74,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 90,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 90,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 90,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 90,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 90,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 105,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 105,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 105,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 105,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 105,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 121,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 121,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 121,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 121,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "science-class-6",
+      "physicalPage": 121,
+      "subject": "Science",
+      "gradeBand": "MIDDLE_SCHOOL",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 10,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 10,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 10,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 10,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 10,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 20,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 20,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 20,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 20,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 20,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 31,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 31,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 31,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 31,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 31,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 41,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 41,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 41,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 41,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 41,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 52,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 52,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 52,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 52,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 52,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 62,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 62,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 62,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 62,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 62,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 73,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 73,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 73,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 73,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 73,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 83,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "basis"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 83,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "developing"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 83,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "proficient"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 83,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "advanced"
+    },
+    {
+      "bookId": "social-class-5",
+      "physicalPage": 83,
+      "subject": "Social Studies",
+      "gradeBand": "PRIMARY",
+      "language": "en",
+      "depth": "deep"
+    }
+  ]
+}

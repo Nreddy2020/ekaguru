@@ -1,3 +1,16 @@
+import { PageEvidenceService } from './page-teaching/page-evidence.service';
+import { GuruController } from './page-teaching/guru.controller';
+import { GuruModelService } from './page-teaching/guru-model.service';
+import { GuruPlannerService } from './page-teaching/guru-planner.service';
+import { GuruSessionService } from './page-teaching/guru-session.service';
+import { PageEvidenceController } from './page-teaching/page-evidence.controller';
+import { GuruUsageService } from './page-teaching/guru-usage.service';
+import { GuruConceptMappingService } from './page-teaching/guru-concept-mapping.service';
+import { GuruMasteryBridgeService } from './page-teaching/guru-mastery-bridge.service';
+import { GuruEvaluationService } from './page-teaching/evaluation/guru-evaluation.service';
+import { GuruCurationController } from './page-teaching/guru-curation.controller';
+import { RolesGuard } from '../auth/roles.guard';
+import { OcrDocumentVisionService } from './extraction/ocr-document-vision.service';
 import { Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { LearnerService } from './learner.service';
@@ -69,6 +82,9 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
 
 @Module({
   controllers: [
+    GuruController,
+    GuruCurationController,
+    PageEvidenceController,
     LearnerController,
     LearningMaterialController,
     DocumentController,
@@ -82,6 +98,16 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
     PersonalLearningEngineController,
   ],
   providers: [
+    GuruModelService,
+    GuruPlannerService,
+    GuruSessionService,
+    GuruUsageService,
+    GuruConceptMappingService,
+    GuruMasteryBridgeService,
+    GuruEvaluationService,
+    RolesGuard,
+    PageEvidenceService,
+    OcrDocumentVisionService,
     PedagogicalContextAssemblerService,
     ConversationalStateMachineService,
     QuestionGeneratorService,
