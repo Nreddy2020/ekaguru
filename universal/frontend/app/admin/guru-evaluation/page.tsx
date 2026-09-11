@@ -8,6 +8,8 @@ type Rubric={version:number;criteria:Criterion[];passMinimum:number;minimumPasse
 type CaseRow={id:string;bookId:string;physicalPage:number;subject:string;gradeBand:string;language:string;depth:string;prepared:boolean;reviewCount:number;consensus:string;meanWeightedScore:number|null};
 type Summary={rubricVersion:number;minimumPassedCases:number;totalCases:number;groups:{subject:string;depth:string;language:string;cases:number;prepared:number;reviewed:number;passed:number;failed:number}[];approvedDepths:{depth:string;language:string;passed:number}[]};
 type Packet={case:CaseRow&{sourceHash?:string|null;artifactId?:string|null};rubric:Rubric;lesson:any;page:any;audit:any;reviews:{id:string;reviewerId:string;rubricVersion:number;scores:Record<string,number>;verdict:string;notes?:string|null;createdAt:string}[]};
+type Mapping={id:string;conceptId:string;method:string;score:number;status:"PROPOSED"|"VERIFIED"|"REJECTED";rationale?:string|null;reviewedBy?:string|null;concept:{id:string;canonicalName:string;domain?:string|null}};
+type ConceptHit={id:string;canonicalName:string;domain?:string|null;gradeBand?:string;definition?:string|null};
 
 const BASE="/api/v2/guru/evaluation";
 const DEPTHS=["basis","developing","proficient","advanced","deep"];
@@ -23,6 +25,21 @@ export default function GuruEvaluationPage(){
  const [subject,setSubject]=useState(""),[depth,setDepth]=useState("");
  const [packet,setPacket]=useState<Packet|null>(null),[packetBusy,setPacketBusy]=useState(false),[notice,setNotice]=useState("");
  const [scores,setScores]=useState<Record<string,number>>({}),[verdict,setVerdict]=useState(""),[notes,setNotes]=useState("");
+ const [mappings,setMappings]=useState<Mapping[]>([]),[conceptQuery,setConceptQuery]=useState(""),[conceptHits,setConceptHits]=useState<ConceptHit[]>([]),[mappingBusy,setMappingBusy]=useState(false);
+ const loadMappings=async(artifactId:string)=>{
+  try{setMappings(await guruRequest<Mapping[]>("/api/v2/guru/lessons/"+encodeURIComponent(artifactId)+"/concept-mappings"));}
+  catch(e:any){setError(e.message);}
+ };
+ const mappingAction=async(run:()=>Promise<unknown>,done:string)=>{
+  if(!packet?.case.artifactId)return;setMappingBusy(true);setError("");setNotice("");
+  try{await run();await loadMappings(packet.case.artifactId);setNotice(done);}
+  catch(e:any){setError(e.message);}finally{setMappingBusy(false);}
+ };
+ const searchConcepts=async(event:React.FormEvent)=>{
+  event.preventDefault();setMappingBusy(true);setError("");
+  try{setConceptHits(await guruRequest<ConceptHit[]>("/api/v2/guru/concepts?search="+encodeURIComponent(conceptQuery.trim())));}
+  catch(e:any){setError(e.message);}finally{setMappingBusy(false);}
+ };
  const load=async()=>{
   setLoading(true);setError("");
   try{
@@ -36,7 +53,8 @@ export default function GuruEvaluationPage(){
  const open=async(id:string)=>{
   setPacketBusy(true);setNotice("");setError("");
   try{const p=await guruRequest<Packet>(BASE+"/cases/"+encodeURIComponent(id)+"/packet");setPacket(p);
-   const initial:Record<string,number>={};for(const c of p.rubric.criteria)initial[c.id]=3;setScores(initial);setVerdict("");setNotes("");}
+   const initial:Record<string,number>={};for(const c of p.rubric.criteria)initial[c.id]=3;setScores(initial);setVerdict("");setNotes("");
+   setConceptHits([]);setConceptQuery("");if(p.case.artifactId)await loadMappings(p.case.artifactId);else setMappings([]);}
   catch(e:any){setError(e.message);}finally{setPacketBusy(false);}
  };
  const prepare=async()=>{
@@ -116,6 +134,26 @@ export default function GuruEvaluationPage(){
      <label className="block text-sm">Notes<textarea aria-label="Review notes" value={notes} onChange={e=>setNotes(e.target.value)} maxLength={4000} className="mt-1 block w-full rounded border p-2"/></label>
      <button type="submit" disabled={packetBusy} className="rounded bg-emerald-700 px-3 py-2 text-white disabled:opacity-50">Save review</button>
     </form>}
+    {packet.case.artifactId&&<section aria-label="Concept mappings" className="space-y-3 rounded-xl bg-gray-50 p-4">
+     <div className="flex flex-wrap items-center justify-between gap-2">
+      <h3 className="font-semibold">Concept mappings</h3>
+      <button type="button" disabled={mappingBusy} onClick={()=>void mappingAction(()=>guruRequest("/api/v2/guru/lessons/"+encodeURIComponent(packet.case.artifactId!)+"/concept-mappings/propose",{}),"Proposals refreshed from extraction provenance.")} className="rounded border px-3 py-1 text-sm disabled:opacity-50">Propose from extraction</button>
+     </div>
+     <p className="text-xs text-gray-600">Only VERIFIED mappings let this lesson's checkpoints reach canonical mastery, and only once the depth passes educator review. Built-in scans have no extraction provenance, so link concepts manually.</p>
+     {!mappings.length?<p className="text-sm text-gray-600">No mappings yet.</p>:<ul className="space-y-2 text-sm">{mappings.map(m=><li key={m.id} className="flex flex-wrap items-center gap-2 rounded bg-white p-2">
+      <span className="font-medium">{m.concept.canonicalName}</span><span className="text-xs text-gray-500">{m.concept.domain||""} · {m.method} · score {m.score}</span>
+      <span className={"rounded px-2 py-0.5 text-xs "+(m.status==="VERIFIED"?"bg-emerald-100 text-emerald-900":m.status==="REJECTED"?"bg-red-100 text-red-900":"bg-amber-100 text-amber-900")}>{m.status}</span>
+      {m.rationale&&<span className="w-full text-xs text-gray-600">{m.rationale}</span>}
+      {m.status!=="VERIFIED"&&<button type="button" disabled={mappingBusy} onClick={()=>void mappingAction(()=>guruRequest("/api/v2/guru/concept-mappings/"+encodeURIComponent(m.id)+"/review",{status:"VERIFIED"}),"Mapping verified: "+m.concept.canonicalName)} className="rounded bg-emerald-700 px-2 py-1 text-xs text-white disabled:opacity-50">Verify {m.concept.canonicalName}</button>}
+      {m.status!=="REJECTED"&&<button type="button" disabled={mappingBusy} onClick={()=>void mappingAction(()=>guruRequest("/api/v2/guru/concept-mappings/"+encodeURIComponent(m.id)+"/review",{status:"REJECTED"}),"Mapping rejected: "+m.concept.canonicalName)} className="rounded border px-2 py-1 text-xs disabled:opacity-50">Reject {m.concept.canonicalName}</button>}
+     </li>)}</ul>}
+     <form onSubmit={searchConcepts} className="flex flex-wrap items-end gap-2">
+      <label className="text-sm">Link a canonical concept<input aria-label="Search concepts" value={conceptQuery} onChange={e=>setConceptQuery(e.target.value)} minLength={2} maxLength={120} className="ml-2 rounded border p-1" placeholder="e.g. photosynthesis"/></label>
+      <button type="submit" disabled={mappingBusy||conceptQuery.trim().length<2} className="rounded border px-3 py-1 text-sm disabled:opacity-50">Search concepts</button>
+     </form>
+     {conceptHits.length>0&&<ul className="space-y-1 text-sm">{conceptHits.map(c=><li key={c.id} className="flex flex-wrap items-center gap-2"><span>{c.canonicalName}</span><span className="text-xs text-gray-500">{c.domain||""}{c.gradeBand?" · "+c.gradeBand:""}</span>
+      <button type="button" disabled={mappingBusy} onClick={()=>void mappingAction(()=>guruRequest("/api/v2/guru/lessons/"+encodeURIComponent(packet.case.artifactId!)+"/concept-mappings",{conceptId:c.id,rationale:"Manual curator link from the evaluation page"}),"Linked and verified: "+c.canonicalName)} className="rounded bg-slate-900 px-2 py-1 text-xs text-white disabled:opacity-50">Link {c.canonicalName}</button></li>)}</ul>}
+    </section>}
     <div><h3 className="font-semibold">Existing reviews</h3>{!packet.reviews.length?<p className="text-sm text-gray-600">None yet.</p>:<ul className="space-y-1 text-sm">{packet.reviews.map(r=><li key={r.id}><strong>{r.verdict}</strong> by {r.reviewerId} (v{r.rubricVersion}) · {Object.entries(r.scores).map(([k,v])=>k+"="+v).join(", ")}{r.notes?" · "+r.notes:""}</li>)}</ul>}</div>
    </section>}
   </div>

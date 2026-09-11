@@ -44,7 +44,7 @@ Workflow:
 - `OBJECTIVE_NAME`: concepts linked anywhere in the material whose canonical name overlaps a lesson objective (Jaccard over content tokens, threshold 0.34).
 - `MANUAL`: a curator link, which is verified on creation.
 
-Only ADMIN users can verify, reject or add mappings (`/api/v2/guru/lessons/:artifactId/concept-mappings…`). A proposal never overwrites a VERIFIED or REJECTED decision.
+Only ADMIN users can verify, reject or add mappings (`/api/v2/guru/lessons/:artifactId/concept-mappings…`), and only ADMIN users can search concepts for manual links (`GET /api/v2/guru/concepts?search=`). The evaluation page's "Concept mappings" panel exposes all of this per prepared lesson. A proposal never overwrites a VERIFIED or REJECTED decision.
 
 ## 4. Mastery bridge
 

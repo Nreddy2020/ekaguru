@@ -141,6 +141,19 @@ describe("Guru curation HTTP surface (real database)", () => {
   it("rejects concept-mapping decisions for unknown lessons without side effects", async () => {
     if (!dbAvailable) return;
     await request(app.getHttpServer())
+      .get("/api/v2/guru/concepts?search=zz")
+      .set("Authorization", "Bearer " + parent)
+      .expect(403);
+    const search = await request(app.getHttpServer())
+      .get("/api/v2/guru/concepts?search=zz")
+      .set("Authorization", "Bearer " + admin)
+      .expect(200);
+    expect(Array.isArray(search.body)).toBe(true);
+    await request(app.getHttpServer())
+      .get("/api/v2/guru/concepts?search=z")
+      .set("Authorization", "Bearer " + admin)
+      .expect(400);
+    await request(app.getHttpServer())
       .post("/api/v2/guru/lessons/missing-" + bookId + "/concept-mappings/propose")
       .set("Authorization", "Bearer " + admin)
       .expect(404);

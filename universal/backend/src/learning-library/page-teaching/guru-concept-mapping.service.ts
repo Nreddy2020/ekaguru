@@ -240,6 +240,24 @@ export class GuruConceptMappingService {
     });
   }
 
+  /** Curator search over active canonical concepts for manual links. */
+  async searchConcepts(query: unknown, limit = 20) {
+    const text = typeof query === "string" ? query.trim().slice(0, 120) : "";
+    if (text.length < 2) throw new BadRequestException("Enter at least 2 characters");
+    return this.prisma.concept.findMany({
+      where: {
+        status: "ACTIVE",
+        OR: [
+          { canonicalName: { contains: text, mode: "insensitive" } },
+          { normalizedName: { contains: text.toLowerCase() } },
+        ],
+      },
+      select: { id: true, canonicalName: true, domain: true, gradeBand: true, definition: true },
+      orderBy: { canonicalName: "asc" },
+      take: Math.min(50, Math.max(1, limit)),
+    });
+  }
+
   async verifiedConceptIds(artifactId: string): Promise<string[]> {
     const rows = await this.prisma.guruConceptMapping.findMany({
       where: { artifactId, status: "VERIFIED" },

@@ -113,6 +113,9 @@ export class GuruCurationController {
     return this.evaluation.review(id, req.user.userId, body);
   }
 
+  @Get("concepts") searchConcepts(@Query("search") search?: string) {
+    return this.mapping.searchConcepts(search);
+  }
   @Get("lessons/:artifactId/concept-mappings") mappings(
     @Param("artifactId") artifactId: string,
   ) {

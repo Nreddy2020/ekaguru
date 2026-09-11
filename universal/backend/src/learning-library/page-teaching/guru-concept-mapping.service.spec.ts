@@ -151,6 +151,21 @@ describe("GuruConceptMappingService", () => {
       service.review("m1", "BOGUS" as any, { userId: "admin", role: "ADMIN" }),
     ).rejects.toThrow("Unknown mapping status");
   });
+  it("searches active concepts case-insensitively and rejects tiny queries", async () => {
+    const db = prisma({
+      concept: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(async () => [{ id: "c1", canonicalName: "Photosynthesis" }]),
+      },
+    });
+    const service = new GuruConceptMappingService(db as any);
+    await expect(service.searchConcepts("p")).rejects.toThrow("at least 2 characters");
+    expect(await service.searchConcepts("  Photo ")).toEqual([{ id: "c1", canonicalName: "Photosynthesis" }]);
+    const args = db.concept.findMany.mock.calls[0][0];
+    expect(args.where.status).toBe("ACTIVE");
+    expect(args.where.OR[0].canonicalName).toEqual({ contains: "Photo", mode: "insensitive" });
+    expect(args.take).toBe(20);
+  });
   it("lists only verified concept IDs for the bridge", async () => {
     const service = new GuruConceptMappingService(prisma() as any);
     expect(await service.verifiedConceptIds("artifact")).toEqual(["c2"]);
