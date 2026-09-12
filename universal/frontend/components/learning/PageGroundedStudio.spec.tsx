@@ -374,6 +374,11 @@ it("shows the notes board by default, with the book's own picture, a drawing, a 
     fireEvent.click(screen.getByRole("button", { name: "Ask Guru" }));
     await screen.findByTestId("notes-extension");
     expect(calls.find((c) => c.url.endsWith("/notes/questions"))?.body).toMatchObject({ topicId: "t1", question: "Why three?", language: "en" });
+    // The resource tabs become revision formats derived from the same notes.
+    fireEvent.click(screen.getByRole("tab", { name: /Flash cards/ }));
+    expect(await screen.findByTestId("revision-cards")).toHaveTextContent("Card 1 of");
+    fireEvent.click(screen.getByRole("tab", { name: /One-page sheet/ }));
+    expect(await screen.findByTestId("revision-one-page")).toHaveTextContent("Fold a triangle");
     // Switching to the live classroom loads the lesson path; switching back restores the notes board.
     fireEvent.click(screen.getByRole("button", { name: "Live classroom (beta)" }));
     await screen.findByTestId("live-board-switch");

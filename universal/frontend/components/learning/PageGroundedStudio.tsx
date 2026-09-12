@@ -31,6 +31,8 @@ import {
 } from "../../lib/learning/page-lesson-runtime";
 import { PageTeachingBoard } from "./PageTeachingBoard";
 import { GuruNotesBoard, GuruNotesPrint } from "./GuruNotesBoard";
+import { GuruRevision } from "./GuruRevision";
+import { REVISION_FORMATS, RevisionFormat } from "../../lib/learning/notes-revision";
 import type { GuruNotesView } from "../../lib/learning/guru-notes-api";
 import {
   GuruSessionSnapshot,
@@ -493,6 +495,9 @@ export function PageGroundedStudio({
     "Key Points",
     "Board Summary",
   ];
+  // In notes mode the resource tabs are revision formats derived from the notes; the live classroom keeps its own.
+  const resourceTabs: string[] = boardMode === "notes" ? [...REVISION_FORMATS] : tabNames;
+  const activeTab = resourceTabs.includes(tab) ? tab : resourceTabs[0];
   const changePage = (n: number) => {
     if (Number.isInteger(n) && n > 0 && (!active || n <= active.totalPages)) {
       setPageNumber(n);
@@ -930,11 +935,11 @@ export function PageGroundedStudio({
             aria-label="Lesson resources"
             className={styles.tabs}
           >
-            {tabNames.map((name, i) => (
+            {resourceTabs.map((name, i) => (
               <button
                 key={name}
                 role="tab"
-                aria-selected={tab === name}
+                aria-selected={activeTab === name}
                 aria-controls="classroom-resource-panel"
                 id={"resource-tab-" + i}
                 onClick={() => {setTab(name);setResourceOpen(true);}}
@@ -944,20 +949,26 @@ export function PageGroundedStudio({
               </button>
             ))}
           </nav>
-          {compiled && resourceOpen && (
+          {(compiled || guruNotes) && resourceOpen && (
             <section
               id="classroom-resource-panel"
               role="tabpanel"
-              aria-labelledby={"resource-tab-" + tabNames.indexOf(tab)}
+              aria-labelledby={"resource-tab-" + resourceTabs.indexOf(activeTab)}
               className={styles.tabPanel}
             >
-              <h2>{tab}</h2>
-              {tab === "Visuals & Real World" ? (
+              <h2>{activeTab}</h2>
+              {boardMode === "notes" ? (
+                guruNotes ? (
+                  <GuruRevision view={guruNotes} format={activeTab as RevisionFormat} />
+                ) : (
+                  <p>The revision formats appear once the notes for this page are ready.</p>
+                )
+              ) : activeTab === "Visuals & Real World" ? (
                 <p>
                   Diagrams unfold on the board alongside the explanation. The
                   highlighted region shows their source in your textbook.
                 </p>
-              ) : tab === "Real World Examples" ? (
+              ) : activeTab === "Real World Examples" ? (
                 <p>
                   Choose an idea from this page and describe where you have seen
                   it in daily life. Use the question bar to discuss your example
@@ -965,11 +976,11 @@ export function PageGroundedStudio({
                 </p>
               ) : (
                 <ul className="list-disc pl-5 space-y-2">
-                  {(tab === "Teacher Explains" && currentGuru
+                  {(activeTab === "Teacher Explains" && currentGuru && compiled
                     ? compiled.actions
                         .filter((a) => a.kind === "explain")
                         .map((a) => a.speech)
-                    : compiled.notes
+                    : compiled?.notes ?? []
                   ).map((note, i) => (
                     <li key={i}>{note}</li>
                   ))}

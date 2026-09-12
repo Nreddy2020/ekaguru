@@ -32,6 +32,14 @@ child's own textbook, and the drawings are Guru's. This is blueprint `notes-v3`.
 10 versus 0), and asking for a queued batch page again promotes it. Whole-book preparation queues
 at priority 0 with one budget reservation.
 
+**Revision formats.** In notes mode the board's resource tabs are Quick notes, Memory notes, Flash
+cards, Question bank and One-page sheet, all derived on the device from the same notes with no
+model call: one line per topic; words, tricks and must-remember points; cards for words, checks,
+doubts and readers' questions; questions sorted easy (check yourself), medium (doubts) and extended
+(readers' questions) with answers; and everything essential on one sheet. The wider framework
+(audience editions, book knowledge map, dependency map, explain-it-like-I-am ladder, teacher
+edition, master package) is mapped and ordered in docs/learning-package-plan.md.
+
 ## What the notes contain
 
 For one page, in one language, written as a caring, expert teacher speaking to the child:
