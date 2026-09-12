@@ -329,3 +329,25 @@ export const GURU_ANSWER_RESPONSE_SCHEMA: any = {
   },
   required: ["answer", "evidenceIds"],
 };
+
+/** Structured output for page transcription, so smaller vision models return the exact shape. */
+export const GURU_VISION_RESPONSE_SCHEMA: any = {
+  type: "OBJECT",
+  properties: {
+    readable: { type: "BOOLEAN" },
+    blocks: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          text: { type: "STRING" },
+          type: { type: "STRING", enum: ["heading", "paragraph", "figure", "table", "formula", "activity"] },
+          bbox: { type: "ARRAY", items: { type: "NUMBER" } },
+          confidence: { type: "NUMBER" },
+        },
+        required: ["text", "type", "bbox", "confidence"],
+      },
+    },
+  },
+  required: ["readable", "blocks"],
+};

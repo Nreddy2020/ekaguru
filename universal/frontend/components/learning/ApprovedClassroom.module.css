@@ -605,6 +605,25 @@
   .printNotes li {
     margin: 10px 0;
   }
+  .printNotes h2 {
+    font-size: 17px;
+    margin: 18px 0 6px;
+  }
+  .printNotes h3 {
+    font-size: 14px;
+    margin: 12px 0 4px;
+  }
+  .printNotes p,
+  .printNotes dd {
+    margin: 6px 0;
+    line-height: 1.45;
+  }
+  .printNotes dt {
+    font-weight: 700;
+  }
+  .printNotes section {
+    break-inside: avoid;
+  }
 }
 
 /* Keep the source controls visible independently of longer lesson resources. */

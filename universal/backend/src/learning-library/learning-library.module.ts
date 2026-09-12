@@ -10,6 +10,8 @@ import { GuruMasteryBridgeService } from './page-teaching/guru-mastery-bridge.se
 import { GuruEvaluationService } from './page-teaching/evaluation/guru-evaluation.service';
 import { GuruGenerationQueueService } from './page-teaching/guru-generation-queue.service';
 import { PageEvidenceQueueService } from './page-teaching/page-evidence-queue.service';
+import { GuruNotesService } from './page-teaching/guru-notes.service';
+import { GuruNotesController } from './page-teaching/guru-notes.controller';
 import { GuruActivityService } from './page-teaching/guru-activity.service';
 import { GuruLearnerContextService } from './page-teaching/guru-learner-context.service';
 import { GuruCurationController } from './page-teaching/guru-curation.controller';
@@ -87,6 +89,7 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
 @Module({
   controllers: [
     GuruController,
+    GuruNotesController,
     GuruCurationController,
     PageEvidenceController,
     LearnerController,
@@ -110,6 +113,7 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
     GuruMasteryBridgeService,
     GuruEvaluationService,
     GuruGenerationQueueService,
+    GuruNotesService,
     PageEvidenceQueueService,
     GuruActivityService,
     GuruLearnerContextService,

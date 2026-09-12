@@ -11,10 +11,12 @@ import { GuruPlannerService, GuruPreferences } from "./guru-planner.service";
 import { GuruUsageService } from "./guru-usage.service";
 import { PageEvidenceService } from "./page-evidence.service";
 import { DAILY_QUOTA_MESSAGE } from "./guru-model.service";
+import { GuruNotesService } from "./guru-notes.service";
 
 export type GuruJobStatus = "QUEUED" | "RUNNING" | "DONE" | "FAILED";
 export interface GuruJobView {
   id: string;
+  kind?: "lesson" | "notes";
   status: GuruJobStatus;
   stage: string;
   artifactId: string;
@@ -42,6 +44,7 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
     private readonly planner: GuruPlannerService,
     private readonly evidence: PageEvidenceService,
     private readonly usage: GuruUsageService,
+    private readonly notes: GuruNotesService,
   ) {}
 
   get concurrency() {
@@ -77,6 +80,7 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
   private view(job: any): GuruJobView {
     return {
       id: job.id,
+      kind: job.kind === "notes" ? "notes" : "lesson",
       status: job.status,
       stage: job.stage,
       artifactId: job.artifactId,
@@ -127,7 +131,53 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
     return this.view(job);
   }
 
+  /** Notes for a page revision and language: DONE when stored, a live job, or a new queued job. */
+  async enqueueNotes(source: any, language: string, user: any, options: { reserved?: boolean } = {}): Promise<GuruJobView> {
+    const notesId = this.notes.notesIdFor(source, language);
+    const stored = await this.prisma.guruPageNotes.findUnique({ where: { id: notesId }, select: { id: true, createdAt: true } });
+    if (stored)
+      return { id: "notes:" + notesId, kind: "notes", status: "DONE", stage: "done", artifactId: notesId, attempts: 0, error: null, createdAt: stored.createdAt, updatedAt: stored.createdAt };
+    const live = await this.prisma.guruLessonJob.findFirst({
+      where: { artifactId: notesId, kind: "notes", status: { in: ["QUEUED", "RUNNING"] } },
+      orderBy: { createdAt: "asc" },
+    });
+    if (live) return this.view(live);
+    if (!options.reserved) await this.usage.reserve(user?.userId, "lessons");
+    const job = await this.prisma.guruLessonJob.create({
+      data: {
+        artifactId: notesId,
+        kind: "notes",
+        bookId: source.bookId,
+        physicalPage: source.physicalPage,
+        sourceHash: source.sourceHash,
+        depth: "notes",
+        language,
+        age: null,
+        requestedBy: user?.userId || "unknown",
+      },
+    });
+    return this.view(job);
+  }
+
+  /** Notes jobs for a book and language, newest first, for progress displays. */
+  async notesJobs(bookId: string, language: string) {
+    const rows = await this.prisma.guruLessonJob.findMany({
+      where: { kind: "notes", bookId, language },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      select: { physicalPage: true, status: true, stage: true, error: true, updatedAt: true },
+    });
+    const latest = new Map<number, any>();
+    for (const r of rows) if (!latest.has(r.physicalPage)) latest.set(r.physicalPage, r);
+    return [...latest.values()].sort((a, b) => a.physicalPage - b.physicalPage);
+  }
+
   async status(jobId: string, user: any): Promise<GuruJobView> {
+    if (jobId.startsWith("notes:")) {
+      const stored = await this.prisma.guruPageNotes.findUnique({ where: { id: jobId.slice("notes:".length) }, select: { id: true, createdAt: true } });
+      if (!stored) throw new NotFoundException("Notes unavailable");
+      return { id: jobId, kind: "notes", status: "DONE", stage: "done", artifactId: stored.id, attempts: 0, error: null, createdAt: stored.createdAt, updatedAt: stored.createdAt };
+    }
     if (jobId.startsWith("artifact:")) {
       const artifact = await this.prisma.guruLessonArtifact.findUnique({
         where: { id: jobId.slice("artifact:".length) },
@@ -211,6 +261,16 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
         : await this.evidence.material(job.bookId, String(job.physicalPage));
       if (source.sourceHash !== job.sourceHash)
         throw Object.assign(new Error("The page source changed since the lesson was requested; open the page again."), { permanent: true });
+      if (job.kind === "notes") {
+        await this.notes.build(source, job.language, (stage) => {
+          this.setStage(job.id, stage).catch(() => {});
+        });
+        await this.prisma.guruLessonJob.updateMany({
+          where: { id: job.id, status: "RUNNING" },
+          data: { status: "DONE", stage: "done", finishedAt: new Date(), error: null },
+        });
+        return;
+      }
       const preferences: GuruPreferences = {
         depth: job.depth,
         language: job.language,
@@ -235,7 +295,7 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
       const permanent =
         error?.permanent === true ||
         message === DAILY_QUOTA_MESSAGE ||
-        /Invalid Guru plan|extraction review|malformed|needs extraction review/i.test(message);
+        /Invalid Guru plan|Invalid Guru notes|extraction review|malformed|needs extraction review|source review/i.test(message);
       const exhausted = job.attempts >= this.maxAttempts;
       this.logger.warn("Job " + job.id + " attempt " + job.attempts + " failed: " + message);
       await this.prisma.guruLessonJob.updateMany({

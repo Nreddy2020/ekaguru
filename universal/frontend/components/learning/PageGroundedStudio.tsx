@@ -30,6 +30,8 @@ import {
   compilePageLesson,
 } from "../../lib/learning/page-lesson-runtime";
 import { PageTeachingBoard } from "./PageTeachingBoard";
+import { GuruNotes, GuruNotesPrint } from "./GuruNotes";
+import type { GuruNotesView } from "../../lib/learning/guru-notes-api";
 import {
   GuruSessionSnapshot,
   GuruEvent,
@@ -137,6 +139,8 @@ export function PageGroundedStudio({
     pendingJob?: GuruJob;
   } | null>(null);
   const [regenerate, setRegenerate] = useState(false);
+  // The teacher's notes for the open page, once the Guru Notes tab has loaded them; printed in full.
+  const [guruNotes, setGuruNotes] = useState<GuruNotesView | null>(null);
   // Shown while the server's evidence worker reads a scanned page for the first time.
   const [evidenceNote, setEvidenceNote] = useState("");
   // The requested depth being prepared while the board teaches from another depth this page already has.
@@ -474,7 +478,7 @@ export function PageGroundedStudio({
     "Real World Examples",
     "Key Points",
     "Board Summary",
-    "Printable Notes",
+    "Guru Notes",
   ];
   const changePage = (n: number) => {
     if (Number.isInteger(n) && n > 0 && (!active || n <= active.totalPages)) {
@@ -549,7 +553,7 @@ export function PageGroundedStudio({
         <button
           className={styles.tool}
           onClick={() => window.print()}
-          disabled={!compiled}
+          disabled={!compiled && !guruNotes}
         >
           <Printer size={13} />
           Print Notes
@@ -917,7 +921,18 @@ export function PageGroundedStudio({
               className={styles.tabPanel}
             >
               <h2>{tab}</h2>
-              {tab === "Visuals & Real World" ? (
+              {tab === "Guru Notes" ? (
+                active && active.status !== "PENDING" ? (
+                  <GuruNotes
+                    page={active}
+                    language={language}
+                    learnerId={builtin.includes(bookId) && learnerId ? learnerId : undefined}
+                    onLoaded={setGuruNotes}
+                  />
+                ) : (
+                  <p>Open a page first.</p>
+                )
+              ) : tab === "Visuals & Real World" ? (
                 <p>
                   Diagrams unfold on the board alongside the explanation. The
                   highlighted region shows their source in your textbook.
@@ -1031,11 +1046,15 @@ export function PageGroundedStudio({
         <p>
           {depth} · {currentGuru ? language : "Source excerpts"}
         </p>
-        <ul>
-          {compiled?.notes.map((n, i) => (
-            <li key={i}>{n}</li>
-          ))}
-        </ul>
+        {guruNotes && guruNotes.bookId === bookId && guruNotes.physicalPage === pageNumber ? (
+          <GuruNotesPrint view={guruNotes} />
+        ) : (
+          <ul>
+            {compiled?.notes.map((n, i) => (
+              <li key={i}>{n}</li>
+            ))}
+          </ul>
+        )}
       </article>
     </div>
   );

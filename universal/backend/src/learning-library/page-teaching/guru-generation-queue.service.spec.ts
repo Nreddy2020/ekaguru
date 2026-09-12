@@ -24,6 +24,10 @@ function memoryPrisma(artifacts: Record<string, any> = {}) {
     guruLessonArtifact: {
       findUnique: jest.fn(async ({ where }: any) => artifacts[where.id] || null),
     },
+    guruPageNotes: {
+      findUnique: jest.fn(async ({ where }: any) => (db.notes[where.id] ? { id: where.id, createdAt: new Date() } : null)),
+    },
+    notes: {} as Record<string, any>,
     guruLessonJob: {
       findFirst: jest.fn(async ({ where }: any) => {
         const row = jobs.filter((j) => matches(j, where)).sort((a, b) => a.createdAt - b.createdAt)[0];
@@ -65,6 +69,7 @@ describe("GuruGenerationQueueService", () => {
   let planner: any;
   let evidence: any;
   let usage: any;
+  let notes: any;
   let service: GuruGenerationQueueService;
   beforeEach(() => {
     process.env = { ...env, NODE_ENV: "test", GURU_JOB_MAX_ATTEMPTS: "2" };
@@ -78,7 +83,15 @@ describe("GuruGenerationQueueService", () => {
     };
     evidence = { builtin: jest.fn(async () => source), material: jest.fn(async () => source) };
     usage = { reserve: jest.fn().mockResolvedValue(undefined) };
-    service = new GuruGenerationQueueService(db, planner, evidence, usage);
+    notes = {
+      notesIdFor: jest.fn(() => "notes-1"),
+      build: jest.fn(async (_s: any, _l: string, onStage: any) => {
+        onStage?.("notes");
+        db.notes["notes-1"] = true;
+        return { id: "notes-1" };
+      }),
+    };
+    service = new GuruGenerationQueueService(db, planner, evidence, usage, notes);
   });
   afterAll(() => {
     process.env = { ...env };
@@ -86,7 +99,7 @@ describe("GuruGenerationQueueService", () => {
 
   it("returns DONE without a job when the lesson is already cached", async () => {
     db = memoryPrisma({ "artifact-1": { id: "artifact-1", createdAt: new Date() } });
-    service = new GuruGenerationQueueService(db, planner, evidence, usage);
+    service = new GuruGenerationQueueService(db, planner, evidence, usage, notes);
     const job = await service.enqueue(source, prefs, { userId: "parent" });
     expect(job).toMatchObject({ status: "DONE", artifactId: "artifact-1" });
     expect(usage.reserve).not.toHaveBeenCalled();
@@ -183,5 +196,66 @@ describe("GuruGenerationQueueService", () => {
     expect(service.workerEnabled).toBe(true);
     process.env.GURU_WORKER = "disabled";
     expect(service.workerEnabled).toBe(false);
+  });
+});
+
+describe("notes jobs on the same queue", () => {
+  const env = { ...process.env };
+  let db: any;
+  let notes: any;
+  let service: GuruGenerationQueueService;
+  const usage = { reserve: jest.fn().mockResolvedValue(undefined) };
+  beforeEach(() => {
+    process.env = { ...env, NODE_ENV: "test" };
+    usage.reserve.mockClear();
+    db = memoryPrisma();
+    notes = {
+      notesIdFor: jest.fn(() => "notes-1"),
+      build: jest.fn(async (_s: any, _l: string, onStage: any) => {
+        onStage?.("notes");
+        db.notes["notes-1"] = true;
+        return { id: "notes-1" };
+      }),
+    };
+    const evidence = { builtin: jest.fn(async () => source), material: jest.fn(async () => source) };
+    service = new GuruGenerationQueueService(db, {} as any, evidence as any, usage as any, notes);
+  });
+  afterAll(() => {
+    process.env = { ...env };
+  });
+  it("queues one notes job per page revision and language, reserving budget unless told it is covered", async () => {
+    const first = await service.enqueueNotes(source, "en", { userId: "parent" });
+    const second = await service.enqueueNotes(source, "en", { userId: "parent" }, { reserved: true });
+    expect(first.id).toBe(second.id);
+    expect(first).toMatchObject({ kind: "notes", status: "QUEUED", artifactId: "notes-1" });
+    expect(usage.reserve).toHaveBeenCalledTimes(1);
+    expect(db.jobs[0]).toMatchObject({ kind: "notes", depth: "notes", language: "en", bookId: "evs-class-5" });
+    const third = await service.enqueueNotes(source, "en", { userId: "other" }, { reserved: true });
+    expect(third.id).toBe(first.id);
+  });
+  it("runs a claimed notes job through the notes service and completes it", async () => {
+    await service.enqueueNotes(source, "en", { userId: "parent" });
+    const claimed = await service.claim();
+    await service.run(claimed);
+    expect(notes.build).toHaveBeenCalledWith(source, "en", expect.any(Function));
+    expect(db.jobs[0]).toMatchObject({ status: "DONE", stage: "done", kind: "notes" });
+    const done = await service.enqueueNotes(source, "en", { userId: "parent" });
+    expect(done).toMatchObject({ status: "DONE", id: "notes:notes-1" });
+    expect((await service.status(done.id, { userId: "anyone" })).status).toBe("DONE");
+    await expect(service.status("notes:missing", { userId: "parent" })).rejects.toThrow("Notes unavailable");
+  });
+  it("fails a notes job permanently on invalid notes or failed review", async () => {
+    notes.build.mockRejectedValueOnce(new Error("Invalid Guru notes: topic 1 copies the book"));
+    await service.enqueueNotes(source, "en", { userId: "parent" });
+    await service.run(await service.claim());
+    expect(db.jobs[0]).toMatchObject({ status: "FAILED" });
+    expect(db.jobs[0].error).toMatch(/copies the book/);
+  });
+  it("lists the latest notes job per page for a book", async () => {
+    await service.enqueueNotes(source, "en", { userId: "parent" });
+    notes.notesIdFor.mockReturnValueOnce("notes-47");
+    await service.enqueueNotes({ ...source, physicalPage: 47, sourceHash: "h47" }, "en", { userId: "parent" }, { reserved: true });
+    const jobs = await service.notesJobs("evs-class-5", "en");
+    expect(jobs.map((j: any) => j.physicalPage)).toEqual([46, 47]);
   });
 });

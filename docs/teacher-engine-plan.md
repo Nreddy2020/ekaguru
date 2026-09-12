@@ -317,3 +317,12 @@ explained in depth, the teacher checks understanding after each idea and reacts 
 doubts are taken and answered at any moment with the lesson resuming where it was, and all of it
 works by voice, on more than one provider, at a cost that does not grow with the number of learners.
 Evidence for each of those is the acceptance line of the tasks above, recorded in docs/evaluation.
+
+## Addendum, 12 September 2026: notes first
+
+The owner redirected the order: before the live conversation, Guru must produce the teacher's study
+notes for every page (detailed explanation topic by topic, extended by readers' questions, printable,
+saved with the book), because most parents cannot explain a lesson themselves. That surface is built
+(docs/guru-notes.md) and becomes the first output of the Book Preparation Engine in 3.B; the
+dialogue engine in 3.C later reads from the same prepared material. The provider fabric's first
+piece, role models (`GURU_NOTES_MODEL`), also landed with it.

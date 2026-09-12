@@ -15,11 +15,22 @@ const instruction =
 @Injectable()
 export class GuruModelService {
   private readonly logger = new Logger(GuruModelService.name);
+  /** Environment variable naming this instance's model; roles override GURU_MODEL (for example GURU_NOTES_MODEL). */
+  private modelEnv = "GURU_MODEL";
   get provider() {
     return (process.env.GURU_PROVIDER || "gemini").toLowerCase();
   }
+  get modelName(): string | undefined {
+    return process.env[this.modelEnv]?.trim() || process.env.GURU_MODEL?.trim();
+  }
   get identity() {
-    return this.provider + ":" + (process.env.GURU_MODEL || "unconfigured");
+    return this.provider + ":" + (this.modelName || "unconfigured");
+  }
+  /** The same provider with a role-specific model (GURU_<ROLE>_MODEL), falling back to GURU_MODEL. */
+  forRole(role: string): GuruModelService {
+    const scoped = new GuruModelService();
+    scoped.modelEnv = "GURU_" + role.toUpperCase() + "_MODEL";
+    return scoped;
   }
   /** Output cap; Gemini 2.5+ counts internal reasoning tokens against it, so 12k truncates page transcriptions. */
   get maxOutputTokens() {
@@ -46,7 +57,7 @@ export class GuruModelService {
         : this.provider === "gemini"
           ? process.env.GEMINI_API_KEY
           : undefined;
-    return Boolean(key?.trim() && process.env.GURU_MODEL?.trim());
+    return Boolean(key?.trim() && this.modelName);
   }
   async json(prompt: string, imageDataUrl?: string, responseSchema?: unknown): Promise<unknown> {
     if (!this.configured)
@@ -127,7 +138,7 @@ export class GuruModelService {
           Authorization: "Bearer " + process.env.OPENAI_API_KEY,
         },
         body: JSON.stringify({
-          model: process.env.GURU_MODEL,
+          model: this.modelName,
           instructions: instruction,
           input: [{ role: "user", content }],
           text: { format: { type: "json_object" } },
@@ -184,7 +195,7 @@ export class GuruModelService {
   ): Promise<string> {
     const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = client.getGenerativeModel({
-      model: process.env.GURU_MODEL!,
+      model: this.modelName!,
       generationConfig: {
         temperature: 0.2,
         responseMimeType: "application/json",

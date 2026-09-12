@@ -1886,6 +1886,8 @@ model GuruLessonJob {
   language     String
   age          Int?
   requestedBy  String
+  /// "lesson" (a classroom lesson at a depth) or "notes" (Guru Notes; depth is "notes").
+  kind         String        @default("lesson")
   status       GuruJobStatus @default(QUEUED)
   stage        String        @default("queued")
   attempts     Int           @default(0)
@@ -1898,6 +1900,7 @@ model GuruLessonJob {
   @@index([status, createdAt])
   @@index([artifactId])
   @@index([requestedBy])
+  @@index([kind, bookId])
 }
 
 // Persisted page evidence (blocks only, never the image): OCR runs once per page revision across restarts and replicas
@@ -1916,6 +1919,39 @@ model GuruPageEvidence {
   createdAt             DateTime @default(now())
 
   @@unique([bookId, physicalPage, sourceHash])
+}
+
+/// Guru Notes: a teacher's study notes for one page revision and language, prepared once,
+/// saved with the book and extended by the questions children ask.
+model GuruPageNotes {
+  id           String   @id
+  bookId       String
+  physicalPage Int
+  sourceHash   String
+  language     String
+  payload      Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  extensions   GuruNotesExtension[]
+
+  @@index([bookId, physicalPage, sourceHash])
+  @@index([bookId, language])
+}
+
+model GuruNotesExtension {
+  id          String        @id @default(uuid())
+  notesId     String
+  notes       GuruPageNotes @relation(fields: [notesId], references: [id], onDelete: Cascade)
+  topicId     String
+  question    String
+  answer      String
+  evidenceIds Json
+  beyondPage  Boolean       @default(false)
+  askedBy     String
+  learnerId   String?
+  createdAt   DateTime      @default(now())
+
+  @@index([notesId, topicId])
 }
 
 /// First-time reading (OCR) of a page revision runs in a worker, never inside a request.
