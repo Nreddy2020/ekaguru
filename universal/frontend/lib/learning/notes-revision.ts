@@ -32,6 +32,7 @@ export function quickNotes(view: GuruNotesView): QuickNotes {
 export interface MemoryNotes {
   terms: { term: string; meaning: string; topic: string }[];
   tips: { topic: string; tip: string }[];
+  facts: string[];
   mustRemember: string[];
 }
 export function memoryNotes(view: GuruNotesView): MemoryNotes {
@@ -39,11 +40,12 @@ export function memoryNotes(view: GuruNotesView): MemoryNotes {
   return {
     terms: n.topics.flatMap((t) => t.keyTerms.map((k) => ({ term: k.term, meaning: k.meaning, topic: t.heading }))),
     tips: n.topics.map((t) => ({ topic: t.heading, tip: t.rememberTip })),
-    mustRemember: n.summary,
+    facts: n.topics.map((t) => t.didYouKnow).filter((f): f is string => Boolean(f)),
+    mustRemember: [...n.summary, ...n.topics.map((t) => t.bigIdea).filter((b): b is string => Boolean(b))],
   };
 }
 
-export type CardKind = "term" | "check" | "doubt" | "asked";
+export type CardKind = "term" | "quiz" | "check" | "doubt" | "asked";
 export interface FlashCard {
   id: string;
   kind: CardKind;
@@ -57,6 +59,8 @@ export function flashCards(view: GuruNotesView): FlashCard[] {
   const byTopic = (topic: NotesTopic, kind: CardKind, items: { front: string; back: string }[]) =>
     items.forEach((item, i) => cards.push({ id: topic.id + ":" + kind + ":" + i, kind, topic: topic.heading, ...item }));
   for (const t of view.notes.topics) byTopic(t, "term", t.keyTerms.map((k) => ({ front: "What does \"" + k.term + "\" mean?", back: k.meaning + " For example, " + k.example })));
+  for (const t of view.notes.topics)
+    if (t.quiz) byTopic(t, "quiz", [{ front: t.quiz.question + " " + t.quiz.options.map((o, i) => ["A", "B", "C"][i] + ". " + o).join("  "), back: ["A", "B", "C"][t.quiz.answerIndex] + ". " + t.quiz.options[t.quiz.answerIndex] + " " + t.quiz.why }]);
   for (const t of view.notes.topics) byTopic(t, "check", t.checkYourself.map((c) => ({ front: c.question, back: c.answer })));
   for (const t of view.notes.topics) byTopic(t, "doubt", t.commonDoubts.map((d) => ({ front: d.question, back: d.answer })));
   for (const t of view.notes.topics)
@@ -79,6 +83,13 @@ export interface QuestionBank {
 export function questionBank(view: GuruNotesView): QuestionBank {
   const bank: QuestionBank = { easy: [], medium: [], extended: [] };
   for (const t of view.notes.topics) {
+    if (t.quiz)
+      bank.easy.push({
+        id: t.id + ":q",
+        topic: t.heading,
+        question: t.quiz.question + " (" + t.quiz.options.map((o, i) => ["A", "B", "C"][i] + ". " + o).join(", ") + ")",
+        answer: ["A", "B", "C"][t.quiz.answerIndex] + ". " + t.quiz.options[t.quiz.answerIndex] + ". " + t.quiz.why,
+      });
     t.checkYourself.forEach((c, i) => bank.easy.push({ id: t.id + ":e" + i, topic: t.heading, question: c.question, answer: c.answer }));
     t.commonDoubts.forEach((d, i) => bank.medium.push({ id: t.id + ":m" + i, topic: t.heading, question: d.question, answer: d.answer }));
     view.extensions

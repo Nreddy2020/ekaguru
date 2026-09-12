@@ -29,12 +29,15 @@ describe("Guru notes endpoints", () => {
     expect(queue.enqueueNotes).not.toHaveBeenCalled();
   });
   it("queues a notes job and answers 202, or 204 with cachedOnly", async () => {
-    const { controller, queue } = controllerWith(null);
+    const { controller, queue, notes } = controllerWith(null);
     const res = { status: jest.fn() };
     const answer: any = await controller.builtin("evs-class-5", "3", { language: "en" }, { user }, res);
     expect(answer.job.id).toBe("job-n");
     expect(res.status).toHaveBeenCalledWith(202);
-    expect(queue.enqueueNotes).toHaveBeenCalledWith(expect.objectContaining({ physicalPage: 3 }), "en", user);
+    expect(queue.enqueueNotes).toHaveBeenCalledWith(expect.objectContaining({ physicalPage: 3 }), "en", user, { depth: "basis" });
+    await controller.builtin("evs-class-5", "3", { language: "en", depth: "deep" }, { user }, { status: jest.fn() });
+    expect(queue.enqueueNotes).toHaveBeenLastCalledWith(expect.objectContaining({ physicalPage: 3 }), "en", user, { depth: "deep" });
+    expect(notes.cached).toHaveBeenLastCalledWith(expect.objectContaining({ physicalPage: 3 }), "en", "deep");
     const peek = { status: jest.fn() };
     expect(await controller.builtin("evs-class-5", "3", { language: "en" }, { user }, peek, "1")).toBeUndefined();
     expect(peek.status).toHaveBeenCalledWith(204);
@@ -61,10 +64,10 @@ describe("Guru notes endpoints", () => {
     expect(result).toMatchObject({ pagesTotal: 5, from: 1, to: 5, queued: 5, ready: 0, reading: 0, failed: [] });
     expect(evidence.builtin).toHaveBeenCalledTimes(5);
     const calls = queue.enqueueNotes.mock.calls as any[][];
-    expect(calls[0][3]).toEqual({ reserved: false, priority: 0 });
-    expect(calls[1][3]).toEqual({ reserved: true, priority: 0 });
+    expect(calls[0][3]).toEqual({ reserved: false, priority: 0, depth: undefined });
+    expect(calls[1][3]).toEqual({ reserved: true, priority: 0, depth: undefined });
     const status = await controller.statusBuiltin("evs-class-5", "en");
-    expect(status).toMatchObject({ language: "en", ready: [1, 2], readyCount: 2 });
+    expect(status).toMatchObject({ language: "en", depth: "basis", ready: [1, 2], readyCount: 2 });
     expect(status.jobs[0].physicalPage).toBe(3);
   });
 });

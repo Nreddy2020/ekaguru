@@ -15,8 +15,118 @@ import {
 } from "../../lib/learning/guru-notes-api";
 import { OrbState, speak, voiceSupported } from "../../lib/learning/guru-voice";
 import type { PageEvidence } from "../../lib/learning/page-lesson-runtime";
+import type { TeachingDepth } from "../../lib/learning/teaching-package.types";
 
 const API_BASE = () => process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:20000";
+const DEPTH_TITLES: Record<TeachingDepth, string> = {
+  basis: "Basis · start here",
+  developing: "Developing · build understanding",
+  proficient: "Proficient · apply and connect",
+  advanced: "Advanced · analyse and reason",
+  deep: "Deep · research and explore",
+};
+const scrollToTopic = (id: string) => document.getElementById("notes-topic-" + id)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+
+/** The one-page visual sheet: banner, outcomes, starting point, learning ladder, takeaways, remember, check, closing line. */
+function NotesPoster({ view, page, onHighlight }: { view: GuruNotesView; page: PageEvidence; onHighlight?: (ids: string[]) => void }) {
+  const notes = view.notes;
+  if (!notes.topics.some((t) => t.keyPoints?.length)) return null;
+  const first = notes.topics[0];
+  const pictures = (page.blocks || []).filter((b) => b.type === "figure" || b.type === "table").map((b) => b.blockId);
+  const banner = pictures.length ? cropStyle(page, pictures) : null;
+  return (
+    <section className={styles.poster} data-testid="notes-poster" aria-label="One-page sheet">
+      <header className={styles.posterBanner}>
+        <div className={styles.posterIcons} aria-hidden="true">
+          {notes.topics.map((t) => (
+            <span key={t.id}>{t.icon || "📘"}</span>
+          ))}
+        </div>
+        <div>
+          <p className={styles.posterUnit}>Page {view.physicalPage}</p>
+          <h3>{notes.title}</h3>
+          {notes.subtitle && <p className={styles.posterSubtitle}>{notes.subtitle}</p>}
+        </div>
+        {banner && !banner.whole && (
+          <div role="img" aria-label="A picture from your textbook" className={styles.posterPicture} style={banner.style} onClick={() => onHighlight?.(pictures)} />
+        )}
+      </header>
+      <div className={styles.posterRow}>
+        <div className={styles.posterCard} data-tone="blue">
+          <h4>🎯 Learning outcomes</h4>
+          <p>After this page, you will be able to:</p>
+          <ul>
+            {notes.objectives.map((o, i) => (
+              <li key={i}>{o}</li>
+            ))}
+          </ul>
+        </div>
+        <div className={styles.posterCard} data-tone="yellow">
+          <h4>💡 Starting point</h4>
+          <p>{first.hook || notes.overview}</p>
+          {first.lookAt && <p className={styles.posterSmall}>{first.lookAt}</p>}
+        </div>
+      </div>
+      <div className={styles.posterLadderHeader}>
+        <h4>📊 Learning ladder</h4>
+        <p>Let's climb the ladder and learn step by step.</p>
+      </div>
+      <ol className={styles.posterLadder}>
+        {notes.topics.map((t, i) => (
+          <li key={t.id} data-tone={["pink", "blue", "green", "orange", "purple", "teal"][i % 6]}>
+            <button type="button" onClick={() => scrollToTopic(t.id)} aria-label={"Step " + (i + 1) + ": " + t.heading + ". Read more"}>
+              <span className={styles.posterStep}>Step {i + 1}</span>
+              <span className={styles.posterStepIcon} aria-hidden="true">
+                {t.icon || "📘"}
+              </span>
+              <strong>{t.heading}</strong>
+              {t.bigIdea && <em>{t.bigIdea}</em>}
+              <ul>
+                {(t.keyPoints || []).map((k, j) => (
+                  <li key={j}>{k}</li>
+                ))}
+              </ul>
+              {t.chain && t.chain.length > 0 && <span className={styles.posterChain}>{t.chain.map((c) => c.emoji + " " + c.label).join(" → ")}</span>}
+            </button>
+          </li>
+        ))}
+      </ol>
+      <div className={styles.posterRow} data-columns="3">
+        <div className={styles.posterCard} data-tone="blue">
+          <h4>✅ Key takeaways</h4>
+          <ul>
+            {notes.summary.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </div>
+        <div className={styles.posterCard} data-tone="red">
+          <h4>🧠 Remember</h4>
+          <ul>
+            {notes.topics.map((t) => (
+              <li key={t.id}>{t.rememberTip}</li>
+            ))}
+          </ul>
+        </div>
+        <div className={styles.posterCard} data-tone="green">
+          <h4>❓ Check your understanding</h4>
+          <ol>
+            {notes.topics.flatMap((t) => [t.quiz?.question, ...t.checkYourself.map((c) => c.question)].filter((q): q is string => Boolean(q))).slice(0, 6).map((q, i) => (
+              <li key={i}>{q}</li>
+            ))}
+          </ol>
+        </div>
+      </div>
+      {notes.closingLine && (
+        <footer className={styles.posterClosing}>
+          <span aria-hidden="true">🌱</span>
+          <p>{notes.closingLine}</p>
+          <span aria-hidden="true">🌍</span>
+        </footer>
+      )}
+    </section>
+  );
+}
 
 /**
  * The region of the scanned page a topic explains, cut out with pure CSS so it prints and needs
@@ -97,6 +207,7 @@ function PageCrop({ page, topic, onHighlight }: { page: PageEvidence; topic: Not
 export function GuruNotesBoard({
   page,
   language,
+  depth = "basis",
   learnerId,
   onLoaded,
   onHighlight,
@@ -104,6 +215,7 @@ export function GuruNotesBoard({
 }: {
   page: PageEvidence;
   language: string;
+  depth?: TeachingDepth;
   learnerId?: string;
   onLoaded?: (view: GuruNotesView | null) => void;
   onHighlight?: (ids: string[]) => void;
@@ -118,6 +230,7 @@ export function GuruNotesBoard({
   const [busyTopic, setBusyTopic] = useState("");
   const [askError, setAskError] = useState<Record<string, string>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [picked, setPicked] = useState<Record<string, number>>({});
   const [bookNote, setBookNote] = useState("");
   const [reading, setReading] = useState<{ topicId: string; text: string } | null>(null);
   const [orb, setOrb] = useState<OrbState>("idle");
@@ -133,7 +246,7 @@ export function GuruNotesBoard({
     setStage("");
     setLoading(true);
     onLoaded?.(null);
-    loadGuruNotes(page, language, controller.signal, (s) => {
+    loadGuruNotes(page, language, depth, controller.signal, (s) => {
       if (live) setStage(s);
     })
       .then((result) => {
@@ -152,7 +265,7 @@ export function GuruNotesBoard({
       controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page.bookId, page.physicalPage, page.sourceHash, language, retry]);
+  }, [page.bookId, page.physicalPage, page.sourceHash, language, depth, retry]);
 
   const stopReading = () => {
     readQueue.current = [];
@@ -164,7 +277,18 @@ export function GuruNotesBoard({
   useEffect(() => () => stopReading(), []);
 
   const spokenText = (topic: NotesTopic) =>
-    [topic.heading, ...topic.explanation, "From everyday life. " + topic.example.situation + " " + topic.example.explanation, "To remember: " + topic.rememberTip].join(" ");
+    [
+      topic.heading,
+      topic.hook || "",
+      topic.bigIdea ? "The big idea: " + topic.bigIdea : "",
+      ...topic.explanation,
+      ...(topic.steps?.length ? ["Step by step. " + topic.steps.map((st, i) => "Step " + (i + 1) + ": " + st).join(" ")] : []),
+      "From everyday life. " + topic.example.situation + " " + topic.example.explanation,
+      topic.didYouKnow ? "Did you know? " + topic.didYouKnow : "",
+      "To remember: " + topic.rememberTip,
+    ]
+      .filter(Boolean)
+      .join(" ");
   const readNext = () => {
     const topic = readQueue.current.shift();
     if (!topic) {
@@ -204,7 +328,7 @@ export function GuruNotesBoard({
     setBusyTopic(topicId);
     setAskError((m) => ({ ...m, [topicId]: "" }));
     try {
-      const result = await askNotesQuestion(page, language, topicId, question, learnerId);
+      const result = await askNotesQuestion(page, language, depth, topicId, question, learnerId);
       setView((v) =>
         v ? { ...v, extensions: v.extensions.some((e) => e.id === result.extension.id) ? v.extensions : [...v.extensions, result.extension] } : v,
       );
@@ -219,8 +343,8 @@ export function GuruNotesBoard({
   const prepareBook = async () => {
     setBookNote("Queuing every page of this book…");
     try {
-      const result = await prepareBookNotes(page.bookId, language);
-      const status = await bookNotesStatus(page.bookId, language);
+      const result = await prepareBookNotes(page.bookId, language, depth);
+      const status = await bookNotesStatus(page.bookId, language, depth);
       setBookNote(
         status.readyCount + " of " + result.pagesTotal + " pages have notes; " + result.queued + " queued" +
           (result.reading ? ", " + result.reading + " being read for the first time" : "") +
@@ -243,7 +367,9 @@ export function GuruNotesBoard({
           </span>
           <div>
             <h2>GURU NOTES BOARD</h2>
-            <p>EKAGURU Board · Page {page.physicalPage}</p>
+            <p>
+              EKAGURU Board · Page {page.physicalPage} · {DEPTH_TITLES[depth]}
+            </p>
           </div>
         </div>
         {notes && voiceSupported() && (
@@ -318,6 +444,12 @@ export function GuruNotesBoard({
                 ))}
               </ul>
             </section>
+            <NotesPoster view={view} page={page} onHighlight={onHighlight} />
+            {notes.topics.some((t) => t.keyPoints?.length) && (
+              <p className={styles.notesLabel} data-testid="notes-read-more">
+                Read more, topic by topic
+              </p>
+            )}
             {notes.topics.map((topic, index) => (
               <section key={topic.id} id={"notes-topic-" + topic.id} data-testid="notes-topic" className={styles.notesTopic}>
                 <h4>
@@ -328,6 +460,17 @@ export function GuruNotesBoard({
                     </button>
                   )}
                 </h4>
+                {topic.hook && (
+                  <p className={styles.notesHook} data-testid="notes-hook">
+                    {topic.hook}
+                  </p>
+                )}
+                {topic.bigIdea && (
+                  <p className={styles.notesBigIdea} data-testid="notes-big-idea">
+                    <span className={styles.notesLabel}>The big idea</span>
+                    {topic.bigIdea}
+                  </p>
+                )}
                 <div className={styles.notesTopicGrid}>
                   <PageCrop page={page} topic={topic} onHighlight={onHighlight} />
                   <div className={styles.notesExplanation}>
@@ -336,6 +479,28 @@ export function GuruNotesBoard({
                     ))}
                   </div>
                 </div>
+                {topic.chain && topic.chain.length > 0 && (
+                  <ol className={styles.notesChain} data-testid="notes-chain" aria-label="Picture chain">
+                    {topic.chain.map((link, i) => (
+                      <li key={i}>
+                        <span className={styles.notesChainEmoji} aria-hidden="true">
+                          {link.emoji}
+                        </span>
+                        <span>{link.label}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                {topic.steps && topic.steps.length > 0 && (
+                  <div className={styles.notesSteps} data-testid="notes-steps">
+                    <span className={styles.notesLabel}>Step by step</span>
+                    <ol>
+                      {topic.steps.map((st, i) => (
+                        <li key={i}>{st}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
                 {topic.diagram && topic.diagram.length > 0 && (
                   <figure className={styles.notesDiagram} data-testid="notes-diagram">
                     <GuruScene scene={topic.diagram as any} progress={1} />
@@ -384,9 +549,44 @@ export function GuruNotesBoard({
                     </p>
                   </div>
                 )}
+                {topic.didYouKnow && (
+                  <p className={styles.notesFact} data-testid="notes-did-you-know">
+                    <span className={styles.notesLabel}>Did you know?</span>
+                    {topic.didYouKnow}
+                  </p>
+                )}
                 <p className={styles.notesTip}>
                   <strong>To remember:</strong> {topic.rememberTip}
                 </p>
+                {topic.quiz && (
+                  <div className={styles.notesQuiz} data-testid="notes-quiz">
+                    <span className={styles.notesLabel}>Circle the correct answer</span>
+                    <p>{topic.quiz.question}</p>
+                    <div className={styles.notesQuizOptions}>
+                      {topic.quiz.options.map((option, i) => {
+                        const chosen = picked[topic.id];
+                        const state = chosen === undefined ? "" : i === topic.quiz!.answerIndex ? "right" : i === chosen ? "wrong" : "";
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            data-state={state}
+                            disabled={chosen !== undefined}
+                            onClick={() => setPicked((m) => ({ ...m, [topic.id]: i }))}
+                          >
+                            {["A", "B", "C"][i]}. {option}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {picked[topic.id] !== undefined && (
+                      <p role="status" data-testid="quiz-result">
+                        {picked[topic.id] === topic.quiz.answerIndex ? "Correct! " : "Not quite. The answer is " + ["A", "B", "C"][topic.quiz.answerIndex] + ". "}
+                        {topic.quiz.why}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div>
                   <span className={styles.notesLabel}>Doubts children often have</span>
                   {topic.commonDoubts.map((d, i) => (
@@ -492,6 +692,11 @@ export function GuruNotesPrint({ view }: { view: GuruNotesView }) {
   const notes = view.notes;
   return (
     <div data-testid="guru-notes-print">
+      {notes.subtitle && (
+        <p>
+          <em>{notes.subtitle}</em>
+        </p>
+      )}
       <p>{notes.overview}</p>
       <p>
         <strong>After reading this, you will be able to:</strong>
@@ -511,9 +716,33 @@ export function GuruNotesPrint({ view }: { view: GuruNotesView }) {
               <em>On the page: {topic.lookAt}</em>
             </p>
           )}
+          {topic.keyPoints && topic.keyPoints.length > 0 && (
+            <ul>
+              {topic.keyPoints.map((k, i) => (
+                <li key={i}>{k}</li>
+              ))}
+            </ul>
+          )}
+          {topic.hook && <p>{topic.hook}</p>}
+          {topic.bigIdea && (
+            <p>
+              <strong>The big idea:</strong> {topic.bigIdea}
+            </p>
+          )}
           {topic.explanation.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
+          {topic.chain && topic.chain.length > 0 && <p>{topic.chain.map((c) => c.emoji + " " + c.label).join("  →  ")}</p>}
+          {topic.steps && topic.steps.length > 0 && (
+            <>
+              <h3>Step by step</h3>
+              <ol>
+                {topic.steps.map((st, i) => (
+                  <li key={i}>{st}</li>
+                ))}
+              </ol>
+            </>
+          )}
           {topic.keyTerms.length > 0 && (
             <>
               <h3>Words to know</h3>
@@ -544,9 +773,20 @@ export function GuruNotesPrint({ view }: { view: GuruNotesView }) {
               <p>What to notice: {topic.tryNow.whatToNotice}</p>
             </>
           )}
+          {topic.didYouKnow && (
+            <p>
+              <strong>Did you know?</strong> {topic.didYouKnow}
+            </p>
+          )}
           <p>
             <strong>To remember:</strong> {topic.rememberTip}
           </p>
+          {topic.quiz && (
+            <p>
+              <strong>Circle the correct answer:</strong> {topic.quiz.question} {topic.quiz.options.map((o, i) => ["A", "B", "C"][i] + ". " + o).join("  ")}{" "}
+              <em>(Answer: {["A", "B", "C"][topic.quiz.answerIndex]})</em>
+            </p>
+          )}
           <h3>Doubts children often have</h3>
           {topic.commonDoubts.map((d, i) => (
             <p key={i}>
@@ -582,6 +822,11 @@ export function GuruNotesPrint({ view }: { view: GuruNotesView }) {
           <li key={i}>{s}</li>
         ))}
       </ul>
+      {notes.closingLine && (
+        <p>
+          <strong>{notes.closingLine}</strong>
+        </p>
+      )}
     </div>
   );
 }

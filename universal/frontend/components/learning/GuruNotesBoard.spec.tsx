@@ -27,15 +27,25 @@ const view = {
   blueprint: "notes-v3",
   notes: {
     title: "I am Growing Up",
+    subtitle: "Exploring living things around us",
+    closingLine: "Living things grow and make the world alive. Let's care for them!",
     overview: "This page is about how living things grow.",
     objectives: ["Say what a seed needs to grow"],
     topics: [
       {
         id: "t1",
         heading: "A seed is a baby plant",
+        icon: "🌱",
+        keyPoints: ["A seed is a baby plant.", "It needs water.", "The root comes first."],
         evidenceIds: ["b1", "b2"],
         lookAt: "Look at the small plant drawn beside the heading.",
+        hook: "Close your eyes. Picture a tiny seed in your hand.",
+        bigIdea: "A seed is a baby plant waiting for water.",
         explanation: ["A seed is a plant waiting to wake up.", "Give it water and it starts to grow.", "Soon a shoot reaches for the light."],
+        steps: ["The seed drinks water.", "A root pushes down.", "A shoot pushes up."],
+        chain: [{ label: "Seed", emoji: "🌰" }, { label: "Sprout", emoji: "🌱" }, { label: "Plant", emoji: "🌿" }],
+        didYouKnow: "Some seeds can sleep for hundreds of years.",
+        quiz: { question: "What does a seed need first?", options: ["Water", "A blanket", "Music"], answerIndex: 0, why: "Water wakes the seed up." },
         diagram: [{ id: "shape-0", type: "circle", x: 200, y: 700, radius: 40, color: "yellow" }],
         keyTerms: [{ term: "seed", meaning: "the part of a plant that can grow into a new plant", example: "a bean you soak overnight" }],
         example: { situation: "Soaking chana in a wet cloth", explanation: "A white root appears after two days." },
@@ -99,11 +109,28 @@ it("puts the teacher's notes on the board with the book's picture, a drawing, an
   }) as any;
   const onLoaded = jest.fn();
   const onHighlight = jest.fn();
-  render(<GuruNotesBoard page={page} language="en" learnerId="learner-1" onLoaded={onLoaded} onHighlight={onHighlight} />);
+  render(<GuruNotesBoard page={page} language="en" depth="developing" learnerId="learner-1" onLoaded={onLoaded} onHighlight={onHighlight} />);
   expect(screen.getByTestId("notes-stage")).toHaveTextContent("preparing the notes");
   await screen.findByTestId("guru-notes");
   expect(onLoaded).toHaveBeenLastCalledWith(expect.objectContaining({ id: "n1" }));
-  expect(screen.getByText("I am Growing Up")).toBeInTheDocument();
+  expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)).toEqual({ language: "en", depth: "developing" });
+  expect(screen.getByTestId("guru-notes-board")).toHaveTextContent("Developing · build understanding");
+  // The one-page sheet on top: banner, outcomes, starting point, learning ladder, takeaways, remember, check, closing line.
+  const poster = screen.getByTestId("notes-poster");
+  expect(poster).toHaveTextContent("Exploring living things around us");
+  expect(poster).toHaveTextContent("Learning outcomes");
+  expect(poster).toHaveTextContent("Learning ladder");
+  expect(poster).toHaveTextContent("Step 1");
+  expect(poster).toHaveTextContent("The root comes first.");
+  expect(poster).toHaveTextContent("Key takeaways");
+  expect(poster).toHaveTextContent("Remember");
+  expect(poster).toHaveTextContent("Check your understanding");
+  expect(poster).toHaveTextContent("Let's care for them!");
+  const scrollIntoView = jest.fn();
+  (Element.prototype as any).scrollIntoView = scrollIntoView;
+  fireEvent.click(screen.getByRole("button", { name: /Step 1: A seed is a baby plant/ }));
+  expect(scrollIntoView).toHaveBeenCalled();
+  expect(screen.getByTestId("notes-read-more")).toBeInTheDocument();
   const crop = screen.getByTestId("notes-page-crop");
   expect(crop).toHaveTextContent("From your textbook");
   expect(crop).toHaveTextContent("Look at the small plant");
@@ -111,6 +138,15 @@ it("puts the teacher's notes on the board with the book's picture, a drawing, an
   expect(onHighlight).toHaveBeenCalledWith(["b1", "b2"]);
   expect(screen.getByTestId("notes-diagram")).toBeInTheDocument();
   expect(screen.getByTestId("notes-try-now")).toHaveTextContent("Put three chana seeds on a wet cloth.");
+  // Children's parts: a scene, one big idea, a picture chain, steps, a fun fact and a quiz that answers back.
+  expect(screen.getByTestId("notes-hook")).toHaveTextContent("Picture a tiny seed");
+  expect(screen.getByTestId("notes-big-idea")).toHaveTextContent("A seed is a baby plant waiting for water.");
+  expect(screen.getByTestId("notes-chain")).toHaveTextContent("Seed");
+  expect(screen.getByTestId("notes-steps")).toHaveTextContent("A root pushes down.");
+  expect(screen.getByTestId("notes-did-you-know")).toHaveTextContent("hundreds of years");
+  fireEvent.click(screen.getByRole("button", { name: "B. A blanket" }));
+  expect(screen.getByTestId("quiz-result")).toHaveTextContent("Not quite. The answer is A. Water wakes the seed up.");
+  expect(screen.getByRole("button", { name: "A. Water" })).toHaveAttribute("data-state", "right");
   expect(screen.getByText(/the part of a plant that can grow/)).toBeInTheDocument();
   expect(screen.getAllByTestId("notes-extension")).toHaveLength(1);
   expect(screen.getByText(/goes beyond what this page says/)).toBeInTheDocument();
@@ -119,7 +155,7 @@ it("puts the teacher's notes on the board with the book's picture, a drawing, an
   fireEvent.change(screen.getByLabelText("Ask about A seed is a baby plant"), { target: { value: "How is a baby plant born?" } });
   fireEvent.click(screen.getByRole("button", { name: "Ask Guru" }));
   await waitFor(() => expect(screen.getAllByTestId("notes-extension")).toHaveLength(2));
-  expect(calls[1]).toMatchObject({ body: { language: "en", topicId: "t1", question: "How is a baby plant born?", learnerId: "learner-1" } });
+  expect(calls[1]).toMatchObject({ body: { language: "en", depth: "developing", topicId: "t1", question: "How is a baby plant born?", learnerId: "learner-1" } });
   // Without speech synthesis there is nothing to read aloud, so no reading controls appear.
   expect(screen.queryByRole("button", { name: "Read the notes to me" })).toBeNull();
 });
@@ -139,7 +175,9 @@ it("reads a topic aloud through the orb when the browser can speak, and stops on
   await screen.findByTestId("guru-notes");
   fireEvent.click(screen.getByRole("button", { name: "Read this to me" }));
   expect(spoken).toHaveLength(1);
-  expect(spoken[0].text).toMatch(/^A seed is a baby plant A seed is a plant waiting/);
+  expect(spoken[0].text).toMatch(/^A seed is a baby plant Close your eyes\. Picture a tiny seed in your hand\. The big idea: A seed is a baby plant waiting for water\. A seed is a plant waiting/);
+  expect(spoken[0].text).toMatch(/Step 2: A root pushes down\./);
+  expect(spoken[0].text).toMatch(/Did you know\? Some seeds/);
   expect(spoken[0].lang).toBe("en-IN");
   act(() => spoken[0].onstart());
   expect(screen.getByTestId("orb-status")).toHaveTextContent("Speaking…");

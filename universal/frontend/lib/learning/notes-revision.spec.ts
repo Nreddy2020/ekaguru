@@ -22,7 +22,10 @@ const view: any = {
         keyTerms: [{ term: "breathe", meaning: "to take air in and let it out", example: "your chest moving" }],
         example: { situation: "A puppy", explanation: "It grows every month." },
         tryNow: { title: "Breathe and feel", steps: ["Put a hand on your chest.", "Breathe in and out."], whatToNotice: "Your hand moves." },
+        didYouKnow: "A blue whale's heart is as big as a small car.",
+        bigIdea: "Living things breathe, eat and grow.",
         rememberTip: "Breathe, eat, grow: alive!",
+        quiz: { question: "Which one is alive?", options: ["A stone", "A puppy", "A chair"], answerIndex: 1, why: "A puppy breathes, eats and grows." },
         commonDoubts: [{ question: "Do plants breathe?", answer: "Yes, through tiny holes in their leaves." }],
         checkYourself: [{ question: "Name two things living things do.", answer: "Breathe and grow." }],
       },
@@ -46,17 +49,20 @@ it("collects the words, tricks and must-remember points into memory notes", () =
   const m = memoryNotes(view);
   expect(m.terms[0]).toMatchObject({ term: "breathe", topic: "Living things" });
   expect(m.tips[0].tip).toMatch(/alive!/);
-  expect(m.mustRemember).toHaveLength(2);
+  expect(m.facts).toEqual(["A blue whale's heart is as big as a small car."]);
+  expect(m.mustRemember).toHaveLength(3);
 });
 it("turns words, checks, doubts and readers' questions into flash cards in that order", () => {
   const cards = flashCards(view);
-  expect(cards.map((c) => c.kind)).toEqual(["term", "check", "doubt", "asked"]);
+  expect(cards.map((c) => c.kind)).toEqual(["term", "quiz", "check", "doubt", "asked"]);
   expect(cards[0].front).toBe('What does "breathe" mean?');
-  expect(cards[3].back).toMatch(/goes beyond the page/);
+  expect(cards[1].back).toBe("B. A puppy A puppy breathes, eats and grows.");
+  expect(cards[4].back).toMatch(/goes beyond the page/);
 });
 it("sorts the question bank by difficulty with answers", () => {
   const bank = questionBank(view);
-  expect(bank.easy[0]).toMatchObject({ question: "Name two things living things do.", answer: "Breathe and grow." });
+  expect(bank.easy[0].question).toMatch(/^Which one is alive\? \(A\. A stone, B\. A puppy, C\. A chair\)$/);
+  expect(bank.easy[1]).toMatchObject({ question: "Name two things living things do.", answer: "Breathe and grow." });
   expect(bank.medium[0].question).toBe("Do plants breathe?");
   expect(bank.extended[0].question).toBe("How is a baby plant born?");
 });
@@ -65,5 +71,5 @@ it("fits the essentials on one page", () => {
   expect(sheet.whatItIsAbout).toBe("This page is about how living things grow.");
   expect(sheet.terms).toEqual([{ term: "breathe", meaning: "to take air in and let it out" }]);
   expect(sheet.tryNow).toEqual(["Breathe and feel"]);
-  expect(sheet.questions).toHaveLength(2);
+  expect(sheet.questions).toHaveLength(3);
 });

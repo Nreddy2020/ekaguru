@@ -42,17 +42,18 @@ it("waits for the notes job, then loads the stored notes", async () => {
     throw new Error("unexpected " + url);
   });
   const stages: string[] = [];
-  const pending = loadGuruNotes(page, "en", new AbortController().signal, (s) => stages.push(s));
+  const pending = loadGuruNotes(page, "en", "basis", new AbortController().signal, (s) => stages.push(s));
   await jest.advanceTimersByTimeAsync(GURU_POLL_INTERVAL_MS + 5);
   const result = await pending;
   expect(result.notes.title).toBe("I am Growing Up");
+  expect(JSON.parse(((global as any).fetch as jest.Mock).mock.calls[0][1].body)).toEqual({ language: "en", depth: "basis" });
   expect(stages).toEqual(["queued", "done"]);
   expect(calls.filter((u) => u.endsWith("/pages/3/notes"))).toHaveLength(2);
 });
 
 it("refuses notes that do not match the opened page", async () => {
   (global as any).fetch = jest.fn(async () => respond(200, { ...view, sourceHash: "other" }));
-  await expect(loadGuruNotes(page, "en", new AbortController().signal)).rejects.toThrow(/do not match/);
+  await expect(loadGuruNotes(page, "en", "basis", new AbortController().signal)).rejects.toThrow(/do not match/);
 });
 
 it("posts a topic question, a whole-book preparation and reads the book status", async () => {
@@ -61,15 +62,22 @@ it("posts a topic question, a whole-book preparation and reads the book status",
     calls.push({ url, body: init?.body ? JSON.parse(init.body) : undefined, method: init?.method });
     if (url.endsWith("/notes/questions")) return respond(201, { extension: { id: "x1", topicId: "t1", question: "q", answer: "a", evidenceIds: [], beyondPage: false, createdAt: "" }, reused: false });
     if (url.endsWith("/notes/prepare")) return respond(201, { pagesTotal: 5, from: 1, to: 5, ready: 1, queued: 4, reading: 0, failed: [] });
-    if (url.includes("/notes/status?language=en")) return respond(200, { bookId: "evs-class-5", language: "en", ready: [3], readyCount: 1, jobs: [] });
+    if (url.includes("/notes/status?language=en&depth=developing")) return respond(200, { bookId: "evs-class-5", language: "en", ready: [3], readyCount: 1, jobs: [] });
     throw new Error("unexpected " + url);
   });
-  const asked = await askNotesQuestion(page, "en", "t1", "How is a baby plant born?", "learner-1");
+  const asked = await askNotesQuestion(page, "en", "developing", "t1", "How is a baby plant born?", "learner-1");
   expect(asked.extension.id).toBe("x1");
-  expect(calls[0]).toMatchObject({ method: "POST", body: { language: "en", topicId: "t1", question: "How is a baby plant born?", learnerId: "learner-1" } });
-  const prepared = await prepareBookNotes("evs-class-5", "en");
+  expect(calls[0]).toMatchObject({ method: "POST", body: { language: "en", depth: "developing", topicId: "t1", question: "How is a baby plant born?", learnerId: "learner-1" } });
+  const prepared = await prepareBookNotes("evs-class-5", "en", "developing");
   expect(prepared.queued).toBe(4);
-  const status = await bookNotesStatus("evs-class-5", "en");
+  expect(calls[1].body).toEqual({ language: "en", depth: "developing" });
+  const status = await bookNotesStatus("evs-class-5", "en", "developing");
   expect(status.readyCount).toBe(1);
   expect(calls[2].method).toBe("GET");
+  expect(calls[2].url).toMatch(/depth=developing$/);
+});
+
+it("refuses notes written at another depth than the one asked for", async () => {
+  (global as any).fetch = jest.fn(async () => respond(200, { ...view, depth: "deep" }));
+  await expect(loadGuruNotes(page, "en", "basis", new AbortController().signal)).rejects.toThrow(/do not match/);
 });

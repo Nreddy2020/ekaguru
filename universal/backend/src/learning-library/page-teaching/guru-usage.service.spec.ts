@@ -34,6 +34,9 @@ describe("GuruUsageService", () => {
     process.env = { ...env };
   });
   it("creates the daily row on first use and counts reservations", async () => {
+    // The defaults, whatever the developer's .env sets.
+    delete process.env.GURU_DAILY_LESSON_LIMIT;
+    delete process.env.GURU_DAILY_QUERY_LIMIT;
     const prisma = memoryPrisma();
     const service = new GuruUsageService(prisma as any);
     await service.reserve("user", "lessons");

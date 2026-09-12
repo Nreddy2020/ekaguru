@@ -135,9 +135,10 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
   }
 
   /** Notes for a page revision and language: DONE when stored, a live job, or a new queued job. */
-  async enqueueNotes(source: any, language: string, user: any, options: { reserved?: boolean; priority?: number } = {}): Promise<GuruJobView> {
+  async enqueueNotes(source: any, language: string, user: any, options: { reserved?: boolean; priority?: number; depth?: string } = {}): Promise<GuruJobView> {
     const priority = options.priority ?? DIRECT_PRIORITY;
-    const notesId = this.notes.notesIdFor(source, language);
+    const depth = GuruNotesService.depthOf(options.depth);
+    const notesId = this.notes.notesIdFor(source, language, depth);
     const stored = await this.prisma.guruPageNotes.findUnique({ where: { id: notesId }, select: { id: true, createdAt: true } });
     if (stored)
       return { id: "notes:" + notesId, kind: "notes", status: "DONE", stage: "done", artifactId: notesId, attempts: 0, error: null, createdAt: stored.createdAt, updatedAt: stored.createdAt };
@@ -155,7 +156,7 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
         bookId: source.bookId,
         physicalPage: source.physicalPage,
         sourceHash: source.sourceHash,
-        depth: "notes",
+        depth,
         language,
         age: null,
         requestedBy: user?.userId || "unknown",
@@ -172,9 +173,9 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
   }
 
   /** Notes jobs for a book and language, newest first, for progress displays. */
-  async notesJobs(bookId: string, language: string) {
+  async notesJobs(bookId: string, language: string, depth?: string) {
     const rows = await this.prisma.guruLessonJob.findMany({
-      where: { kind: "notes", bookId, language },
+      where: { kind: "notes", bookId, language, ...(depth ? { depth } : {}) },
       orderBy: { createdAt: "desc" },
       take: 500,
       select: { physicalPage: true, status: true, stage: true, error: true, updatedAt: true },
@@ -274,9 +275,14 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
       if (source.sourceHash !== job.sourceHash)
         throw Object.assign(new Error("The page source changed since the lesson was requested; open the page again."), { permanent: true });
       if (job.kind === "notes") {
-        await this.notes.build(source, job.language, (stage) => {
-          this.setStage(job.id, stage).catch(() => {});
-        });
+        await this.notes.build(
+          source,
+          job.language,
+          (stage) => {
+            this.setStage(job.id, stage).catch(() => {});
+          },
+          GuruNotesService.depthOf(job.depth),
+        );
         await this.prisma.guruLessonJob.updateMany({
           where: { id: job.id, status: "RUNNING" },
           data: { status: "DONE", stage: "done", finishedAt: new Date(), error: null },

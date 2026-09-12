@@ -231,7 +231,7 @@ describe("notes jobs on the same queue", () => {
     expect(first.id).toBe(second.id);
     expect(first).toMatchObject({ kind: "notes", status: "QUEUED", artifactId: "notes-1" });
     expect(usage.reserve).toHaveBeenCalledTimes(1);
-    expect(db.jobs[0]).toMatchObject({ kind: "notes", depth: "notes", language: "en", bookId: "evs-class-5" });
+    expect(db.jobs[0]).toMatchObject({ kind: "notes", depth: "basis", language: "en", bookId: "evs-class-5" });
     const third = await service.enqueueNotes(source, "en", { userId: "other" }, { reserved: true });
     expect(third.id).toBe(first.id);
   });
@@ -239,7 +239,7 @@ describe("notes jobs on the same queue", () => {
     await service.enqueueNotes(source, "en", { userId: "parent" });
     const claimed = await service.claim();
     await service.run(claimed);
-    expect(notes.build).toHaveBeenCalledWith(source, "en", expect.any(Function));
+    expect(notes.build).toHaveBeenCalledWith(source, "en", expect.any(Function), "basis");
     expect(db.jobs[0]).toMatchObject({ status: "DONE", stage: "done", kind: "notes" });
     const done = await service.enqueueNotes(source, "en", { userId: "parent" });
     expect(done).toMatchObject({ status: "DONE", id: "notes:notes-1" });

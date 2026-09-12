@@ -80,3 +80,24 @@ we do?" with a grounded answer.
   column: an opened page now runs first, and asking again promotes a queued batch page.
 - Drawings from the lite model were thin (two boxes and a line, no labels), so a drawing without a
   text label is now rejected and repaired.
+
+## Evening: the children's edition and the one-page sheet
+
+- The owner judged the v3 notes unreadable for children. The v4 children's edition enforces
+  readability in the validator (sentence length, average, paragraph length, a Flesch-Kincaid grade
+  cap of class plus 2 for English) and adds the parts children read: hook, big idea, steps, picture
+  chain, fun fact, chant, quiz. Page 3 at basis, gemini-3.5-flash-lite, about 30 s: sentences
+  averaging 11.7 and 11.0 words (longest 15 and 17), grade well under 7, every part present, both
+  drawings labelled. The first v4 attempt failed on "topic 3 too thin" twice; the rule now counts
+  the hook, big idea, paragraphs and steps together, and asks the model to merge thin topics.
+- The one-page sheet rendered in the browser as a poster on the board: banner with topic icons,
+  learning outcomes and starting point cards, a learning ladder with two step cards (icon, big
+  idea, key points, chain), key takeaways, remember, check your understanding, a closing banner,
+  then the detailed topics. It matches the owner's reference layout apart from illustrations, which
+  are emoji and the book's own pictures rather than drawn art.
+- Depth: opening page 3 as learner Asha (recommended depth developing) generated the developing
+  notes through the board in about 60 s. Compared with basis they add "why" doubts and steps; the
+  checks remain recall-level, so depth differentiation by the lite model is weak and needs the
+  educator rubric or a stronger model for the higher depths.
+- The whole-book batch from the afternoon finished under v3; those pages are superseded lazily
+  when opened (an opened page runs first) and can be re-queued at any depth.

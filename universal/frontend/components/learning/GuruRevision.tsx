@@ -57,6 +57,16 @@ export function GuruRevision({ view, format }: { view: GuruNotesView; format: Re
             </li>
           ))}
         </ul>
+        {m.facts.length > 0 && (
+          <>
+            <p className="text-xs uppercase tracking-wide opacity-70">Did you know?</p>
+            <ul className="list-disc pl-5">
+              {m.facts.map((f, i) => (
+                <li key={i}>{f}</li>
+              ))}
+            </ul>
+          </>
+        )}
         <p className="text-xs uppercase tracking-wide opacity-70">Must remember</p>
         <ul className="list-disc pl-5">
           {m.mustRemember.map((s, i) => (
@@ -160,7 +170,7 @@ function FlashCardDeck({ view }: { view: GuruNotesView }) {
   const [flipped, setFlipped] = useState(false);
   if (!cards.length) return <p>No cards yet: the notes have no words, checks or questions to revise.</p>;
   const card = cards[Math.min(index, cards.length - 1)];
-  const kindLabel = { term: "Word", check: "Check yourself", doubt: "A doubt children have", asked: "A reader asked" }[card.kind];
+  const kindLabel = { term: "Word", quiz: "Circle the correct answer", check: "Check yourself", doubt: "A doubt children have", asked: "A reader asked" }[card.kind];
   return (
     <div data-testid="revision-cards" className="space-y-3">
       <p className="text-xs uppercase tracking-wide opacity-70">

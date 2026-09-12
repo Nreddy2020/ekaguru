@@ -864,9 +864,10 @@ export function PageGroundedStudio({
             )}
           {boardMode === "notes" && active && active.status !== "PENDING" ? (
             <GuruNotesBoard
-              key={active.bookId + ":" + active.physicalPage + ":" + active.sourceHash + ":" + language}
+              key={active.bookId + ":" + active.physicalPage + ":" + active.sourceHash + ":" + language + ":" + depth}
               page={active}
               language={language}
+              depth={depth}
               learnerId={builtin.includes(bookId) && learnerId ? learnerId : undefined}
               onLoaded={setGuruNotes}
               onHighlight={setHighlight}

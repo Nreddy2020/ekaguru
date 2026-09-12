@@ -40,6 +40,41 @@ doubts and readers' questions; questions sorted easy (check yourself), medium (d
 (audience editions, book knowledge map, dependency map, explain-it-like-I-am ladder, teacher
 edition, master package) is mapped and ordered in docs/learning-package-plan.md.
 
+## Children's edition and the one-page sheet (12 September 2026, evening)
+
+The owner's verdict on the first notes was that no child would read them: long paragraphs, an
+adult's voice, an empty drawing. The children's edition (blueprint `notes-v4`) is written for the
+class the book is for (from the book id, "evs-class-5" gives 5; uploads read as class 6) and the
+validator enforces it, not just the prompt:
+
+- **Readability**: every sentence under 22 words, an average under 14, at most 4 sentences a
+  paragraph, 60 to 220 words of teaching per topic, and for English a Flesch-Kincaid grade of at
+  most the class plus 2 (a Class 5 child gets grade 7 at most). Adult sentences are rejected with
+  the offending length or grade named, and repaired.
+- **Parts a child reads**: a hook (a scene to picture, 1 to 4 sentences), one big idea in one
+  sentence, short paragraphs, steps when the idea happens in order, a picture chain with emoji
+  (seed, sprout, plant), a labelled drawing, at most four words to know, an everyday example, a
+  try-it-now activity, one "did you know" fact, a chant to remember, doubts, a "circle the correct
+  answer" quiz with exactly three options and a one-line why, and one to three checks.
+- **The one-page sheet**: a title and subtitle, an icon per topic, 3 to 5 key points per topic, and
+  a closing line. The board renders them as a poster pinned above the detailed notes: banner,
+  learning outcomes, starting point, a learning ladder of step cards (icon, big idea, key points,
+  chain; a card scrolls to its topic), key takeaways, remember, check your understanding, closing
+  banner. The same sheet prints.
+- **Depth**: notes are written per teaching depth (basis, developing, proficient, advanced, deep),
+  chosen with the depth selector. The reading level stays the child's class at every depth; what
+  changes is the demand: name and describe at basis, how and why at developing, apply and
+  connect at proficient, compare and justify with a tempting wrong option at advanced, questions
+  the page does not answer and small investigations at deep. Identity includes the depth, so each
+  depth is prepared once and shared.
+
+Live on the free lite model, page 3 at basis: two topics of 70 and 55 teaching words, sentences
+averaging 11 to 12 words (longest 17), chains "Baby, Child, Grown Up" and "Breathe, Need Food,
+Grow", drawings labelled "Baby Picture, Latest Picture" and "Plants, Animals, Humans", the chant
+"Eat, sleep, grow tall!", a quiz and a fun fact, in about 30 s. The developing depth added "why"
+doubts and steps but its checks were still recall-level; the lite model differentiates depth
+weakly, which the educator review must judge.
+
 ## What the notes contain
 
 For one page, in one language, written as a caring, expert teacher speaking to the child:

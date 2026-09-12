@@ -18,8 +18,8 @@ already does, what is missing, and the order to build the rest.
 | Layer 1 simple, 2 concept, 3 example, 4 visual, 5 practical | done per topic | explanation paragraphs, everyday example, page crop and Guru drawing, try-it-now activity |
 | Layer 6 advanced (why, alternatives, limits, internals) | missing | needs the audience switch below |
 | Consistent chapter structure (definition, why, terms, how, example, points, mistakes, questions) | done per topic | heading, explanation, words to know, example, tip, doubts, check-yourself |
-| Difficulty progression | partly | lessons have five depths; notes have one level per page |
-| Children's approach (story, pictures, activities, revision) | done | overview story, book pictures, drawings, activities, summary |
+| Difficulty progression | done for notes (12 September, evening) | notes per depth with a stated demand per depth; the reading level stays the child's class |
+| Children's approach (story, pictures, activities, revision) | done, enforced (children's edition v4) | readability rules in the validator; hook, big idea, chain, steps, quiz, fun fact, chant; one-page poster with a learning ladder |
 | Teacher edition (objective, prerequisites, board plan, activity, questions, misconceptions, assessment, homework, answer key) | partly | lessons carry board plans, rubrics and misconceptions; not assembled as a teacher edition |
 | Professor and IT editions | missing | needs audience-aware blueprints and non-school book intake |
 | Revision formats (full, quick, memory, one page, question bank, answer key, cards, viva) | derived from the notes on the board (this stage) | see below |

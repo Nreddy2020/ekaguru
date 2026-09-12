@@ -1932,13 +1932,15 @@ model GuruPageNotes {
   physicalPage Int
   sourceHash   String
   language     String
+  /// Teaching depth the notes were written at: basis, developing, proficient, advanced, deep.
+  depth        String   @default("basis")
   payload      Json
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   extensions   GuruNotesExtension[]
 
   @@index([bookId, physicalPage, sourceHash])
-  @@index([bookId, language])
+  @@index([bookId, language, depth])
 }
 
 model GuruNotesExtension {

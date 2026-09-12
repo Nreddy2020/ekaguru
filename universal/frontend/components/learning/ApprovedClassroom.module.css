@@ -932,3 +932,308 @@
   background: #047857;
   color: #fff;
 }
+
+/* Children's edition parts. */
+.notesBoard {
+  font-size: 16.5px;
+}
+.notesHook {
+  font: italic 17px/1.5 Georgia, serif;
+  color: #fef3c7;
+  border-left: 4px solid #f6db56;
+  padding: 6px 12px;
+  background: rgba(246, 219, 86, 0.06);
+  border-radius: 0 8px 8px 0;
+}
+.notesBigIdea {
+  font: 700 19px/1.35 Georgia, serif;
+  color: #ffe46c;
+  border: 2px dashed #998717;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.notesBigIdea .notesLabel {
+  display: block;
+  color: #a7f3d0;
+}
+.notesChain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 4px;
+  align-items: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.notesChain li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid #305132;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 700;
+}
+.notesChain li + li::before {
+  content: "→";
+  color: #6ee7b7;
+  margin-right: 6px;
+}
+.notesChainEmoji {
+  font-size: 22px;
+}
+.notesSteps ol {
+  padding-left: 24px;
+  list-style: decimal;
+  font-size: 16px;
+}
+.notesSteps li + li {
+  margin-top: 4px;
+}
+.notesFact {
+  border: 1px solid #60a5fa;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: rgba(96, 165, 250, 0.08);
+}
+.notesFact .notesLabel {
+  color: #93c5fd;
+  margin-right: 8px;
+}
+.notesQuiz {
+  border: 1px solid #305132;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.notesQuizOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.notesQuizOptions button {
+  border: 1px solid #175c43;
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: #eef3d8;
+  background: rgba(0, 0, 0, 0.25);
+  font: 15px Georgia, serif;
+}
+.notesQuizOptions button[data-state="right"] {
+  background: #047857;
+  border-color: #6ee7b7;
+  color: #fff;
+}
+.notesQuizOptions button[data-state="wrong"] {
+  background: #7f1d1d;
+  border-color: #fca5a5;
+  color: #fff;
+}
+.notesCrop {
+  max-height: 460px;
+  background-color: #fff;
+}
+
+/* The one-page visual sheet, like a printed poster pinned on the board. */
+.poster {
+  background: #fbfbf7;
+  color: #1e293b;
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  font: 15px/1.45 "Segoe UI", system-ui, sans-serif;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.posterBanner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  background: linear-gradient(90deg, #d9f3e2, #eef7ff);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.posterBanner h3 {
+  font: 800 30px/1.1 "Segoe UI", system-ui, sans-serif;
+  color: #14532d;
+  margin: 2px 0;
+}
+.posterUnit {
+  font: 700 12px/1 "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #166534;
+}
+.posterSubtitle {
+  color: #334155;
+  font-size: 15px;
+}
+.posterIcons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 26px;
+  line-height: 1.1;
+}
+.posterPicture {
+  width: 150px;
+  border-radius: 10px;
+  border: 2px solid #cbd5e1;
+  background-color: #fff;
+  cursor: zoom-in;
+}
+.posterRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.posterRow[data-columns="3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 850px) {
+  .posterRow,
+  .posterRow[data-columns="3"] {
+    grid-template-columns: 1fr;
+  }
+  .posterBanner {
+    grid-template-columns: auto 1fr;
+  }
+  .posterPicture {
+    display: none;
+  }
+}
+.posterCard {
+  border-radius: 12px;
+  padding: 0 0 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+.posterCard h4 {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  font: 800 16px/1.2 "Segoe UI", system-ui, sans-serif;
+}
+.posterCard[data-tone="blue"] h4 { background: #dbeafe; color: #1e3a8a; }
+.posterCard[data-tone="yellow"] h4 { background: #fef3c7; color: #78350f; }
+.posterCard[data-tone="red"] h4 { background: #fee2e2; color: #7f1d1d; }
+.posterCard[data-tone="green"] h4 { background: #dcfce7; color: #14532d; }
+.posterCard p,
+.posterCard ul,
+.posterCard ol {
+  margin: 0 12px;
+}
+.posterCard ul {
+  list-style: disc;
+  padding-left: 18px;
+}
+.posterCard ol {
+  list-style: decimal;
+  padding-left: 18px;
+}
+.posterSmall {
+  font-size: 13px;
+  color: #475569;
+  margin-top: 6px !important;
+}
+.posterLadderHeader {
+  background: #dcfce7;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.posterLadderHeader h4 {
+  margin: 0;
+  font: 800 16px/1.2 "Segoe UI", system-ui, sans-serif;
+  color: #14532d;
+}
+.posterLadderHeader p {
+  margin: 0;
+  font-size: 13px;
+  color: #166534;
+}
+.posterLadder {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.posterLadder li {
+  position: relative;
+}
+.posterLadder li + li::before {
+  content: "➜";
+  position: absolute;
+  left: -13px;
+  top: 40%;
+  color: #6366f1;
+  font-size: 16px;
+}
+.posterLadder button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+  font: inherit;
+  cursor: pointer;
+}
+.posterLadder li[data-tone="pink"] button { background: #fce7f3; }
+.posterLadder li[data-tone="blue"] button { background: #dbeafe; }
+.posterLadder li[data-tone="green"] button { background: #dcfce7; }
+.posterLadder li[data-tone="orange"] button { background: #ffedd5; }
+.posterLadder li[data-tone="purple"] button { background: #ede9fe; }
+.posterLadder li[data-tone="teal"] button { background: #ccfbf1; }
+.posterStep {
+  font: 800 12px/1 "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #be123c;
+}
+.posterStepIcon {
+  font-size: 34px;
+  line-height: 1;
+}
+.posterLadder strong {
+  font-size: 15px;
+}
+.posterLadder em {
+  font-size: 13px;
+  color: #334155;
+}
+.posterLadder ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  list-style: disc;
+  font-size: 13px;
+}
+.posterChain {
+  font-size: 12px;
+  color: #475569;
+}
+.posterClosing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #ede9fe;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font: 700 17px/1.3 "Segoe UI", system-ui, sans-serif;
+  color: #3b0764;
+  text-align: center;
+}
+.posterClosing span {
+  font-size: 26px;
+}
+.posterClosing p {
+  margin: 0;
+}

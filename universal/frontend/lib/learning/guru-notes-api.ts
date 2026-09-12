@@ -1,5 +1,6 @@
 import { GuruJob, guruFetch, guruRequest, waitForGuruJob } from "./guru-api";
 import type { PageEvidence } from "./page-lesson-runtime";
+import type { TeachingDepth } from "./teaching-package.types";
 
 /**
  * Guru Notes: a teacher's study notes for one page, prepared once, saved with the book,
@@ -27,13 +28,39 @@ export interface NotesTryNow {
   steps: string[];
   whatToNotice: string;
 }
+export interface NotesChainLink {
+  label: string;
+  emoji: string;
+}
+export interface NotesQuiz {
+  question: string;
+  options: string[];
+  answerIndex: number;
+  why: string;
+}
 export interface NotesTopic {
   id: string;
   heading: string;
+  /** One emoji standing for the topic on the learning ladder. */
+  icon?: string;
+  /** Three to five bullets: the topic on one card. */
+  keyPoints?: string[];
   evidenceIds: string[];
   /** What to look at in the book's own region for this topic. */
   lookAt?: string;
+  /** A short scene the child can picture (children's edition). */
+  hook?: string;
+  /** The idea in one sentence (children's edition). */
+  bigIdea?: string;
   explanation: string[];
+  /** How it happens step by step, when the idea is a process. */
+  steps?: string[];
+  /** A picture chain such as seed, sprout, plant. */
+  chain?: NotesChainLink[];
+  /** One surprising true fact. */
+  didYouKnow?: string;
+  /** Circle the correct answer. */
+  quiz?: NotesQuiz;
   /** A simple labelled board drawing; may be empty. */
   diagram?: NotesScenePrimitive[];
   /** A two-minute activity the child can do right now with everyday things. */
@@ -46,6 +73,9 @@ export interface NotesTopic {
 }
 export interface GuruNotesDocument {
   title: string;
+  subtitle?: string;
+  closingLine?: string;
+  depth?: TeachingDepth;
   overview: string;
   objectives: string[];
   topics: NotesTopic[];
@@ -70,6 +100,7 @@ export interface GuruNotesView {
   physicalPage: number;
   sourceHash: string;
   language: string;
+  depth?: TeachingDepth;
   blueprint: string;
   notes: GuruNotesDocument;
   extensions: NotesExtension[];
@@ -92,16 +123,17 @@ export function bookPath(bookId: string) {
 export async function loadGuruNotes(
   page: PageEvidence,
   language: string,
+  depth: TeachingDepth,
   signal: AbortSignal,
   onStage?: (stage: string) => void,
 ): Promise<GuruNotesView> {
   const path = bookPath(page.bookId) + "/pages/" + page.physicalPage + "/notes";
   type Answer = GuruNotesView | { job: GuruJob };
-  let response = await guruFetch<Answer>(path, { language }, signal);
+  let response = await guruFetch<Answer>(path, { language, depth }, signal);
   for (let round = 0; response.status === 202 && response.data && "job" in response.data; round++) {
     if (round >= 3) throw new Error("Guru is still preparing these notes. Please retry in a moment.");
     await waitForGuruJob(response.data.job, signal, onStage);
-    response = await guruFetch<Answer>(path, { language }, signal);
+    response = await guruFetch<Answer>(path, { language, depth }, signal);
   }
   if (!response.data || !("notes" in response.data)) throw new Error("Guru notes are not ready yet. Please retry.");
   const view = response.data;
@@ -110,6 +142,7 @@ export async function loadGuruNotes(
     view.physicalPage !== page.physicalPage ||
     view.sourceHash !== page.sourceHash ||
     view.language !== language ||
+    (view.depth !== undefined && view.depth !== depth) ||
     !Array.isArray(view.notes?.topics) ||
     !view.notes.topics.length
   )
@@ -121,6 +154,7 @@ export async function loadGuruNotes(
 export function askNotesQuestion(
   page: PageEvidence,
   language: string,
+  depth: TeachingDepth,
   topicId: string,
   question: string,
   learnerId?: string,
@@ -128,19 +162,23 @@ export function askNotesQuestion(
 ): Promise<{ extension: NotesExtension; reused: boolean }> {
   return guruRequest(
     bookPath(page.bookId) + "/pages/" + page.physicalPage + "/notes/questions",
-    { language, topicId, question, ...(learnerId ? { learnerId } : {}) },
+    { language, depth, topicId, question, ...(learnerId ? { learnerId } : {}) },
     signal,
   );
 }
 
-export function prepareBookNotes(bookId: string, language: string, signal?: AbortSignal) {
+export function prepareBookNotes(bookId: string, language: string, depth: TeachingDepth, signal?: AbortSignal) {
   return guruRequest<{ pagesTotal: number; from: number; to: number; ready: number; queued: number; reading: number; failed: { page: number; reason: string }[] }>(
     bookPath(bookId) + "/notes/prepare",
-    { language },
+    { language, depth },
     signal,
   );
 }
 
-export function bookNotesStatus(bookId: string, language: string, signal?: AbortSignal) {
-  return guruRequest<BookNotesStatus>(bookPath(bookId) + "/notes/status?language=" + encodeURIComponent(language), undefined, signal);
+export function bookNotesStatus(bookId: string, language: string, depth: TeachingDepth, signal?: AbortSignal) {
+  return guruRequest<BookNotesStatus>(
+    bookPath(bookId) + "/notes/status?language=" + encodeURIComponent(language) + "&depth=" + encodeURIComponent(depth),
+    undefined,
+    signal,
+  );
 }
