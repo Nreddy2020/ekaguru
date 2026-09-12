@@ -3,6 +3,8 @@ import { render,screen,waitFor } from '@testing-library/react';
 import { LearningExplanationPanel } from './LearningExplanationPanel';
 const page={version:'page-evidence-v1',bookId:'my-book',physicalPage:6,totalPages:20,sourceHash:'actual',width:800,height:1100,imageDataUrl:'data:image/png;base64,',status:'READY',omittedBlockCount:0,blocks:[{blockId:'heart',physicalPageNumber:6,text:'The heart pumps blood to the whole body.',type:'paragraph',confidence:1,readingOrderIndex:1,bbox:{x:10,y:20,width:200,height:40}}]};
 beforeEach(()=>{global.fetch=jest.fn().mockResolvedValue({ok:true,json:async()=>page});});
+beforeEach(()=>{localStorage.setItem("guru.boardMode","live");});
+afterEach(()=>{localStorage.removeItem("guru.boardMode");});
 it('requires a source identity instead of silently teaching a demo book',()=>{render(<LearningExplanationPanel/>);expect(screen.getByRole('status')).toHaveTextContent('Open a textbook');expect(fetch).not.toHaveBeenCalled();});
 it('forwards physical page independently of printed page',async()=>{render(<LearningExplanationPanel bookId="my-book" sourceAnchor={{pdfPage:6,printedPage:10}}/>);await screen.findByTestId('page-teaching-board');expect(String((fetch as jest.Mock).mock.calls[0][0])).toContain('/my-book/pages/6/evidence');});
 it('uses explicit source physical page before PDF fallback',async()=>{render(<LearningExplanationPanel sourceAnchor={{bookId:'my-book',physicalPage:6,pdfPage:3,printedPage:10}}/>);await screen.findByTestId('page-teaching-board');expect(String((fetch as jest.Mock).mock.calls[0][0])).toContain('/pages/6/evidence');});

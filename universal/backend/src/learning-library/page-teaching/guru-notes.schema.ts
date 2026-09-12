@@ -1,4 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
+import { ScenePrimitive, validateScene } from "./guru-plan.schema";
 
 /**
  * Guru Notes: the study notes an expert, caring teacher writes for one textbook page so a child can
@@ -15,14 +16,25 @@ export interface NotesQA {
   question: string;
   answer: string;
 }
+export interface NotesTryNow {
+  title: string;
+  steps: string[];
+  whatToNotice: string;
+}
 export interface NotesTopic {
   id: string;
   heading: string;
   evidenceIds: string[];
+  /** What to look at in the book's own region for this topic (shown next to the page crop). */
+  lookAt: string;
   /** In-depth explanation in the teacher's own words, paragraph by paragraph. */
   explanation: string[];
+  /** A simple labelled board drawing that explains the idea; may be empty when a drawing would not help. */
+  diagram: ScenePrimitive[];
   keyTerms: NotesKeyTerm[];
   example: { situation: string; explanation: string };
+  /** A two-minute activity the child can do right now with everyday things. */
+  tryNow: NotesTryNow;
   rememberTip: string;
   commonDoubts: NotesQA[];
   checkYourself: NotesQA[];
@@ -67,7 +79,7 @@ export function longestSharedRun(a: string, b: string): number {
 
 /** A run this long shared with the page is copying, not explaining. */
 export const MAX_SHARED_RUN = 14;
-export const NOTES_BLUEPRINT = "notes-v2";
+export const NOTES_BLUEPRINT = "notes-v3";
 /** A topic explanation below this is a summary, not a teacher's explanation. */
 export const MIN_TOPIC_WORDS = 120;
 
@@ -118,6 +130,11 @@ export function validateGuruNotes(
       if (typeof e !== "string" || !evidenceIds.has(e)) throw invalid(label + " cites unknown evidence " + String(e));
       cited.add(e);
     }
+    const lookAt = text(t.lookAt, label + " lookAt", 10, 300);
+    // A drawing is optional: an empty list means the teacher decided none would help.
+    const diagram = Array.isArray(t.diagram) && t.diagram.length ? validateScene(t.diagram, "topic " + (index + 1) + " diagram", 40) : [];
+    if (diagram.length && !diagram.some((shape) => shape.type === "text"))
+      throw invalid(label + " diagram has no labels: name the parts or steps with text primitives, or leave the diagram empty");
     if (!Array.isArray(t.explanation) || t.explanation.length < 3 || t.explanation.length > 8)
       throw invalid(label + " explanation must have 3 to 8 paragraphs: what it is with a concrete picture, how and why it works step by step, and how it connects to the child's life");
     const explanation = t.explanation.map((p: unknown, i: number) => text(p, label + " paragraph " + (i + 1), 40, 2000));
@@ -141,6 +158,13 @@ export function validateGuruNotes(
     for (const b of blocks)
       if (longestSharedRun(example.explanation, b.text) >= MAX_SHARED_RUN)
         throw invalid(label + " example copies the book (" + b.blockId + ")");
+    if (!t.tryNow || typeof t.tryNow !== "object" || !Array.isArray(t.tryNow.steps) || t.tryNow.steps.length < 2 || t.tryNow.steps.length > 6)
+      throw invalid(label + " needs a tryNow activity with 2 to 6 steps");
+    const tryNow: NotesTryNow = {
+      title: text(t.tryNow.title, label + " tryNow title", 5, 200),
+      steps: t.tryNow.steps.map((st: unknown, i: number) => text(st, label + " tryNow step " + (i + 1), 5, 400)),
+      whatToNotice: text(t.tryNow.whatToNotice, label + " tryNow whatToNotice", 10, 800),
+    };
     const rememberTip = text(t.rememberTip, label + " rememberTip", 10, 600);
     if (!Array.isArray(t.commonDoubts) || t.commonDoubts.length < 1 || t.commonDoubts.length > 6)
       throw invalid(label + " commonDoubts must have 1 to 6 entries");
@@ -152,9 +176,10 @@ export function validateGuruNotes(
       throw invalid(label + " checkYourself must have 1 to 4 questions");
     const checkYourself: NotesQA[] = t.checkYourself.map((d: any, i: number) => ({
       question: text(d?.question, label + " check " + (i + 1), 5, 600),
-      answer: text(d?.answer, label + " check " + (i + 1) + " answer", 5, 2000),
+      // A check answer may be one word ("Yes", "Three").
+      answer: text(d?.answer, label + " check " + (i + 1) + " answer", 1, 2000),
     }));
-    return { id, heading, evidenceIds: [...new Set(t.evidenceIds as string[])], explanation, keyTerms, example, rememberTip, commonDoubts, checkYourself };
+    return { id, heading, evidenceIds: [...new Set(t.evidenceIds as string[])], lookAt, explanation, diagram, keyTerms, example, tryNow, rememberTip, commonDoubts, checkYourself };
   });
   if (!Array.isArray(raw.summary) || raw.summary.length < 3 || raw.summary.length > 10)
     throw invalid("summary must have 3 to 10 points");
@@ -163,7 +188,8 @@ export function validateGuruNotes(
   const omitted: { evidenceId: string; reason: string }[] = [];
   for (const o of omittedRaw) {
     const evidenceId = text(o?.evidenceId, "omitted evidenceId", 1, 80);
-    if (!evidenceIds.has(evidenceId)) throw invalid("omitted lists unknown evidence " + evidenceId);
+    // An omission naming a region that was already set aside for review is harmless; drop it.
+    if (!evidenceIds.has(evidenceId)) continue;
     if (cited.has(evidenceId)) throw invalid("omitted block " + evidenceId + " is also explained");
     omitted.push({ evidenceId, reason: text(o?.reason, "omission reason", 3, 200) });
   }
@@ -181,7 +207,8 @@ export function notesPromptSection(language: string): string {
     "Write the study notes a caring, expert teacher would write for a child who must learn this page with nobody to explain it, and for a parent who wants to help but does not know the subject.",
     "Speak to the child directly as 'you', warmly and plainly, in " + language + ". Go topic by topic in the page's own order; group small pieces of the page into one topic when they belong together.",
     "For every topic, explain the idea in depth in your own words, in at least three paragraphs and at least 120 words: first what it is, with a concrete picture the child can see in their mind; then how and why it works, step by step (for a process such as a seed becoming a plant: what happens first, what happens next, what it needs at each step, how long it takes); then how it connects to what the child already knows and to the next idea on the page. Build from everyday experience to the idea to the word for it. Never copy sentences from the page; the notes must read as an explanation, not a repetition.",
-    "Define every new word in words a child of this class understands, each with a small example. Give one real-life example from an Indian child's everyday world and explain how it shows the idea. Add one tip to remember the idea. Write the doubts children usually have about this topic with clear answers, and two to four check-yourself questions with their answers.",
+    "Define every new word in words a child of this class understands, each with a small example. Give one real-life example from an Indian child's everyday world and explain how it shows the idea. Add a tryNow activity: something the child can do right now, in two minutes, with things found at home or in class (2 to 6 short steps) and what to notice while doing it. Add one tip to remember the idea. Write the doubts children usually have about this topic with clear answers, and two to four check-yourself questions with their answers.",
+    "For each topic, lookAt tells the child what to look at in that part of the page (a picture, a table, a box) in one sentence. Where a drawing helps, give a diagram: a simple labelled board drawing on a 1000 by 1000 canvas using line, rect, circle and text primitives (at most 40, short labels, colours white, yellow, green or blue) that shows the parts or the steps of the idea; otherwise an empty list.",
     "Activities, questions, tables to fill and pictures on the page are explained as what to do, what to notice and why it matters. Learning outcomes become the objectives.",
     "Begin with an overview: what this page is about, why it matters to the child, and what they will be able to do after reading. End with a summary in the page's own key words.",
     "Every topic cites the blockIds it explains. Every source block is explained by some topic or listed in omitted:[{evidenceId,reason}] with a reason; only page numbers, unit or chapter banners, running headers and decorative labels may be omitted, at most about a third of the blocks.",
@@ -190,7 +217,24 @@ export function notesPromptSection(language: string): string {
 }
 
 const STRING = { type: "STRING" };
+const NUMBER = { type: "NUMBER" };
 const QA = { type: "OBJECT", properties: { question: STRING, answer: STRING }, required: ["question", "answer"] };
+const PRIMITIVE = {
+  type: "OBJECT",
+  properties: {
+    type: { type: "STRING", enum: ["line", "rect", "circle", "text"] },
+    x: NUMBER,
+    y: NUMBER,
+    x2: { ...NUMBER, nullable: true },
+    y2: { ...NUMBER, nullable: true },
+    width: { ...NUMBER, nullable: true },
+    height: { ...NUMBER, nullable: true },
+    radius: { ...NUMBER, nullable: true },
+    text: { ...STRING, nullable: true },
+    color: { type: "STRING", enum: ["white", "yellow", "green", "blue"] },
+  },
+  required: ["type", "x", "y", "x2", "y2", "width", "height", "radius", "text", "color"],
+};
 export const GURU_NOTES_RESPONSE_SCHEMA: any = {
   type: "OBJECT",
   properties: {
@@ -205,14 +249,17 @@ export const GURU_NOTES_RESPONSE_SCHEMA: any = {
           id: STRING,
           heading: STRING,
           evidenceIds: { type: "ARRAY", items: STRING },
+          lookAt: STRING,
           explanation: { type: "ARRAY", items: STRING },
+          diagram: { type: "ARRAY", items: PRIMITIVE },
           keyTerms: { type: "ARRAY", items: { type: "OBJECT", properties: { term: STRING, meaning: STRING, example: STRING }, required: ["term", "meaning", "example"] } },
           example: { type: "OBJECT", properties: { situation: STRING, explanation: STRING }, required: ["situation", "explanation"] },
+          tryNow: { type: "OBJECT", properties: { title: STRING, steps: { type: "ARRAY", items: STRING }, whatToNotice: STRING }, required: ["title", "steps", "whatToNotice"] },
           rememberTip: STRING,
           commonDoubts: { type: "ARRAY", items: QA },
           checkYourself: { type: "ARRAY", items: QA },
         },
-        required: ["id", "heading", "evidenceIds", "explanation", "keyTerms", "example", "rememberTip", "commonDoubts", "checkYourself"],
+        required: ["id", "heading", "evidenceIds", "lookAt", "explanation", "diagram", "keyTerms", "example", "tryNow", "rememberTip", "commonDoubts", "checkYourself"],
       },
     },
     summary: { type: "ARRAY", items: STRING },

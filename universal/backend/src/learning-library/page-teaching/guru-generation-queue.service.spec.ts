@@ -30,7 +30,9 @@ function memoryPrisma(artifacts: Record<string, any> = {}) {
     notes: {} as Record<string, any>,
     guruLessonJob: {
       findFirst: jest.fn(async ({ where }: any) => {
-        const row = jobs.filter((j) => matches(j, where)).sort((a, b) => a.createdAt - b.createdAt)[0];
+        const row = jobs
+          .filter((j) => matches(j, where))
+          .sort((a, b) => (b.priority || 0) - (a.priority || 0) || a.createdAt - b.createdAt)[0];
         return row ? { ...row } : null;
       }),
       findMany: jest.fn(async ({ where }: any) => jobs.filter((j) => matches(j, where)).map((j) => ({ ...j }))),
@@ -39,7 +41,7 @@ function memoryPrisma(artifacts: Record<string, any> = {}) {
         return row ? { ...row } : null;
       }),
       create: jest.fn(async ({ data }: any) => {
-        const row = { id: "job-" + ++seq, status: "QUEUED", stage: "queued", attempts: 0, error: null, createdAt: new Date(Date.now() + seq), updatedAt: new Date(), startedAt: null, finishedAt: null, ...data };
+        const row = { id: "job-" + ++seq, status: "QUEUED", stage: "queued", attempts: 0, error: null, priority: 0, createdAt: new Date(Date.now() + seq), updatedAt: new Date(), startedAt: null, finishedAt: null, ...data };
         jobs.push(row);
         return row;
       }),
@@ -257,5 +259,32 @@ describe("notes jobs on the same queue", () => {
     await service.enqueueNotes({ ...source, physicalPage: 47, sourceHash: "h47" }, "en", { userId: "parent" }, { reserved: true });
     const jobs = await service.notesJobs("evs-class-5", "en");
     expect(jobs.map((j: any) => j.physicalPage)).toEqual([46, 47]);
+  });
+});
+
+describe("queue priority", () => {
+  const env = { ...process.env };
+  let db: any;
+  let service: GuruGenerationQueueService;
+  const usage = { reserve: jest.fn().mockResolvedValue(undefined) };
+  beforeEach(() => {
+    process.env = { ...env, NODE_ENV: "test" };
+    db = memoryPrisma();
+    const notes = { notesIdFor: jest.fn((s: any) => "notes-" + s.physicalPage), build: jest.fn(async () => ({})) };
+    service = new GuruGenerationQueueService(db, {} as any, {} as any, usage as any, notes as any);
+  });
+  afterAll(() => {
+    process.env = { ...env };
+  });
+  it("runs an opened page before a whole-book batch, and promotes a batch job the learner asks for", async () => {
+    await service.enqueueNotes({ ...source, physicalPage: 1 }, "en", { userId: "p" }, { reserved: false, priority: 0 });
+    await service.enqueueNotes({ ...source, physicalPage: 2 }, "en", { userId: "p" }, { reserved: true, priority: 0 });
+    await service.enqueueNotes({ ...source, physicalPage: 9 }, "en", { userId: "p" });
+    expect((await service.claim()).physicalPage).toBe(9);
+    const promoted = await service.enqueueNotes({ ...source, physicalPage: 2 }, "en", { userId: "q" });
+    expect(promoted.status).toBe("QUEUED");
+    expect(db.jobs.find((j: any) => j.physicalPage === 2).priority).toBe(10);
+    expect((await service.claim()).physicalPage).toBe(2);
+    expect((await service.claim()).physicalPage).toBe(1);
   });
 });

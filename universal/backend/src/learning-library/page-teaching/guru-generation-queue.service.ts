@@ -27,6 +27,8 @@ export interface GuruJobView {
 }
 
 const BUILTIN = ["evs-class-5", "maths-class-5", "science-class-6", "social-class-5"];
+/** A page a learner opened runs before whole-book batches (priority 0). */
+export const DIRECT_PRIORITY = 10;
 
 /**
  * Durable lesson generation.
@@ -113,12 +115,13 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
       where: { artifactId, status: { in: ["QUEUED", "RUNNING"] } },
       orderBy: { createdAt: "asc" },
     });
-    if (live) return this.view(live);
+    if (live) return this.view(await this.promote(live, DIRECT_PRIORITY));
     // Budget is reserved once per new job, not per poll.
     await this.usage.reserve(user?.userId, "lessons");
     const job = await this.prisma.guruLessonJob.create({
       data: {
         artifactId,
+        priority: DIRECT_PRIORITY,
         bookId: source.bookId,
         physicalPage: source.physicalPage,
         sourceHash: source.sourceHash,
@@ -132,7 +135,8 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
   }
 
   /** Notes for a page revision and language: DONE when stored, a live job, or a new queued job. */
-  async enqueueNotes(source: any, language: string, user: any, options: { reserved?: boolean } = {}): Promise<GuruJobView> {
+  async enqueueNotes(source: any, language: string, user: any, options: { reserved?: boolean; priority?: number } = {}): Promise<GuruJobView> {
+    const priority = options.priority ?? DIRECT_PRIORITY;
     const notesId = this.notes.notesIdFor(source, language);
     const stored = await this.prisma.guruPageNotes.findUnique({ where: { id: notesId }, select: { id: true, createdAt: true } });
     if (stored)
@@ -141,12 +145,13 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
       where: { artifactId: notesId, kind: "notes", status: { in: ["QUEUED", "RUNNING"] } },
       orderBy: { createdAt: "asc" },
     });
-    if (live) return this.view(live);
+    if (live) return this.view(await this.promote(live, priority));
     if (!options.reserved) await this.usage.reserve(user?.userId, "lessons");
     const job = await this.prisma.guruLessonJob.create({
       data: {
         artifactId: notesId,
         kind: "notes",
+        priority,
         bookId: source.bookId,
         physicalPage: source.physicalPage,
         sourceHash: source.sourceHash,
@@ -157,6 +162,13 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
       },
     });
     return this.view(job);
+  }
+
+  /** A live job asked for again with a higher priority moves up the queue. */
+  private async promote(job: any, priority: number) {
+    if (job.status !== "QUEUED" || (job.priority ?? 0) >= priority) return job;
+    await this.prisma.guruLessonJob.updateMany({ where: { id: job.id, status: "QUEUED" }, data: { priority } });
+    return { ...job, priority };
   }
 
   /** Notes jobs for a book and language, newest first, for progress displays. */
@@ -238,7 +250,7 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
   async claim(): Promise<any | null> {
     const candidate = await this.prisma.guruLessonJob.findFirst({
       where: { status: "QUEUED" },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
     });
     if (!candidate) return null;
     const changed = await this.prisma.guruLessonJob.updateMany({

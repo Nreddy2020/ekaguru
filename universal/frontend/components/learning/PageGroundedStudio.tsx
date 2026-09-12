@@ -30,7 +30,7 @@ import {
   compilePageLesson,
 } from "../../lib/learning/page-lesson-runtime";
 import { PageTeachingBoard } from "./PageTeachingBoard";
-import { GuruNotes, GuruNotesPrint } from "./GuruNotes";
+import { GuruNotesBoard, GuruNotesPrint } from "./GuruNotesBoard";
 import type { GuruNotesView } from "../../lib/learning/guru-notes-api";
 import {
   GuruSessionSnapshot,
@@ -139,8 +139,22 @@ export function PageGroundedStudio({
     pendingJob?: GuruJob;
   } | null>(null);
   const [regenerate, setRegenerate] = useState(false);
-  // The teacher's notes for the open page, once the Guru Notes tab has loaded them; printed in full.
+  // The teacher's notes for the open page, once the notes board has loaded them; printed in full.
   const [guruNotes, setGuruNotes] = useState<GuruNotesView | null>(null);
+  // The notes board is the way to learn a page; the live classroom stays reachable while it is being built.
+  const [boardMode, setBoardMode] = useState<"notes" | "live">(() => {
+    try {
+      return localStorage.getItem("guru.boardMode") === "live" ? "live" : "notes";
+    } catch {
+      return "notes";
+    }
+  });
+  const switchBoard = (mode: "notes" | "live") => {
+    setBoardMode(mode);
+    try {
+      localStorage.setItem("guru.boardMode", mode);
+    } catch {}
+  };
   // Shown while the server's evidence worker reads a scanned page for the first time.
   const [evidenceNote, setEvidenceNote] = useState("");
   // The requested depth being prepared while the board teaches from another depth this page already has.
@@ -312,7 +326,7 @@ export function PageGroundedStudio({
     setPendingLesson(null);
     sessionRef.current = null;
     pendingEvent.current = null;
-    if (reasoningEnabled && rawActive && rawActive.status !== "PENDING" && !bookId.startsWith("book-")) {
+    if (boardMode === "live" && reasoningEnabled && rawActive && rawActive.status !== "PENDING" && !bookId.startsWith("book-")) {
       setGuruLoading(true);
       setGuruStage("");
       loadGuruLesson(
@@ -357,7 +371,7 @@ export function PageGroundedStudio({
       live = false;
       controller.abort();
     };
-  }, [rawActive, reasoningEnabled, preferencesKey, retry]);
+  }, [rawActive, reasoningEnabled, preferencesKey, retry, boardMode]);
   const currentGuru =
     guru &&
     rawActive &&
@@ -478,7 +492,6 @@ export function PageGroundedStudio({
     "Real World Examples",
     "Key Points",
     "Board Summary",
-    "Guru Notes",
   ];
   const changePage = (n: number) => {
     if (Number.isInteger(n) && n > 0 && (!active || n <= active.totalPages)) {
@@ -844,16 +857,34 @@ export function PageGroundedStudio({
                 )}
               </p>
             )}
-          {compiled && active ? (
-            <PageTeachingBoard
-              key={compiled.id + ":" + retry}
+          {boardMode === "notes" && active && active.status !== "PENDING" ? (
+            <GuruNotesBoard
+              key={active.bookId + ":" + active.physicalPage + ":" + active.sourceHash + ":" + language}
               page={active}
-              lesson={compiled}
+              language={language}
+              learnerId={builtin.includes(bookId) && learnerId ? learnerId : undefined}
+              onLoaded={setGuruNotes}
               onHighlight={setHighlight}
-              session={currentGuru?.session}
-              onEvent={currentGuru ? recordEvent : undefined}
-              suspended={questionBusy || full || index || review || connectOpen}
+              onSwitchToLive={() => switchBoard("live")}
             />
+          ) : compiled && active ? (
+            <>
+              <p className={styles.notice} data-testid="live-board-switch">
+                Live classroom (beta).{" "}
+                <button type="button" className="underline" onClick={() => switchBoard("notes")}>
+                  Back to the notes board
+                </button>
+              </p>
+              <PageTeachingBoard
+                key={compiled.id + ":" + retry}
+                page={active}
+                lesson={compiled}
+                onHighlight={setHighlight}
+                session={currentGuru?.session}
+                onEvent={currentGuru ? recordEvent : undefined}
+                suspended={questionBusy || full || index || review || connectOpen}
+              />
+            </>
           ) : (
             <section className={styles.board}>
               <header className={styles.boardHeader}>
@@ -921,18 +952,7 @@ export function PageGroundedStudio({
               className={styles.tabPanel}
             >
               <h2>{tab}</h2>
-              {tab === "Guru Notes" ? (
-                active && active.status !== "PENDING" ? (
-                  <GuruNotes
-                    page={active}
-                    language={language}
-                    learnerId={builtin.includes(bookId) && learnerId ? learnerId : undefined}
-                    onLoaded={setGuruNotes}
-                  />
-                ) : (
-                  <p>Open a page first.</p>
-                )
-              ) : tab === "Visuals & Real World" ? (
+              {tab === "Visuals & Real World" ? (
                 <p>
                   Diagrams unfold on the board alongside the explanation. The
                   highlighted region shows their source in your textbook.
@@ -957,6 +977,7 @@ export function PageGroundedStudio({
               )}
             </section>
           )}
+          {boardMode === "live" && (
           <div className={styles.question}>
             <form onSubmit={askQuestion}>
               <input
@@ -980,6 +1001,7 @@ export function PageGroundedStudio({
             {questionError && <p role="alert">{questionError}</p>}
             {questionReply && <p role="status">{questionReply}</p>}
           </div>
+          )}
         </main>
       </div>
       {connectOpen&&<ConnectBookToGuru bookId={bookId} physicalPage={pageNumber} onClose={()=>setConnectOpen(false)} onConnected={id=>{window.location.assign("/library/"+encodeURIComponent(id)+"?page="+pageNumber);}}/>}

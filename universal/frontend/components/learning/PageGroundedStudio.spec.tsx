@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { LocalBookSourceStore } from "../../lib/learning/local-book-source";
 import { PageGroundedStudio } from "./PageGroundedStudio";
 const source = {
@@ -26,6 +26,10 @@ const source = {
   ],
 };
 afterEach(() => jest.restoreAllMocks());
+beforeEach(() => {
+  // Most of these tests exercise the live classroom, which now sits behind a switch.
+  localStorage.setItem("guru.boardMode", "live");
+});
 it("requests exact book identity and renders the sourced board", async () => {
   global.fetch = jest
     .fn()
@@ -301,3 +305,81 @@ it("shows the scan and waits while a page is read for the first time, then teach
   expect(screen.queryByTestId("evidence-reading")).toBeNull();
   expect(calls.some((c) => c.includes("/pages/1/lesson"))).toBe(false);
 }, 10000);
+
+it("shows the notes board by default, with the book's own picture, a drawing, a try-now activity and a topic question", async () => {
+  localStorage.setItem("guru.boardMode", "notes");
+  localStorage.setItem("token", "parent-token");
+  const view = {
+    id: "n1",
+    bookId: "maths-class-5",
+    physicalPage: 1,
+    sourceHash: "one",
+    language: "en",
+    blueprint: "notes-v3",
+    notes: {
+      title: "Triangles",
+      overview: "This page is about shapes with three sides and why they are everywhere.",
+      objectives: ["Say what makes a triangle"],
+      topics: [
+        {
+          id: "t1",
+          heading: "What is a triangle",
+          evidenceIds: ["b1"],
+          lookAt: "Look at the three-sided shape at the top of the page.",
+          explanation: ["A triangle has three straight sides.", "The sides meet at three corners.", "You can find one in a samosa."],
+          diagram: [{ id: "shape-0", type: "line", x: 100, y: 800, x2: 900, y2: 800, color: "white" }],
+          keyTerms: [{ term: "side", meaning: "a straight edge of a shape", example: "the edge of a ruler" }],
+          example: { situation: "A samosa on a plate", explanation: "Its three edges make a triangle." },
+          tryNow: { title: "Fold a triangle", steps: ["Take a square paper.", "Fold it corner to corner."], whatToNotice: "Two triangles appear." },
+          rememberTip: "Three sides, three corners.",
+          commonDoubts: [{ question: "Can a triangle have a curved side?", answer: "No, all sides are straight." }],
+          checkYourself: [{ question: "How many corners?", answer: "Three." }],
+        },
+      ],
+      summary: ["Three sides, three corners."],
+      omitted: [],
+      language: "en",
+      sourceHash: "one",
+      blueprint: "notes-v3",
+    },
+    extensions: [],
+    createdAt: "",
+  };
+  const calls: { url: string; body?: any }[] = [];
+  global.fetch = jest.fn(async (url: any, init: any) => {
+    const u = String(url);
+    calls.push({ url: u, body: init?.body ? JSON.parse(init.body) : undefined });
+    if (u.includes("/guru/capabilities")) return { ok: true, json: async () => ({ reasoningAvailable: true, sourceReadingAvailable: true }) };
+    if (u.includes("/api/v2/learners")) return { ok: true, json: async () => ({ data: [] }) };
+    if (u.includes("/pages/1/evidence")) return { ok: true, json: async () => source };
+    if (u.endsWith("/pages/1/notes")) return { ok: true, status: 200, json: async () => view };
+    if (u.endsWith("/notes/questions"))
+      return { ok: true, status: 201, json: async () => ({ extension: { id: "x1", topicId: "t1", question: "Why three?", answer: "Because three points make the simplest closed shape.", evidenceIds: ["b1"], beyondPage: false, createdAt: "" }, reused: false }) };
+    return { ok: false, status: 404, json: async () => ({ message: "unexpected " + u }) };
+  }) as any;
+  try {
+    render(<PageGroundedStudio bookId="maths-class-5" />);
+    const board = await screen.findByTestId("guru-notes-board");
+    await screen.findByTestId("guru-notes");
+    expect(board).toHaveTextContent("GURU NOTES BOARD");
+    expect(within(board).getByRole("heading", { name: /1\. What is a triangle/ })).toBeInTheDocument();
+    expect(screen.getByTestId("notes-page-crop")).toHaveTextContent("Look at the three-sided shape");
+    expect(screen.getByTestId("notes-diagram")).toBeInTheDocument();
+    expect(screen.getByTestId("notes-try-now")).toHaveTextContent("Fold a triangle");
+    // The live classroom is not loaded and its page-level ask box is hidden in notes mode.
+    expect(screen.queryByTestId("page-teaching-board")).toBeNull();
+    expect(calls.some((c) => c.url.includes("/pages/1/lesson"))).toBe(false);
+    expect(screen.queryByLabelText("Ask about this page")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Ask about What is a triangle"), { target: { value: "Why three?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask Guru" }));
+    await screen.findByTestId("notes-extension");
+    expect(calls.find((c) => c.url.endsWith("/notes/questions"))?.body).toMatchObject({ topicId: "t1", question: "Why three?", language: "en" });
+    // Switching to the live classroom loads the lesson path; switching back restores the notes board.
+    fireEvent.click(screen.getByRole("button", { name: "Live classroom (beta)" }));
+    await screen.findByTestId("live-board-switch");
+    fireEvent.click(screen.getByRole("button", { name: "Back to the notes board" }));
+    await screen.findByTestId("guru-notes-board");
+  } finally {
+    localStorage.clear();
+  }
+});

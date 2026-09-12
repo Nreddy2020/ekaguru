@@ -61,8 +61,8 @@ describe("Guru notes endpoints", () => {
     expect(result).toMatchObject({ pagesTotal: 5, from: 1, to: 5, queued: 5, ready: 0, reading: 0, failed: [] });
     expect(evidence.builtin).toHaveBeenCalledTimes(5);
     const calls = queue.enqueueNotes.mock.calls as any[][];
-    expect(calls[0][3]).toBeUndefined();
-    expect(calls[1][3]).toEqual({ reserved: true });
+    expect(calls[0][3]).toEqual({ reserved: false, priority: 0 });
+    expect(calls[1][3]).toEqual({ reserved: true, priority: 0 });
     const status = await controller.statusBuiltin("evs-class-5", "en");
     expect(status).toMatchObject({ language: "en", ready: [1, 2], readyCount: 2 });
     expect(status.jobs[0].physicalPage).toBe(3);

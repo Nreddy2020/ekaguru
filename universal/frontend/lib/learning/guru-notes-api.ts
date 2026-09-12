@@ -9,11 +9,35 @@ export interface NotesQA {
   question: string;
   answer: string;
 }
+export interface NotesScenePrimitive {
+  id: string;
+  type: "line" | "rect" | "circle" | "text";
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  radius?: number;
+  x2?: number;
+  y2?: number;
+  text?: string;
+  color: "white" | "yellow" | "green" | "blue";
+}
+export interface NotesTryNow {
+  title: string;
+  steps: string[];
+  whatToNotice: string;
+}
 export interface NotesTopic {
   id: string;
   heading: string;
   evidenceIds: string[];
+  /** What to look at in the book's own region for this topic. */
+  lookAt?: string;
   explanation: string[];
+  /** A simple labelled board drawing; may be empty. */
+  diagram?: NotesScenePrimitive[];
+  /** A two-minute activity the child can do right now with everyday things. */
+  tryNow?: NotesTryNow;
   keyTerms: { term: string; meaning: string; example: string }[];
   example: { situation: string; explanation: string };
   rememberTip: string;

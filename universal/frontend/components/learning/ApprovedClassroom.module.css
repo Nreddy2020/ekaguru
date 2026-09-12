@@ -744,3 +744,191 @@
   align-items: center;
   gap: 14px;
 }
+
+/* Guru Notes board: the teacher's notes on the blackboard. */
+.notesBoard {
+  display: grid;
+  gap: 18px;
+  color: #eef3d8;
+  font: 15px/1.6 Georgia, serif;
+}
+.notesLabel {
+  display: inline-block;
+  font: 700 11px/1.4 Georgia, serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f6db56;
+  margin-bottom: 4px;
+}
+.notesOverview {
+  border: 1px solid #305132;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.notesOverview h3 {
+  font: 700 24px/1.2 Georgia, serif;
+  color: #ffe46c;
+  margin: 2px 0 8px;
+}
+.notesOverview ul {
+  padding-left: 20px;
+  list-style: disc;
+}
+.notesTopic {
+  border-top: 1px dashed #4b6b48;
+  padding-top: 14px;
+  display: grid;
+  gap: 12px;
+  scroll-margin-top: 80px;
+}
+.notesTopic h4 {
+  font: 700 20px/1.25 Georgia, serif;
+  color: #ffe46c;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.notesReadButton,
+.notesLink {
+  font: 12px Georgia, serif;
+  color: #a7f3d0;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.notesTopicGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 850px) {
+  .notesTopicGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.notesFigure {
+  margin: 0;
+}
+.notesCrop {
+  width: 100%;
+  border: 3px solid #d9c38a;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  cursor: zoom-in;
+}
+.notesFigure figcaption {
+  font-size: 13px;
+  color: #cfe3c7;
+  margin-top: 6px;
+}
+.notesExplanation p + p {
+  margin-top: 10px;
+}
+.notesDiagram {
+  margin: 0;
+  max-width: 420px;
+}
+.notesDiagram svg {
+  width: 100%;
+  height: auto;
+  border: 1px solid #305132;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+}
+.notesTopic dl div {
+  margin: 4px 0;
+}
+.notesTopic dt {
+  display: inline;
+  font-weight: 700;
+  color: #ffe46c;
+}
+.notesTopic dt::after {
+  content: ": ";
+}
+.notesTopic dd {
+  display: inline;
+  margin: 0;
+}
+.notesExample {
+  border-left: 3px solid #6ee7b7;
+  padding-left: 12px;
+}
+.notesTryNow {
+  border: 1px solid #998717;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: rgba(246, 219, 86, 0.08);
+}
+.notesTryNow ol,
+.notesTopic ol {
+  padding-left: 22px;
+  list-style: decimal;
+}
+.notesTip {
+  background: #f6db56;
+  color: #3a2f00;
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: inline-block;
+}
+.notesTopic details {
+  margin: 4px 0;
+}
+.notesTopic summary {
+  cursor: pointer;
+}
+.notesTopic details p {
+  padding-left: 16px;
+}
+.notesAnswer {
+  font-size: 13px;
+  color: #cfe3c7;
+}
+.notesAsked {
+  border-left: 3px solid #60a5fa;
+  padding-left: 12px;
+  margin-top: 8px;
+}
+.notesAsk label {
+  display: block;
+  font-size: 13px;
+}
+.notesAsk textarea {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  border-radius: 8px;
+  padding: 8px;
+  color: #0f172a;
+  background: #fff;
+}
+.notesAsk button[type="submit"] {
+  margin-top: 6px;
+  background: #0369a1;
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.notesChip {
+  border: 1px solid #175c43;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #a7f3d0;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notesChip[aria-current="true"] {
+  background: #047857;
+  color: #fff;
+}

@@ -1888,6 +1888,8 @@ model GuruLessonJob {
   requestedBy  String
   /// "lesson" (a classroom lesson at a depth) or "notes" (Guru Notes; depth is "notes").
   kind         String        @default("lesson")
+  /// Higher runs first: a page a learner opened (10) before a whole-book batch (0).
+  priority     Int           @default(0)
   status       GuruJobStatus @default(QUEUED)
   stage        String        @default("queued")
   attempts     Int           @default(0)
@@ -1898,6 +1900,7 @@ model GuruLessonJob {
   finishedAt   DateTime?
 
   @@index([status, createdAt])
+  @@index([status, priority, createdAt])
   @@index([artifactId])
   @@index([requestedBy])
   @@index([kind, bookId])

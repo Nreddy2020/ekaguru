@@ -143,7 +143,7 @@ export class GuruNotesService {
     onStage?.("notes");
     const raw: any = await this.model.json(
       notesPromptSection(language) +
-        " Return {title,overview,objectives:[string],topics:[{id,heading,evidenceIds:[string],explanation:[string],keyTerms:[{term,meaning,example}],example:{situation,explanation},rememberTip,commonDoubts:[{question,answer}],checkYourself:[{question,answer}]}],summary:[string],omitted:[{evidenceId,reason}]}. Topic ids are t1, t2 and so on. Source blocks: " +
+        " Return {title,overview,objectives:[string],topics:[{id,heading,evidenceIds:[string],lookAt,explanation:[string],diagram:[{type,x,y,x2,y2,width,height,radius,text,color}],keyTerms:[{term,meaning,example}],example:{situation,explanation},tryNow:{title,steps:[string],whatToNotice},rememberTip,commonDoubts:[{question,answer}],checkYourself:[{question,answer}]}],summary:[string],omitted:[{evidenceId,reason}]}. Topic ids are t1, t2 and so on. Source blocks: " +
         JSON.stringify(blocks),
       source.imageDataUrl,
       GURU_NOTES_RESPONSE_SCHEMA,

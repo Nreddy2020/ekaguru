@@ -99,7 +99,49 @@ function coordinate(value: unknown, label = "scene coordinate"): number {
   return Math.min(1000, Math.max(0, Math.round(value * 100) / 100));
 }
 
-/** Whitelist the complete executable scene. Extra model fields never reach the renderer. */
+/** Whitelist a complete executable scene (1000 by 1000 canvas, at most 40 primitives). Extra model fields never reach the renderer. */
+export function validateScene(raw: unknown, owner: string, max = 40): ScenePrimitive[] {
+  return list(raw, max, "scene of " + owner).map((entry, i) => {
+    const s = object(entry);
+    if (!["line", "rect", "circle", "text"].includes(s.type))
+      return invalid("unknown primitive");
+    const where = "shape " + i + " (" + s.type + ") of " + owner;
+    const shape: ScenePrimitive = {
+      id: "shape-" + i,
+      type: s.type,
+      x: coordinate(s.x, "x of " + where),
+      y: coordinate(s.y, "y of " + where),
+      color: ["white", "yellow", "green", "blue"].includes(s.color)
+        ? s.color
+        : "white",
+    };
+    if (s.type === "line") {
+      shape.x2 = coordinate(s.x2, "x2 of " + where);
+      shape.y2 = coordinate(s.y2, "y2 of " + where);
+    }
+    if (s.type === "rect") {
+      // Clamp the far edge into the canvas; a zero-size rectangle is an error.
+      shape.width = Math.min(coordinate(s.width, "width of " + where), 1000 - shape.x);
+      shape.height = Math.min(coordinate(s.height, "height of " + where), 1000 - shape.y);
+      if (shape.width <= 0 || shape.height <= 0)
+        return invalid("rectangle outside scene in " + where);
+    }
+    if (s.type === "circle") {
+      shape.radius = Math.min(
+        coordinate(s.radius, "radius of " + where),
+        shape.x,
+        shape.y,
+        1000 - shape.x,
+        1000 - shape.y,
+      );
+      if (shape.radius <= 0) return invalid("circle outside scene in " + where);
+    }
+    if (s.type === "text") shape.text = text(s.text, 120, "scene label of " + owner);
+    return shape;
+  });
+}
+
+/** Whitelist the complete executable lesson. */
 export function validateGuruPlan(
   raw: unknown,
   evidenceIds: Set<string>,
@@ -130,44 +172,7 @@ export function validateGuruPlan(
       action.speech.split(/\s+/).length * (depth === "basis" ? 600 : 450),
     );
     if (a.kind === "draw") {
-      action.scene = list(a.scene, 40, "scene of action " + index).map((entry, i) => {
-        const s = object(entry);
-        if (!["line", "rect", "circle", "text"].includes(s.type))
-          return invalid("unknown primitive");
-        const where = "shape " + i + " (" + s.type + ") of action " + index;
-        const shape: ScenePrimitive = {
-          id: "shape-" + i,
-          type: s.type,
-          x: coordinate(s.x, "x of " + where),
-          y: coordinate(s.y, "y of " + where),
-          color: ["white", "yellow", "green", "blue"].includes(s.color)
-            ? s.color
-            : "white",
-        };
-        if (s.type === "line") {
-          shape.x2 = coordinate(s.x2, "x2 of " + where);
-          shape.y2 = coordinate(s.y2, "y2 of " + where);
-        }
-        if (s.type === "rect") {
-          // Clamp the far edge into the canvas; a zero-size rectangle is an error.
-          shape.width = Math.min(coordinate(s.width, "width of " + where), 1000 - shape.x);
-          shape.height = Math.min(coordinate(s.height, "height of " + where), 1000 - shape.y);
-          if (shape.width <= 0 || shape.height <= 0)
-            return invalid("rectangle outside scene in " + where);
-        }
-        if (s.type === "circle") {
-          shape.radius = Math.min(
-            coordinate(s.radius, "radius of " + where),
-            shape.x,
-            shape.y,
-            1000 - shape.x,
-            1000 - shape.y,
-          );
-          if (shape.radius <= 0) return invalid("circle outside scene in " + where);
-        }
-        if (s.type === "text") shape.text = text(s.text, 120, "scene label of action " + index);
-        return shape;
-      });
+      action.scene = validateScene(a.scene, "action " + index);
     }
     if (a.kind === "ask") {
       action.prompt = text(a.prompt || a.text, 2000, "prompt of action " + index);

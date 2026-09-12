@@ -59,3 +59,24 @@ we do?" with a grounded answer.
   small follow-up.
 - Only English, on one model, for three pages. Hindi and Telugu notes and a full book run wait
   for the next quota day or a paid or local model.
+
+## Afternoon: the board becomes the notes (blueprint v3), and a whole book by accident
+
+- Blueprint v3 adds, per topic, a "look at" caption for the book's own region, an optional labelled
+  drawing, and a try-it-now activity. Page 3 regenerated in 50 s including a queue wait: two topics
+  of 230 and 198 words, each with a 3-primitive drawing and a 3-step activity ("Shoe Size Check",
+  "Breathe and Feel"); page 2 regenerated with five topics of 155 to 185 words.
+- The new Guru Notes board rendered them in the browser: overview, topic headings with "Read this to
+  me", the page region cut from the scan (both topics spanned most of the page, so the whole page
+  showed; figures and tables are now framed first when a topic cites them), the drawing, words to
+  know, the everyday example, the activity, the tip, doubts, check-yourself, the ask box. The live
+  classroom did not load and its page-level ask box was hidden.
+- A whole-book preparation for EVS Class 5 (116 pages) was queued from the browser during the
+  session. The lite model prepared 26 pages in about 25 minutes before this note was written, at
+  about 30 s a page, all within the free tier. Three pages failed the validator for rules that were
+  too strict (a one-word check answer, an omission naming a region already set aside, an empty
+  drawing list); the rules were relaxed and the pages re-queue on the next request. Because the
+  queue was first-come, page 3's fresh notes waited behind the batch, which led to the priority
+  column: an opened page now runs first, and asking again promotes a queued batch page.
+- Drawings from the lite model were thin (two boxes and a line, no labels), so a drawing without a
+  text label is now rejected and repaired.

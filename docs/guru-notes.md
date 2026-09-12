@@ -8,6 +8,30 @@ print them, and find them saved with the book whenever they want. This is the fi
 surface of the Teacher Engine plan (docs/teacher-engine-plan.md); the live classroom reads from
 the same prepared material later.
 
+## The board is the notes (12 September 2026, afternoon)
+
+The owner's decision: the classroom board shows the notes; the live classroom stays behind a
+"Live classroom (beta)" switch until it is ready. The **Guru Notes board** puts, for every topic:
+
+- **the book's own picture**: the region of the scanned page the topic cites, cut out of the scan
+  (figures and tables first when the topic has them, the whole page when it spans most of it), with a
+  one-line "look at" caption; clicking it highlights the region in the page panel;
+- **Guru's drawing**: a simple labelled board diagram the notes model draws for the idea (line, box,
+  circle and text primitives on the 1000 by 1000 canvas, at most 40; a drawing without a label is
+  rejected; a topic may have none);
+- **Try this now**: a two-minute activity with everyday things, two to six steps and what to notice;
+- the explanation, words to know, everyday example, tip, doubts, check-yourself and readers' questions
+  as before;
+- **voice**: "Read the notes to me" reads every topic through the Guru orb, topic by topic, or one
+  topic at a time; the board scrolls along.
+
+Nothing on the board comes from a stock image library or an image model: the pictures are the
+child's own textbook, and the drawings are Guru's. This is blueprint `notes-v3`.
+
+**Priority.** A page a learner opens runs before a whole-book batch (`GuruLessonJob.priority`,
+10 versus 0), and asking for a queued batch page again promotes it. Whole-book preparation queues
+at priority 0 with one budget reservation.
+
 ## What the notes contain
 
 For one page, in one language, written as a caring, expert teacher speaking to the child:
@@ -37,7 +61,9 @@ For one page, in one language, written as a caring, expert teacher speaking to t
   four check-yourself questions; three to ten summary points.
 - Rejected notes go through up to two repair passes that carry the validator's reason; accepted
   notes then pass a source review by the model (factual support, nothing missing, child-suitable).
-- Identity (`notes-v2` blueprint): page revision, language, model. Prepared once, served to all.
+- Identity (`notes-v3` blueprint): page revision, language, model. Prepared once, served to all.
+- Learned from the first whole-book run: a check answer may be one word, an omission naming a region
+  already set aside for review is dropped, and an empty drawing list is allowed.
 
 ## How they are prepared and served
 

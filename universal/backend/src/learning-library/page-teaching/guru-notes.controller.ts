@@ -135,14 +135,10 @@ export class GuruNotesController {
           await this.evidenceQueue.enqueue({ bookId: source.bookId, physicalPage: source.physicalPage, sourceHash: source.sourceHash }, user);
           result.reading++;
         }
-        if (!reserved) {
-          reserved = true;
-          const job = await this.queue.enqueueNotes(source, body.language, user);
-          job.status === "DONE" ? result.ready++ : result.queued++;
-        } else {
-          const job = await this.queue.enqueueNotes(source, body.language, user, { reserved: true });
-          job.status === "DONE" ? result.ready++ : result.queued++;
-        }
+        // The whole book runs behind pages learners open; the first page carries the single budget reservation.
+        const job = await this.queue.enqueueNotes(source, body.language, user, { reserved, priority: 0 });
+        reserved = true;
+        job.status === "DONE" ? result.ready++ : result.queued++;
       } catch (error: any) {
         result.failed.push({ page: p, reason: String(error?.message || error).slice(0, 200) });
       }
