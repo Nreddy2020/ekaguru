@@ -20,4 +20,17 @@ it("requires explicit learner selection and save before connecting",async()=>{
  expect(connectLocalBook).not.toHaveBeenCalled();
  fireEvent.change(screen.getByLabelText("Learner for this book"),{target:{value:"child"}});fireEvent.click(save);
  await waitFor(()=>expect(connected).toHaveBeenCalledWith("material-owned"));
+ expect(connectLocalBook).toHaveBeenCalledWith("book-a","child","test",expect.any(AbortSignal),"child");
 });
+it("allows selecting a specific target audience and passes it to connectLocalBook",async()=>{
+ localStorage.setItem("token","test");(guruRequest as jest.Mock).mockResolvedValue({data:[{id:"child",name:"Learner One"}]});
+ (connectLocalBook as jest.Mock).mockResolvedValue({materialId:"material-owned"});
+ const connected=jest.fn();render(<ConnectBookToGuru bookId="book-a" onClose={()=>{}} onConnected={connected}/>);
+ await screen.findByRole("option",{name:"Learner One"});
+ fireEvent.change(screen.getByLabelText("Learner for this book"),{target:{value:"child"}});
+ fireEvent.change(screen.getByLabelText("Target audience for this book"),{target:{value:"it_professional"}});
+ fireEvent.click(screen.getByRole("button",{name:"Save PDF and open Guru"}));
+ await waitFor(()=>expect(connected).toHaveBeenCalledWith("material-owned"));
+ expect(connectLocalBook).toHaveBeenCalledWith("book-a","child","test",expect.any(AbortSignal),"it_professional");
+});
+

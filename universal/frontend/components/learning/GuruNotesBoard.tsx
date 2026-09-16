@@ -5,6 +5,7 @@ import { GuruScene } from "./GuruScene";
 import { GuruVoiceOrb } from "./GuruVoiceOrb";
 import { describeGuruStage } from "../../lib/learning/guru-api";
 import {
+  BookAudience,
   GuruNotesView,
   LadderLevel,
   NotesExtension,
@@ -37,6 +38,8 @@ function NotesPoster({ view, page, onHighlight }: { view: GuruNotesView; page: P
   const first = notes.topics[0];
   const pictures = (page.blocks || []).filter((b) => b.type === "figure" || b.type === "table").map((b) => b.blockId);
   const banner = pictures.length ? cropStyle(page, pictures) : null;
+  const isProf = view.blueprint === "notes-prof-v1" || view.targetAudience === "it_professional" || view.targetAudience === "manager" || view.targetAudience === "competitive_exam";
+  const isAcad = view.blueprint === "notes-acad-v1" || view.targetAudience === "professor" || view.targetAudience === "college_student";
   return (
     <section className={styles.poster} data-testid="notes-poster" aria-label="One-page sheet">
       <header className={styles.posterBanner}>
@@ -46,7 +49,11 @@ function NotesPoster({ view, page, onHighlight }: { view: GuruNotesView; page: P
           ))}
         </div>
         <div>
-          <p className={styles.posterUnit}>Page {view.physicalPage}</p>
+          <p className={styles.posterUnit}>
+            Page {view.physicalPage}
+            {isProf && <span className={styles.editionBadge} data-edition="professional" data-testid="poster-edition-badge">Professional Edition</span>}
+            {isAcad && <span className={styles.editionBadge} data-edition="academic" data-testid="poster-edition-badge">Academic Edition</span>}
+          </p>
           <h3>{notes.title}</h3>
           {notes.subtitle && <p className={styles.posterSubtitle}>{notes.subtitle}</p>}
         </div>
@@ -211,6 +218,7 @@ export function GuruNotesBoard({
   page,
   language,
   depth = "basis",
+  audience,
   learnerId,
   onLoaded,
   onHighlight,
@@ -220,6 +228,7 @@ export function GuruNotesBoard({
   page: PageEvidence;
   language: string;
   depth?: TeachingDepth;
+  audience?: BookAudience;
   learnerId?: string;
   onLoaded?: (view: GuruNotesView | null) => void;
   onHighlight?: (ids: string[]) => void;
@@ -256,7 +265,7 @@ export function GuruNotesBoard({
     onLoaded?.(null);
     loadGuruNotes(page, language, depth, controller.signal, (s) => {
       if (live) setStage(s);
-    })
+    }, audience)
       .then((result) => {
         if (!live) return;
         setView(result);
@@ -273,7 +282,7 @@ export function GuruNotesBoard({
       controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page.bookId, page.physicalPage, page.sourceHash, language, depth, retry]);
+  }, [page.bookId, page.physicalPage, page.sourceHash, language, depth, audience, retry]);
 
   const stopReading = () => {
     readQueue.current = [];
@@ -482,7 +491,14 @@ export function GuruNotesBoard({
         {notes && (
           <article className={styles.notesBoard} data-testid="guru-notes">
             <section className={styles.notesOverview}>
-              <span className={styles.notesLabel}>Today's page</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span className={styles.notesLabel}>Today's page</span>
+                {(view?.blueprint === "notes-prof-v1" || view?.targetAudience === "it_professional" || view?.targetAudience === "manager" || view?.targetAudience === "competitive_exam") ? (
+                  <span className={styles.editionBadge} data-edition="professional" data-testid="edition-badge">Professional Edition</span>
+                ) : (view?.blueprint === "notes-acad-v1" || view?.targetAudience === "professor" || view?.targetAudience === "college_student") ? (
+                  <span className={styles.editionBadge} data-edition="academic" data-testid="edition-badge">Academic Edition</span>
+                ) : null}
+              </div>
               <h3>{notes.title}</h3>
               <p>{notes.overview}</p>
               <p className={styles.notesLabel}>After reading this, you will be able to</p>
@@ -739,15 +755,184 @@ export function GuruNotesBoard({
                     )}
                   </div>
                 )}
-                <div>
-                  <span className={styles.notesLabel}>Doubts children often have</span>
-                  {topic.commonDoubts.map((d, i) => (
-                    <details key={i}>
-                      <summary>{d.question}</summary>
-                      <p>{d.answer}</p>
-                    </details>
-                  ))}
-                </div>
+                {topic.professional && (
+                  <div data-testid="notes-professional-section">
+                    {topic.professional.problemSolved && (
+                      <div className={styles.profCard} data-testid="prof-problem-solved">
+                        <span className={styles.notesLabel}>Problem solved in production</span>
+                        <p>{topic.professional.problemSolved}</p>
+                      </div>
+                    )}
+                    {topic.professional.architecture && (
+                      <div className={styles.profCard} data-testid="prof-architecture">
+                        <span className={styles.notesLabel}>Architecture & Data Flow</span>
+                        <p><strong>Data Flow:</strong> {topic.professional.architecture.dataFlow}</p>
+                        <ul className={styles.profComponentList}>
+                          {topic.professional.architecture.components.map((c, i) => (
+                            <li key={i}>{c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {topic.professional.implementation && (
+                      <div className={styles.profCard} data-testid="prof-implementation">
+                        <div className={styles.codeHeader}>
+                          <span className={styles.notesLabel}>Implementation</span>
+                          <span className={styles.codeLang}>{topic.professional.implementation.languageOrTool}</span>
+                        </div>
+                        <pre className={styles.codeBlock}>
+                          <code>{topic.professional.implementation.codeSnippet}</code>
+                        </pre>
+                        <p className="mt-2 text-sm text-slate-300">{topic.professional.implementation.explanation}</p>
+                      </div>
+                    )}
+                    {topic.professional.commands && topic.professional.commands.length > 0 && (
+                      <div className={styles.profCard} data-testid="prof-commands">
+                        <span className={styles.notesLabel}>Essential Commands</span>
+                        <div className="space-y-2 mt-2">
+                          {topic.professional.commands.map((cmd, i) => (
+                            <div key={i} className={styles.commandItem}>
+                              <code className={styles.inlineCode}>{cmd.command}</code>
+                              <p className="text-sm text-slate-300">{cmd.description}</p>
+                              {cmd.output && (
+                                <pre className={styles.commandOutput}><code>{cmd.output}</code></pre>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {topic.professional.troubleshooting && topic.professional.troubleshooting.length > 0 && (
+                      <div className={styles.profCard} data-testid="prof-troubleshooting">
+                        <span className={styles.notesLabel}>Troubleshooting Guide</span>
+                        <div className={styles.troubleshootTable}>
+                          {topic.professional.troubleshooting.map((tr, i) => (
+                            <div key={i} className={styles.troubleshootRow}>
+                              <div><strong>Symptom:</strong> {tr.symptom}</div>
+                              <div><strong>Cause:</strong> {tr.cause}</div>
+                              <div className="text-emerald-300"><strong>Fix:</strong> {tr.fix}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {topic.professional.scenarios && topic.professional.scenarios.length > 0 && (
+                      <div className={styles.profCard} data-testid="prof-scenarios">
+                        <span className={styles.notesLabel}>Production Scenarios</span>
+                        {topic.professional.scenarios.map((sc, i) => (
+                          <details key={i} className={styles.scenarioDetails}>
+                            <summary><strong>Scenario:</strong> {sc.title}</summary>
+                            <p className="mt-1 text-sm text-slate-300"><strong>Context:</strong> {sc.context}</p>
+                            <p className="mt-1 text-sm text-emerald-300"><strong>Solution:</strong> {sc.solution}</p>
+                          </details>
+                        ))}
+                      </div>
+                    )}
+                    {topic.professional.labs && topic.professional.labs.length > 0 && (
+                      <div className={styles.profCard} data-testid="prof-labs">
+                        <span className={styles.notesLabel}>Hands-on Lab</span>
+                        {topic.professional.labs.map((lab, i) => (
+                          <div key={i} className="mt-2">
+                            <p><strong>{lab.title}</strong> &mdash; {lab.objective}</p>
+                            <ol className="list-decimal pl-5 mt-1 space-y-1 text-sm text-slate-300">
+                              {lab.steps.map((st, j) => <li key={j}>{st}</li>)}
+                            </ol>
+                            <p className="mt-1 text-xs text-amber-200"><strong>Verification:</strong> {lab.verification}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {topic.professional.interviewQuestions && topic.professional.interviewQuestions.length > 0 && (
+                      <div className={styles.profCard} data-testid="prof-interview-questions">
+                        <span className={styles.notesLabel}>Technical Interview Questions</span>
+                        {topic.professional.interviewQuestions.map((iq, i) => (
+                          <details key={i} className={styles.scenarioDetails}>
+                            <summary>
+                              <span className={styles.diffBadge} data-diff={iq.difficulty}>{iq.difficulty}</span>
+                              {" "}{iq.question}
+                            </summary>
+                            <p className="mt-1 text-sm text-emerald-300"><strong>Expected Answer:</strong> {iq.expectedAnswer}</p>
+                          </details>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {topic.professor && (
+                  <div data-testid="notes-professor-section">
+                    {topic.professor.foundations && (
+                      <div className={styles.acadCard} data-testid="acad-foundations">
+                        <span className={styles.notesLabel}>Theoretical Foundations</span>
+                        <p>{topic.professor.foundations.theoreticalBasis}</p>
+                        {topic.professor.foundations.formalDefinitions.length > 0 && (
+                          <div className="mt-2">
+                            <span className="text-xs uppercase tracking-wider text-slate-400">Formal Definitions:</span>
+                            <ul className="list-disc pl-5 mt-1 space-y-1 text-sm text-slate-200">
+                              {topic.professor.foundations.formalDefinitions.map((d, i) => <li key={i}>{d}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {topic.professor.researchPerspective && (
+                      <div className={styles.acadCard} data-testid="acad-research">
+                        <span className={styles.notesLabel}>Research Perspective & Debates</span>
+                        <p className="text-sm text-slate-300"><strong>Historical Context:</strong> {topic.professor.researchPerspective.historicalContext}</p>
+                        <p className="mt-1 text-sm text-slate-300"><strong>Current Debates:</strong> {topic.professor.researchPerspective.currentDebates}</p>
+                        {topic.professor.researchPerspective.openProblems.length > 0 && (
+                          <div className="mt-2">
+                            <span className="text-xs uppercase tracking-wider text-amber-300">Open Problems:</span>
+                            <ul className="list-disc pl-5 mt-1 space-y-1 text-sm text-slate-200">
+                              {topic.professor.researchPerspective.openProblems.map((op, i) => <li key={i}>{op}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {topic.professor.caseStudies && topic.professor.caseStudies.length > 0 && (
+                      <div className={styles.acadCard} data-testid="acad-case-studies">
+                        <span className={styles.notesLabel}>Scholarly Case Studies</span>
+                        {topic.professor.caseStudies.map((cs, i) => (
+                          <div key={i} className="mt-2 p-2 rounded bg-slate-900/60 border border-slate-700">
+                            <strong>{cs.title}</strong>
+                            <p className="text-sm text-slate-300 mt-1"><strong>Methodology:</strong> {cs.methodology}</p>
+                            <p className="text-sm text-slate-300 mt-1"><strong>Findings:</strong> {cs.findings}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {topic.professor.limitations && (
+                      <div className={styles.acadCard} data-testid="acad-limitations">
+                        <span className={styles.notesLabel}>Limitations & Boundary Conditions</span>
+                        <ul className="list-disc pl-5 mt-1 space-y-1 text-sm text-slate-200">
+                          {topic.professor.limitations.boundaryConditions.map((b, i) => <li key={i}>{b}</li>)}
+                          {topic.professor.limitations.critiques.map((c, i) => <li key={i}><em>Critique:</em> {c}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {topic.professor.references && topic.professor.references.length > 0 && (
+                      <div className={styles.acadCard} data-testid="acad-references">
+                        <span className={styles.notesLabel}>References & Key Literature</span>
+                        <ul className="list-disc pl-5 mt-1 space-y-1 text-xs text-slate-300 font-mono">
+                          {topic.professor.references.map((ref, i) => (
+                            <li key={i}>{ref.citation} &mdash; <span className="text-slate-400 font-sans">{ref.relevance}</span></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {topic.commonDoubts.length > 0 && (
+                  <div>
+                    <span className={styles.notesLabel}>{topic.professional || topic.professor ? "Common Doubts & Edge Cases" : "Doubts children often have"}</span>
+                    {topic.commonDoubts.map((d, i) => (
+                      <details key={i}>
+                        <summary>{d.question}</summary>
+                        <p>{d.answer}</p>
+                      </details>
+                    ))}
+                  </div>
+                )}
                 <div>
                   <span className={styles.notesLabel}>Check yourself</span>
                   <ol>
@@ -939,7 +1124,56 @@ export function GuruNotesPrint({ view }: { view: GuruNotesView }) {
               <em>(Answer: {["A", "B", "C"][topic.quiz.answerIndex]})</em>
             </p>
           )}
-          <h3>Doubts children often have</h3>
+          {topic.professional && (
+            <>
+              <h3>Professional Reference & Implementation</h3>
+              <p><strong>Problem Solved:</strong> {topic.professional.problemSolved}</p>
+              <p><strong>Architecture:</strong> {topic.professional.architecture.dataFlow}</p>
+              <h4>Commands</h4>
+              <ul>
+                {topic.professional.commands.map((cmd, i) => (
+                  <li key={i}><code>{cmd.command}</code>: {cmd.description}</li>
+                ))}
+              </ul>
+              <h4>Troubleshooting</h4>
+              <ul>
+                {topic.professional.troubleshooting.map((tr, i) => (
+                  <li key={i}><strong>{tr.symptom}:</strong> {tr.fix}</li>
+                ))}
+              </ul>
+              <h4>Technical Interview Preparation</h4>
+              <ul>
+                {topic.professional.interviewQuestions.map((iq, i) => (
+                  <li key={i}>[{iq.difficulty}] {iq.question} &mdash; <em>{iq.expectedAnswer}</em></li>
+                ))}
+              </ul>
+            </>
+          )}
+          {topic.professor && (
+            <>
+              <h3>Theoretical Foundations & Research</h3>
+              <p><strong>Basis:</strong> {topic.professor.foundations.theoreticalBasis}</p>
+              <h4>Formal Definitions</h4>
+              <ul>
+                {topic.professor.foundations.formalDefinitions.map((d, i) => (
+                  <li key={i}>{d}</li>
+                ))}
+              </ul>
+              <h4>Case Studies</h4>
+              <ul>
+                {topic.professor.caseStudies.map((cs, i) => (
+                  <li key={i}><strong>{cs.title}:</strong> {cs.findings}</li>
+                ))}
+              </ul>
+              <h4>References</h4>
+              <ul>
+                {topic.professor.references.map((r, i) => (
+                  <li key={i}>{r.citation} ({r.relevance})</li>
+                ))}
+              </ul>
+            </>
+          )}
+          <h3>{topic.professional || topic.professor ? "Common Questions & Edge Cases" : "Doubts children often have"}</h3>
           {topic.commonDoubts.map((d, i) => (
             <p key={i}>
               <strong>{d.question}</strong> {d.answer}

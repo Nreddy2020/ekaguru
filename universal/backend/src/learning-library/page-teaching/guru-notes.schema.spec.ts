@@ -1,4 +1,15 @@
-import { longestSharedRun, notesDepthSection, notesPromptSection, readingLevelFor, validateGuruNotes } from "./guru-notes.schema";
+import {
+  BLUEPRINTS,
+  blueprintForAudience,
+  longestSharedRun,
+  notesDepthSection,
+  notesPromptSection,
+  readingLevelFor,
+  validateGuruNotes,
+  validateNotesForBlueprint,
+  validateProfessionalNotes,
+  validateProfessorNotes,
+} from "./guru-notes.schema";
 
 const blocks = [
   { blockId: "b1", text: "Living things grow. A tiny seed grows into a big plant when it gets water, air and sunlight." },
@@ -182,5 +193,170 @@ describe("Guru notes by teaching depth", () => {
     const noPoints: any = goodNotes();
     noPoints.topics[0].keyPoints = ["Only one"];
     expect(() => validateGuruNotes(noPoints, ids, blocks, "en", "hash", 5)).toThrow(/keyPoints must have 3 to 5/);
+  });
+});
+
+describe("Audience editions and blueprint selection (Step 6)", () => {
+  it("maps each audience to the correct blueprint", () => {
+    expect(blueprintForAudience("child")).toBe(BLUEPRINTS.CHILDREN);
+    expect(blueprintForAudience("school_student")).toBe(BLUEPRINTS.CHILDREN);
+    expect(blueprintForAudience("teacher")).toBe(BLUEPRINTS.CHILDREN);
+    expect(blueprintForAudience("it_professional")).toBe(BLUEPRINTS.PROFESSIONAL);
+    expect(blueprintForAudience("manager")).toBe(BLUEPRINTS.PROFESSIONAL);
+    expect(blueprintForAudience("competitive_exam")).toBe(BLUEPRINTS.PROFESSIONAL);
+    expect(blueprintForAudience("professor")).toBe(BLUEPRINTS.PROFESSOR);
+    expect(blueprintForAudience("college_student")).toBe(BLUEPRINTS.PROFESSOR);
+    expect(blueprintForAudience(null)).toBe(BLUEPRINTS.CHILDREN);
+    expect(blueprintForAudience(undefined)).toBe(BLUEPRINTS.CHILDREN);
+  });
+
+  const goodProfNotes = () => ({
+    title: "Distributed Plant Growth Telemetry",
+    subtitle: "Architecture and operational patterns for botanical telemetry",
+    overview: "This chapter covers automated sensory data collection for plant health monitoring across distributed edge gateways.",
+    objectives: ["Deploy an edge telemetry daemon", "Configure alert thresholds for hydration"],
+    topics: [
+      {
+        id: "t1",
+        heading: "Soil moisture sensing and edge ingestion",
+        icon: "💻",
+        evidenceIds: ["b1", "b2"],
+        explanation: [
+          "Capacitive probes measure soil dielectric permittivity to evaluate volumetric water content at scale without corrosion.",
+          "Edge gateways poll ADC channels every sixty seconds and publish condensed readings via lightweight MQTT brokers.",
+        ],
+        keyPoints: ["Capacitive sensing prevents sensor oxidation", "MQTT QoS 1 guarantees event telemetry delivery"],
+        problemSolved: "Manual soil observation lacks continuous resolution and fails to scale across commercial hydroponics operations.",
+        architecture: {
+          description: "Soil sensors attach to microcontrollers streaming metrics over LoRaWAN to an on-premise message cluster.",
+          components: ["Capacitive probe", "ESP32 edge node", "Mosquitto broker", "TimescaleDB metrics store"],
+        },
+        implementation: {
+          pattern: "Publisher-Subscriber telemetry streaming",
+          steps: [
+            "Calibrate analogue ADC high and low frequency baselines in dry air and pure water.",
+            "Attach sensor interrupt triggers to the edge scheduler.",
+            "Send heartbeat pings every ten minutes to verify sensor loop continuity.",
+          ],
+        },
+        commands: [
+          { command: "mosquitto_sub -t sensors/soil/# -v", description: "Monitor raw sensory telemetry stream" },
+          { command: "systemctl restart botanical-agent", description: "Restart local edge ingestion service" },
+        ],
+        troubleshooting: [
+          { issue: "Flatline ADC 0 reading", cause: "Ground cable disconnected or pin voltage fault", resolution: "Verify 3.3V supply with a multimeter and check cold solder joints" },
+        ],
+        scenarios: [
+          { title: "High-humidity greenhouse condensation", context: "Moisture droplets cause temporary pin bridges on sensor contacts", solution: "Conformal coat PCB traces leaving only sensing plates exposed" },
+        ],
+        labs: [
+          { title: "End-to-end edge pipeline test", goal: "Transmit telemetry packet and verify persistence", steps: ["Plug probe into test bed", "Run simulator CLI script", "Query database"], verification: "Select count(*) returns non-zero records" },
+        ],
+        interviewQuestions: [
+          { question: "How do capacitive soil sensors avoid galvanisation compared to resistive probes?", expectedAnswer: "Capacitive sensors insulate metal traces from direct water contact, measuring capacitance changes instead of passing direct electric current through the moist substrate." },
+        ],
+        keyTerms: [
+          { term: "LoRaWAN", meaning: "Low Power Wide Area Network protocol for battery-operated wireless devices", example: "Sending soil packets across a five kilometer farm perimeter" },
+        ],
+      },
+    ],
+    summary: ["Telemetry automation enables precision agricultural analytics.", "Resilient edge architectures insulate against hardware failure."],
+    closingLine: "Reliable production monitoring turns agricultural uncertainty into deterministic engineering.",
+    omitted: [{ evidenceId: "b3", reason: "page number" }],
+  });
+
+  const goodProfessorNotes = () => ({
+    title: "Theoretical Foundations of Plant Development",
+    subtitle: "Morphogenetic signalling cascades and cellular differentiation",
+    overview: "This pedagogical synthesis investigates the biophysical mechanisms regulating apical dominance and embryonic reactivation in angiosperms.",
+    objectives: ["Analyze hormonal gradients in embryogenesis", "Critique classical morphogen diffusion paradigms"],
+    topics: [
+      {
+        id: "t1",
+        heading: "Auxin transport and embryonic polarity",
+        icon: "🏛️",
+        evidenceIds: ["b1", "b2"],
+        explanation: [
+          "Active polar transport of indole-3-acetic acid establishes the primary apical-basal symmetry axis within the early globular proembryo.",
+          "Chemiosmotic gradients driven by plasma membrane proton pumps create directional fluxes governed by asymmetrical PIN efflux carriers.",
+        ],
+        keyPoints: ["Polar auxin transport establishes primary embryonic axes", "PIN carrier asymmetric localisation regulates vector flows"],
+        foundations: {
+          formalDefinition: "Apical-basal polarity is the asymmetric cellular alignment along the prospective longitudinal axis of symmetry in embryogenesis.",
+          principles: ["Chemiosmotic auxin transport hypothesis", "Positional information and concentration threshold patterning"],
+        },
+        researchPerspective: {
+          currentTrends: ["Single-cell transcriptomics of vascular transition states", "Optogenetic control of synthetic morphogen sinks"],
+          openProblems: ["How mechanical tension feedback couples with transcriptional reprogramming", "Cross-talk dynamics between brassinosteroids and gibberellin sinks"],
+        },
+        caseStudies: [
+          { title: "Arabidopsis gnom mutant phenotypic bifurcation", context: "Investigation of brefeldin-A sensitive vesicle trafficking mutants", findings: "Loss of GNOM ARF-GEF abolishes coordinated PIN1 polarity, causing symmetrical ball-shaped embryos devoid of root or shoot meristems." },
+        ],
+        limitations: [
+          { boundaryCondition: "Linear diffusion approximation assumes isotropic cytoplasm", tradeOffs: "Fails to capture active cytoplasmic streaming dynamics observed in elongated cells" },
+        ],
+        references: [
+          { citation: "Sachs, T. (1991). Pattern Formation in Plant Development. Cambridge University Press.", relevance: "Seminal formulation of the auxin canalisation hypothesis" },
+        ],
+        keyTerms: [
+          { term: "Morphogen", meaning: "A signaling substance that imparts positional information to cells along a concentration gradient", example: "Auxin concentrations specifying distal and proximal tissue fates" },
+        ],
+      },
+    ],
+    summary: ["Embryonic polarity originates from asymmetric carrier distribution.", "Genetic mutants confirm the indispensable role of targeted vesicle recycling."],
+    closingLine: "Theoretical biology unifies morphogenetic patterns under universal physicochemical conservation laws.",
+    omitted: [{ evidenceId: "b3", reason: "page number" }],
+  });
+
+  it("validates professional notes with architecture, commands, troubleshooting, scenarios and labs", () => {
+    const notes = validateProfessionalNotes(goodProfNotes(), ids, blocks, "en", "hash-prof", 12);
+    expect(notes.blueprint).toBe(BLUEPRINTS.PROFESSIONAL);
+    expect(notes.targetAudience).toBe("it_professional");
+    expect(notes.topics[0].commands).toHaveLength(2);
+    expect(notes.topics[0].architecture?.components).toContain("Mosquitto broker");
+    expect(notes.topics[0].troubleshooting[0].issue).toMatch(/Flatline ADC/);
+    expect(notes.topics[0].interviewQuestions[0].question).toMatch(/capacitive soil sensors/);
+  });
+
+  it("enforces no-copying rules on professional sections", () => {
+    const copying = goodProfNotes();
+    copying.topics[0].problemSolved = "Notice that: " + blocks[0].text + " This is our primary operational concern.";
+    expect(() => validateProfessionalNotes(copying, ids, blocks, "en", "hash-prof", 12)).toThrow(/problemSolved copies the book \(b1\)/);
+  });
+
+  it("enforces complete page coverage on professional notes", () => {
+    const missing = goodProfNotes();
+    missing.omitted = [];
+    expect(() => validateProfessionalNotes(missing, ids, blocks, "en", "hash-prof", 12)).toThrow(/not explained or omitted: b3/);
+  });
+
+  it("validates professor notes with foundations, research perspective, case studies and references", () => {
+    const notes = validateProfessorNotes(goodProfessorNotes(), ids, blocks, "en", "hash-prof", 16);
+    expect(notes.blueprint).toBe(BLUEPRINTS.PROFESSOR);
+    expect(notes.targetAudience).toBe("professor");
+    expect(notes.topics[0].foundations?.formalDefinition).toMatch(/Apical-basal polarity/);
+    expect(notes.topics[0].caseStudies[0].title).toMatch(/gnom mutant/);
+    expect(notes.topics[0].references[0].citation).toMatch(/Sachs/);
+  });
+
+  it("enforces no-copying and coverage rules on professor notes", () => {
+    const copying = goodProfessorNotes();
+    copying.topics[0].foundations.formalDefinition = "Definition: " + blocks[0].text + " As established in early botany.";
+    expect(() => validateProfessorNotes(copying, ids, blocks, "en", "hash-prof", 16)).toThrow(/formal definition copies the book \(b1\)/);
+
+    const missing = goodProfessorNotes();
+    missing.omitted = [];
+    expect(() => validateProfessorNotes(missing, ids, blocks, "en", "hash-prof", 16)).toThrow(/not explained or omitted: b3/);
+  });
+
+  it("routes validation correctly via validateNotesForBlueprint", () => {
+    const prof = validateNotesForBlueprint(BLUEPRINTS.PROFESSIONAL, goodProfNotes(), ids, blocks, "en", "h1");
+    expect(prof.blueprint).toBe(BLUEPRINTS.PROFESSIONAL);
+
+    const acad = validateNotesForBlueprint(BLUEPRINTS.PROFESSOR, goodProfessorNotes(), ids, blocks, "en", "h2");
+    expect(acad.blueprint).toBe(BLUEPRINTS.PROFESSOR);
+
+    const child = validateNotesForBlueprint(BLUEPRINTS.CHILDREN, goodNotes(), ids, blocks, "en", "h3");
+    expect(child.blueprint).toBe(BLUEPRINTS.CHILDREN);
   });
 });

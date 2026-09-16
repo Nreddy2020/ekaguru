@@ -250,4 +250,46 @@ it("generates an 'Explain it like I am...' ladder rung once and reuses it for fr
   expect(cachedNotes?.notes.topics[0].ladder![0].explanation).toBe(first.explanation);
 });
 
+it("builds professional notes for it_professional audience and professor notes for professor audience", async () => {
+  const profNotesData = {
+    title: "Distributed Plant Growth Telemetry",
+    subtitle: "Architecture and operational patterns for botanical telemetry",
+    overview: "This chapter covers automated sensory data collection for plant health monitoring across distributed edge gateways.",
+    objectives: ["Deploy an edge telemetry daemon"],
+    topics: [
+      {
+        id: "t1",
+        heading: "Soil moisture sensing and edge ingestion",
+        icon: "💻",
+        evidenceIds: ["vision-0", "vision-1"],
+        explanation: ["Capacitive probes measure soil dielectric permittivity to evaluate water content without corrosion."],
+        keyPoints: ["Capacitive sensing prevents oxidation"],
+        problemSolved: "Manual soil observation lacks continuous resolution.",
+        architecture: { description: "Soil sensors attach to microcontrollers streaming metrics over LoRaWAN.", components: ["ESP32", "Mosquitto"] },
+        implementation: { pattern: "PubSub telemetry", steps: ["Calibrate ADC baselines.", "Trigger scheduler."] },
+        commands: [{ command: "mosquitto_sub -t sensors/#", description: "Monitor telemetry" }],
+        troubleshooting: [{ issue: "Flatline ADC", cause: "Wire fault", resolution: "Verify supply voltage" }],
+        scenarios: [{ title: "Greenhouse humidity", context: "Moisture bridges contacts", solution: "Conformal coat PCB" }],
+        labs: [{ title: "Edge test", goal: "Transmit packet", steps: ["Plug probe", "Run script"], verification: "Query DB count" }],
+        interviewQuestions: [{ question: "Why capacitive probes?", expectedAnswer: "Prevent galvanisation and corrosion." }],
+        keyTerms: [{ term: "LoRaWAN", meaning: "Low Power Wide Area Network protocol", example: "Farm perimeter telemetry" }],
+      },
+    ],
+    summary: ["Telemetry enables precision analytics.", "Edge architectures guarantee continuous plant observation."],
+    closingLine: "Reliable production monitoring.",
+    omitted: [],
+  };
+
+  const { service, model } = harness([
+    profNotesData,
+    { pass: true, issues: [] },
+  ]);
+
+  const view = await service.build(source, "en", undefined, "basis", "it_professional");
+  expect(view.blueprint).toBe("notes-prof-v1");
+  expect(view.notes.topics[0].problemSolved).toBe("Manual soil observation lacks continuous resolution.");
+  expect(view.notes.topics[0].commands).toHaveLength(1);
+  expect(model.json.mock.calls[0][0]).toMatch(/Write professional study notes/);
+});
+
 

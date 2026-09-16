@@ -233,3 +233,78 @@ it("reports a preparation failure with a retry and renders print-ready notes", a
   expect(print).toHaveTextContent("On the page: Look at the small plant");
   expect(print).toHaveTextContent("(Goes beyond this page.)");
 });
+
+it("renders professional edition badge and specialized sections (architecture, commands, troubleshooting, scenarios, labs, interview questions)", async () => {
+  const profView = {
+    ...view,
+    blueprint: "notes-prof-v1",
+    targetAudience: "it_professional",
+    notes: {
+      ...view.notes,
+      blueprint: "notes-prof-v1",
+      topics: [
+        {
+          ...view.notes.topics[0],
+          professional: {
+            problemSolved: "State management at scale across microfrontends",
+            architecture: { components: ["Store", "EventBus", "Worker"], dataFlow: "Event -> Bus -> Store -> UI" },
+            implementation: { languageOrTool: "TypeScript", codeSnippet: "const store = configureStore();", explanation: "Initializes shared store" },
+            commands: [{ command: "kubectl get pods", description: "List all cluster pods", output: "Running" }],
+            troubleshooting: [{ symptom: "High latency", cause: "GC pauses", fix: "Tune heap generation size" }],
+            scenarios: [{ title: "Black Friday burst", context: "50k RPS peak traffic", solution: "Autoscale read replicas" }],
+            labs: [{ title: "Deploy Cluster", objective: "Run app on k8s", steps: ["apply manifest", "verify pods"], verification: "HTTP 200 healthcheck" }],
+            interviewQuestions: [{ question: "Explain event loop starvation", expectedAnswer: "Long synchronous blocking loop", difficulty: "senior" }],
+          },
+        },
+      ],
+    },
+  };
+  global.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => profView })) as any;
+  render(<GuruNotesBoard page={page} language="en" audience="it_professional" />);
+  await screen.findByTestId("guru-notes");
+  expect(screen.getByTestId("edition-badge")).toHaveTextContent("Professional Edition");
+  expect(screen.getByTestId("notes-professional-section")).toBeInTheDocument();
+  expect(screen.getByTestId("prof-problem-solved")).toHaveTextContent("State management at scale");
+  expect(screen.getByTestId("prof-architecture")).toHaveTextContent("Event -> Bus -> Store -> UI");
+  expect(screen.getByTestId("prof-implementation")).toHaveTextContent("const store = configureStore();");
+  expect(screen.getByTestId("prof-commands")).toHaveTextContent("kubectl get pods");
+  expect(screen.getByTestId("prof-troubleshooting")).toHaveTextContent("Tune heap generation size");
+  expect(screen.getByTestId("prof-scenarios")).toHaveTextContent("Black Friday burst");
+  expect(screen.getByTestId("prof-labs")).toHaveTextContent("Deploy Cluster");
+  expect(screen.getByTestId("prof-interview-questions")).toHaveTextContent("Explain event loop starvation");
+});
+
+it("renders academic edition badge and specialized sections (foundations, research, case studies, limitations, references)", async () => {
+  const acadView = {
+    ...view,
+    blueprint: "notes-acad-v1",
+    targetAudience: "professor",
+    notes: {
+      ...view.notes,
+      blueprint: "notes-acad-v1",
+      topics: [
+        {
+          ...view.notes.topics[0],
+          professor: {
+            foundations: { theoreticalBasis: "Denotational semantics and domain theory", formalDefinitions: ["A domain is a directed-complete poset"] },
+            researchPerspective: { historicalContext: "Scott and Strachey, 1970", currentDebates: "Operational vs Axiomatic limits", openProblems: ["Full abstraction problem"] },
+            caseStudies: [{ title: "Verified Microkernel", methodology: "Interactive theorem proving in Isabelle/HOL", findings: "Machine-checked functional correctness" }],
+            limitations: { boundaryConditions: ["Turing equivalence bounds"], critiques: ["Inapplicable to non-deterministic concurrency"] },
+            references: [{ citation: "Scott, D. (1970). Outline of a mathematical theory of computation.", relevance: "Foundational paper" }],
+          },
+        },
+      ],
+    },
+  };
+  global.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => acadView })) as any;
+  render(<GuruNotesBoard page={page} language="en" audience="professor" />);
+  await screen.findByTestId("guru-notes");
+  expect(screen.getByTestId("edition-badge")).toHaveTextContent("Academic Edition");
+  expect(screen.getByTestId("notes-professor-section")).toBeInTheDocument();
+  expect(screen.getByTestId("acad-foundations")).toHaveTextContent("Denotational semantics and domain theory");
+  expect(screen.getByTestId("acad-research")).toHaveTextContent("Scott and Strachey, 1970");
+  expect(screen.getByTestId("acad-case-studies")).toHaveTextContent("Verified Microkernel");
+  expect(screen.getByTestId("acad-limitations")).toHaveTextContent("Turing equivalence bounds");
+  expect(screen.getByTestId("acad-references")).toHaveTextContent("Foundational paper");
+});
+

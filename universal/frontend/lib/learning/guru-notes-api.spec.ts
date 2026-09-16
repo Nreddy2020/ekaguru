@@ -111,3 +111,37 @@ it("requests an alternative explanation ladder rung for a topic", async () => {
     },
   });
 });
+
+it("maps audience types to appropriate blueprints", () => {
+  const { blueprintForAudience, BLUEPRINTS } = require("./guru-notes-api");
+  expect(blueprintForAudience("child")).toBe(BLUEPRINTS.CHILD);
+  expect(blueprintForAudience("school_student")).toBe(BLUEPRINTS.CHILD);
+  expect(blueprintForAudience("teacher")).toBe(BLUEPRINTS.CHILD);
+  expect(blueprintForAudience("it_professional")).toBe(BLUEPRINTS.PROFESSIONAL);
+  expect(blueprintForAudience("manager")).toBe(BLUEPRINTS.PROFESSIONAL);
+  expect(blueprintForAudience("competitive_exam")).toBe(BLUEPRINTS.PROFESSIONAL);
+  expect(blueprintForAudience("professor")).toBe(BLUEPRINTS.PROFESSOR);
+  expect(blueprintForAudience("college_student")).toBe(BLUEPRINTS.PROFESSOR);
+  expect(blueprintForAudience(undefined)).toBe(BLUEPRINTS.CHILD);
+});
+
+it("passes audience parameter to loadGuruNotes, prepareBookNotes, and bookNotesStatus", async () => {
+  const calls: { url: string; body?: any }[] = [];
+  (global as any).fetch = jest.fn(async (url: string, init: any) => {
+    calls.push({ url, body: init?.body ? JSON.parse(init.body) : undefined });
+    if (url.endsWith("/pages/3/notes")) return respond(200, { ...view, targetAudience: "it_professional" });
+    if (url.endsWith("/notes/prepare")) return respond(201, { pagesTotal: 5, from: 1, to: 5, ready: 1, queued: 4, reading: 0, failed: [] });
+    if (url.includes("/notes/status")) return respond(200, { bookId: "evs-class-5", language: "en", ready: [3], readyCount: 1, jobs: [] });
+    throw new Error("unexpected " + url);
+  });
+
+  await loadGuruNotes(page, "en", "basis", new AbortController().signal, undefined, "it_professional");
+  expect(calls[0].body).toEqual({ language: "en", depth: "basis", audience: "it_professional" });
+
+  await prepareBookNotes("evs-class-5", "en", "deep", undefined, "professor");
+  expect(calls[1].body).toEqual({ language: "en", depth: "deep", audience: "professor" });
+
+  await bookNotesStatus("evs-class-5", "en", "deep", undefined, "professor");
+  expect(calls[2].url).toContain("audience=professor");
+});
+

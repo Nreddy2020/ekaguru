@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import { IsIn, IsInt, IsOptional, IsString, Length, Matches, Max, Min } from "class-validator";
 import { DEPTHS } from "./guru-plan.schema";
+import { blueprintForAudience } from "./guru-notes.schema";
 import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
 import { LearningLibraryAuthGuard } from "../learning-library-auth.guard";
 import { GuruGenerationQueueService } from "./guru-generation-queue.service";
@@ -23,6 +24,7 @@ import { TeacherParentService } from "./teacher-parent.service";
 export class NotesRequestDto {
   @IsString() @Matches(/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/) language!: string;
   @IsOptional() @IsIn(DEPTHS as unknown as string[]) depth?: string;
+  @IsOptional() @IsString() audience?: string;
 }
 export class NotesQuestionDto extends NotesRequestDto {
   @IsString() @Length(1, 40) topicId!: string;
@@ -64,7 +66,7 @@ export class GuruNotesController {
     @Res({ passthrough: true }) res: any,
     @Query("cachedOnly") cachedOnly?: string,
   ) {
-    return this.answer(await this.evidence.builtin(bookId, page, { performOcr: false }), body.language, req.user, res, cachedOnly === "1", body.depth);
+    return this.answer(await this.evidence.builtin(bookId, page, { performOcr: false }), body.language, req.user, res, cachedOnly === "1", body.depth, body.audience);
   }
 
   @Post("learning-materials/:materialId/pages/:page/notes")
@@ -77,10 +79,10 @@ export class GuruNotesController {
     @Res({ passthrough: true }) res: any,
     @Query("cachedOnly") cachedOnly?: string,
   ) {
-    return this.answer(await this.evidence.material(id, page, { performOcr: false }), body.language, req.user, res, cachedOnly === "1", body.depth);
+    return this.answer(await this.evidence.material(id, page, { performOcr: false }), body.language, req.user, res, cachedOnly === "1", body.depth, body.audience);
   }
 
-  async answer(source: any, language: string, user: any, res: any, cachedOnly = false, depth?: string) {
+  async answer(source: any, language: string, user: any, res: any, cachedOnly = false, depth?: string, audience?: string) {
     if (source.status === "PENDING") {
       if (cachedOnly) {
         res?.status?.(204);
@@ -91,15 +93,22 @@ export class GuruNotesController {
       return { job };
     }
     const wanted = GuruNotesService.depthOf(depth);
-    const cached = await this.notes.cached(source, language, wanted);
+    const targetAudience = audience || source?.targetAudience || source?.audience;
+    const cached = targetAudience
+      ? await this.notes.cached(source, language, wanted, targetAudience)
+      : await this.notes.cached(source, language, wanted);
     if (cached) return cached;
     if (cachedOnly) {
       res?.status?.(204);
       return undefined;
     }
-    const job = await this.queue.enqueueNotes(source, language, user, { depth: wanted });
+    const jobOptions: { depth?: string; audience?: string } = { depth: wanted };
+    if (targetAudience) jobOptions.audience = targetAudience;
+    const job = await this.queue.enqueueNotes(source, language, user, jobOptions);
     if (job.status === "DONE") {
-      const ready = await this.notes.cached(source, language, wanted);
+      const ready = targetAudience
+        ? await this.notes.cached(source, language, wanted, targetAudience)
+        : await this.notes.cached(source, language, wanted);
       if (ready) return ready;
     }
     res?.status?.(202);
@@ -195,7 +204,8 @@ export class GuruNotesController {
           result.reading++;
         }
         // The whole book runs behind pages learners open; the first page carries the single budget reservation.
-        const job = await this.queue.enqueueNotes(source, body.language, user, { reserved, priority: 0, depth: body.depth });
+        const targetAudience = body.audience || source?.targetAudience || source?.audience;
+        const job = await this.queue.enqueueNotes(source, body.language, user, { reserved, priority: 0, depth: body.depth, audience: targetAudience });
         reserved = true;
         job.status === "DONE" ? result.ready++ : result.queued++;
       } catch (error: any) {
@@ -207,21 +217,32 @@ export class GuruNotesController {
 
   @Get("textbooks/:bookId/notes/status")
   @UseGuards(JwtAuthGuard)
-  async statusBuiltin(@Param("bookId") bookId: string, @Query("language") language?: string, @Query("depth") depth?: string) {
-    return this.status(bookId, language, depth);
+  async statusBuiltin(
+    @Param("bookId") bookId: string,
+    @Query("language") language?: string,
+    @Query("depth") depth?: string,
+    @Query("audience") audience?: string,
+  ) {
+    return this.status(bookId, language, depth, audience);
   }
 
   @Get("learning-materials/:materialId/notes/status")
   @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
-  async statusMaterial(@Param("materialId") id: string, @Query("language") language?: string, @Query("depth") depth?: string) {
-    return this.status(id, language, depth);
+  async statusMaterial(
+    @Param("materialId") id: string,
+    @Query("language") language?: string,
+    @Query("depth") depth?: string,
+    @Query("audience") audience?: string,
+  ) {
+    return this.status(id, language, depth, audience);
   }
 
-  async status(bookId: string, language?: string, depth?: string) {
+  async status(bookId: string, language?: string, depth?: string, audience?: string) {
     const lang = typeof language === "string" && /^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(language) ? language : "en";
     const wanted = GuruNotesService.depthOf(depth);
-    const ready = await this.notes.readyPages(bookId, lang, wanted);
+    const blueprint = blueprintForAudience(audience);
+    const ready = await this.notes.readyPages(bookId, lang, wanted, blueprint);
     const jobs = await this.queue.notesJobs(bookId, lang, wanted);
-    return { bookId, language: lang, depth: wanted, ready, readyCount: ready.length, jobs };
+    return { bookId, language: lang, depth: wanted, blueprint, ready, readyCount: ready.length, jobs };
   }
 }

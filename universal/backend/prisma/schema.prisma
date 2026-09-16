@@ -516,6 +516,7 @@ model LearningMaterial {
   subjectName         String?
   gradeLevel          String?
   language            String?          @default("en")
+  targetAudience      String?          @default("child")
 
   originalFileName    String?
   mimeType            String?

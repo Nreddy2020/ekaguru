@@ -39,6 +39,116 @@ export interface NotesQuiz {
   why: string;
 }
 
+export type BookAudience =
+  | 'child'
+  | 'school_student'
+  | 'college_student'
+  | 'teacher'
+  | 'professor'
+  | 'it_professional'
+  | 'manager'
+  | 'competitive_exam';
+
+export const AUDIENCES: readonly BookAudience[] = [
+  'child',
+  'school_student',
+  'college_student',
+  'teacher',
+  'professor',
+  'it_professional',
+  'manager',
+  'competitive_exam',
+] as const;
+
+export const BLUEPRINTS = {
+  CHILD: 'notes-v4',
+  PROFESSIONAL: 'notes-prof-v1',
+  PROFESSOR: 'notes-acad-v1',
+} as const;
+
+export type BlueprintId = (typeof BLUEPRINTS)[keyof typeof BLUEPRINTS];
+
+export function blueprintForAudience(audience?: BookAudience | string): BlueprintId {
+  switch (audience) {
+    case 'it_professional':
+    case 'manager':
+    case 'competitive_exam':
+      return BLUEPRINTS.PROFESSIONAL;
+    case 'professor':
+    case 'college_student':
+      return BLUEPRINTS.PROFESSOR;
+    case 'child':
+    case 'school_student':
+    case 'teacher':
+    default:
+      return BLUEPRINTS.CHILD;
+  }
+}
+
+export interface ProfessionalTopicData {
+  problemSolved: string;
+  architecture: {
+    components: string[];
+    dataFlow: string;
+  };
+  implementation: {
+    languageOrTool: string;
+    codeSnippet: string;
+    explanation: string;
+  };
+  commands: {
+    command: string;
+    description: string;
+    output?: string;
+  }[];
+  troubleshooting: {
+    symptom: string;
+    cause: string;
+    fix: string;
+  }[];
+  scenarios: {
+    title: string;
+    context: string;
+    solution: string;
+  }[];
+  labs: {
+    title: string;
+    objective: string;
+    steps: string[];
+    verification: string;
+  }[];
+  interviewQuestions: {
+    question: string;
+    expectedAnswer: string;
+    difficulty: 'junior' | 'mid' | 'senior';
+  }[];
+}
+
+export interface ProfessorTopicData {
+  foundations: {
+    theoreticalBasis: string;
+    formalDefinitions: string[];
+  };
+  researchPerspective: {
+    historicalContext: string;
+    currentDebates: string;
+    openProblems: string[];
+  };
+  caseStudies: {
+    title: string;
+    methodology: string;
+    findings: string;
+  }[];
+  limitations: {
+    boundaryConditions: string[];
+    critiques: string[];
+  };
+  references: {
+    citation: string;
+    relevance: string;
+  }[];
+}
+
 export type LadderLevel = "younger" | "analogy" | "expert";
 
 export interface TopicLadderEntry {
@@ -96,12 +206,17 @@ export interface NotesTopic {
   guruRemembers?: string;
   /** "Explain it like I am..." ladder rungs for this topic. */
   ladder?: TopicLadderEntry[];
+  /** Professional blueprint fields (notes-prof-v1) */
+  professional?: ProfessionalTopicData;
+  /** Professor / Academic blueprint fields (notes-acad-v1) */
+  professor?: ProfessorTopicData;
 }
 export interface GuruNotesDocument {
   title: string;
   subtitle?: string;
   closingLine?: string;
   depth?: TeachingDepth;
+  targetAudience?: BookAudience;
   overview: string;
   objectives: string[];
   topics: NotesTopic[];
@@ -127,6 +242,7 @@ export interface GuruNotesView {
   sourceHash: string;
   language: string;
   depth?: TeachingDepth;
+  targetAudience?: BookAudience;
   blueprint: string;
   notes: GuruNotesDocument;
   extensions: NotesExtension[];
@@ -152,14 +268,17 @@ export async function loadGuruNotes(
   depth: TeachingDepth,
   signal: AbortSignal,
   onStage?: (stage: string) => void,
+  audience?: BookAudience,
 ): Promise<GuruNotesView> {
   const path = bookPath(page.bookId) + "/pages/" + page.physicalPage + "/notes";
   type Answer = GuruNotesView | { job: GuruJob };
-  let response = await guruFetch<Answer>(path, { language, depth }, signal);
+  const reqBody: { language: string; depth: TeachingDepth; audience?: BookAudience } = { language, depth };
+  if (audience) reqBody.audience = audience;
+  let response = await guruFetch<Answer>(path, reqBody, signal);
   for (let round = 0; response.status === 202 && response.data && "job" in response.data; round++) {
     if (round >= 3) throw new Error("Guru is still preparing these notes. Please retry in a moment.");
     await waitForGuruJob(response.data.job, signal, onStage);
-    response = await guruFetch<Answer>(path, { language, depth }, signal);
+    response = await guruFetch<Answer>(path, reqBody, signal);
   }
   if (!response.data || !("notes" in response.data)) throw new Error("Guru notes are not ready yet. Please retry.");
   const view = response.data;
@@ -210,18 +329,16 @@ export function requestTopicLadder(
   );
 }
 
-export function prepareBookNotes(bookId: string, language: string, depth: TeachingDepth, signal?: AbortSignal) {
+export function prepareBookNotes(bookId: string, language: string, depth: TeachingDepth, signal?: AbortSignal, audience?: BookAudience) {
   return guruRequest<{ pagesTotal: number; from: number; to: number; ready: number; queued: number; reading: number; failed: { page: number; reason: string }[] }>(
     bookPath(bookId) + "/notes/prepare",
-    { language, depth },
+    { language, depth, ...(audience ? { audience } : {}) },
     signal,
   );
 }
 
-export function bookNotesStatus(bookId: string, language: string, depth: TeachingDepth, signal?: AbortSignal) {
-  return guruRequest<BookNotesStatus>(
-    bookPath(bookId) + "/notes/status?language=" + encodeURIComponent(language) + "&depth=" + encodeURIComponent(depth),
-    undefined,
-    signal,
-  );
+export function bookNotesStatus(bookId: string, language: string, depth: TeachingDepth, signal?: AbortSignal, audience?: BookAudience) {
+  let url = bookPath(bookId) + "/notes/status?language=" + encodeURIComponent(language) + "&depth=" + encodeURIComponent(depth);
+  if (audience) url += "&audience=" + encodeURIComponent(audience);
+  return guruRequest<BookNotesStatus>(url, undefined, signal);
 }

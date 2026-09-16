@@ -174,7 +174,18 @@ function FlashCardDeck({ view }: { view: GuruNotesView }) {
   const [flipped, setFlipped] = useState(false);
   if (!cards.length) return <p>No cards yet: the notes have no words, checks or questions to revise.</p>;
   const card = cards[Math.min(index, cards.length - 1)];
-  const kindLabel = { term: "Word", quiz: "Circle the correct answer", check: "Check yourself", doubt: "A doubt children have", asked: "A reader asked" }[card.kind];
+  const kindLabel = {
+    term: "Word",
+    quiz: "Circle the correct answer",
+    check: "Check yourself",
+    doubt: "A doubt children have",
+    asked: "A reader asked",
+    command: "CLI Command",
+    troubleshoot: "Troubleshooting",
+    interview: "Interview Drill",
+    foundation: "Theoretical Foundation",
+    case_study: "Scholarly Case Study",
+  }[card.kind];
   return (
     <div data-testid="revision-cards" className="space-y-3">
       <p className="text-xs uppercase tracking-wide opacity-70">

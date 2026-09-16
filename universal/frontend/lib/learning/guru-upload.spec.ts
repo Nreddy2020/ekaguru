@@ -20,8 +20,15 @@ it("sends the original as multipart and links only a verified owned source",asyn
  expect(url).toContain("/learning-materials/upload");expect(options.body).toBeInstanceOf(FormData);
  expect(options.body.get("file").name).toBe("original.pdf");
  expect(options.body.get("learnerId")).toBe("learner");
+ expect(options.body.get("targetAudience")).toBe("child");
  expect(options.headers["Content-Type"]).toBeUndefined();
- expect(BookStorageService.updateBook).toHaveBeenCalledWith(expect.objectContaining({guruMaterial:{id:"material-verified",learnerId:"learner",sourceChecksum:checksum}}));
+ expect(BookStorageService.updateBook).toHaveBeenCalledWith(expect.objectContaining({targetAudience:"child",guruMaterial:{id:"material-verified",learnerId:"learner",sourceChecksum:checksum}}));
+});
+it("forwards specified targetAudience to form and local storage",async()=>{
+ await expect(connectLocalBook(book.id,"learner","test-token",new AbortController().signal,"it_professional")).resolves.toEqual({materialId:"material-verified"});
+ const options=(fetch as jest.Mock).mock.calls[0][1];
+ expect(options.body.get("targetAudience")).toBe("it_professional");
+ expect(BookStorageService.updateBook).toHaveBeenCalledWith(expect.objectContaining({targetAudience:"it_professional"}));
 });
 it("rejects a mismatched source hash without changing the local entry",async()=>{
  (fetch as jest.Mock).mockResolvedValue({ok:true,json:async()=>({data:{id:"material",learnerId:"learner",checksum:"wrong",fileSizeBytes:8}})});

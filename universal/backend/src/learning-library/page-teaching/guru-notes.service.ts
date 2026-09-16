@@ -14,16 +14,19 @@ import { GuruUsageService } from "./guru-usage.service";
 import { GuruBookMapService } from "./guru-book-map.service";
 import { DEPTHS, Depth } from "./guru-plan.schema";
 import {
+  BLUEPRINTS,
+  BookAudience,
   GURU_NOTES_ANSWER_RESPONSE_SCHEMA,
-  GURU_NOTES_RESPONSE_SCHEMA,
   GuruNotes,
   LadderLevel,
   NOTES_BLUEPRINT,
   TopicLadderEntry,
-  notesPromptSection,
+  blueprintForAudience,
+  promptSectionForBlueprint,
   readingLevelFor,
+  responseSchemaForBlueprint,
   uncoveredByNotes,
-  validateGuruNotes,
+  validateNotesForBlueprint,
 } from "./guru-notes.schema";
 
 export type NotesStage = "vision" | "notes" | "repair" | "review" | "persist";
@@ -151,9 +154,10 @@ export class GuruNotesService {
   static depthOf(value: unknown): Depth {
     return typeof value === "string" && (DEPTHS as readonly string[]).includes(value) ? (value as Depth) : "basis";
   }
-  notesIdFor(source: any, language: string, depth: Depth = "basis") {
+  notesIdFor(source: any, language: string, depth: Depth = "basis", blueprint?: string) {
+    const bp = blueprint || blueprintForAudience(source?.targetAudience || source?.audience);
     return createHash("sha256")
-      .update(JSON.stringify([source.bookId, source.physicalPage, source.sourceHash, { language, depth }, this.model.identity, GuruNotesService.BLUEPRINT]))
+      .update(JSON.stringify([source.bookId, source.physicalPage, source.sourceHash, { language, depth }, this.model.identity, bp]))
       .digest("hex");
   }
 
@@ -199,55 +203,66 @@ export class GuruNotesService {
     };
   }
 
-  async cached(source: any, language: string, depth: Depth = "basis"): Promise<GuruNotesView | null> {
+  async cached(source: any, language: string, depth: Depth = "basis", audience?: string): Promise<GuruNotesView | null> {
+    const blueprint = blueprintForAudience(audience || source?.targetAudience || source?.audience);
     const row = await this.prisma.guruPageNotes.findUnique({
-      where: { id: this.notesIdFor(source, language, depth) },
+      where: { id: this.notesIdFor(source, language, depth, blueprint) },
       include: { extensions: { orderBy: { createdAt: "asc" } } },
     });
     return row ? await this.enrichWithCrossPageLinks(this.view(row)) : null;
   }
 
   /** Notes ready for a book in a language and depth, by page, without payloads. */
-  async readyPages(bookId: string, language: string, depth: Depth = "basis"): Promise<number[]> {
-    // Only notes under the current blueprint count as ready; older editions are replaced when opened.
+  async readyPages(bookId: string, language: string, depth: Depth = "basis", blueprint = GuruNotesService.BLUEPRINT): Promise<number[]> {
+    // Only notes under the requested blueprint count as ready; older editions are replaced when opened.
     const rows = await this.prisma.guruPageNotes.findMany({
-      where: { bookId, language, depth, payload: { path: ["notes", "blueprint"], equals: GuruNotesService.BLUEPRINT } },
+      where: { bookId, language, depth, payload: { path: ["notes", "blueprint"], equals: blueprint } },
       select: { physicalPage: true },
       orderBy: { physicalPage: "asc" },
     });
     return [...new Set(rows.map((r) => r.physicalPage))];
   }
 
-  async build(source: any, language: string, onStage?: (stage: NotesStage) => void, depth: Depth = "basis"): Promise<GuruNotesView> {
-    const id = this.notesIdFor(source, language, depth);
-    const cached = await this.cached(source, language, depth);
+  async build(source: any, language: string, onStage?: (stage: NotesStage) => void, depth: Depth = "basis", audience?: string): Promise<GuruNotesView> {
+    const targetAudience = (audience || source?.targetAudience || source?.audience) as BookAudience | undefined;
+    const blueprint = blueprintForAudience(targetAudience);
+    const id = this.notesIdFor(source, language, depth, blueprint);
+    const cached = await this.cached(source, language, depth, targetAudience);
     if (cached) return cached;
     if (!this.pending.has(id)) {
-      const promise = this.generate(id, source, language, onStage, depth);
+      const promise = this.generate(id, source, language, onStage, depth, blueprint, targetAudience);
       this.pending.set(id, promise);
       promise.finally(() => this.pending.delete(id)).catch(() => {});
     }
     return this.pending.get(id)!;
   }
 
-  private async generate(id: string, source: any, language: string, onStage?: (stage: NotesStage) => void, depth: Depth = "basis"): Promise<GuruNotesView> {
+  private async generate(
+    id: string,
+    source: any,
+    language: string,
+    onStage?: (stage: NotesStage) => void,
+    depth: Depth = "basis",
+    blueprint = GuruNotesService.BLUEPRINT,
+    targetAudience?: BookAudience,
+  ): Promise<GuruNotesView> {
     onStage?.("vision");
     const { blocks, uncertain } = await this.planner.pageBlocks(source, this.model);
     const evidenceIds = new Set<string>(blocks.map((b: any) => b.blockId));
     const stamp = id.slice(0, 12) + "-" + source.bookId + "-p" + source.physicalPage + "-notes-" + depth;
     const readingLevel = readingLevelFor(source.bookId);
+    const promptText = promptSectionForBlueprint(blueprint, language, readingLevel, depth);
+    const responseSchema = responseSchemaForBlueprint(blueprint);
     onStage?.("notes");
     const raw: any = await this.model.json(
-      notesPromptSection(language, readingLevel, depth) +
-        " Return {title,subtitle,overview,objectives:[string],topics:[{id,heading,icon,evidenceIds:[string],lookAt,hook,bigIdea,explanation:[string],keyPoints:[string],steps:[string],chain:[{label,emoji}],diagram:[{type,x,y,x2,y2,width,height,radius,text,color}],keyTerms:[{term,meaning,example}],example:{situation,explanation},tryNow:{title,steps:[string],whatToNotice},didYouKnow,rememberTip,commonDoubts:[{question,answer}],quiz:{question,options:[string],answerIndex,why},checkYourself:[{question,answer}]}],summary:[string],closingLine,omitted:[{evidenceId,reason}]}. Topic ids are t1, t2 and so on. Source blocks: " +
-        JSON.stringify(blocks),
+      promptText + " Source blocks: " + JSON.stringify(blocks),
       source.imageDataUrl,
-      GURU_NOTES_RESPONSE_SCHEMA,
+      responseSchema,
     );
     await this.planner.dump(stamp + "-1-notes", raw);
     let notes: GuruNotes;
     try {
-      notes = validateGuruNotes(raw, evidenceIds, blocks, language, source.sourceHash, readingLevel, depth);
+      notes = validateNotesForBlueprint(blueprint, raw, evidenceIds, blocks, language, source.sourceHash, readingLevel, depth);
     } catch (error) {
       let candidate: any = raw;
       let problem = String((error as any)?.message || error);
@@ -264,15 +279,15 @@ export class GuruNotesService {
                 ". "
               : "") +
             "Fix the problem and return the complete corrected notes with the same schema, keeping everything that was already good. " +
-            notesPromptSection(language, readingLevel, depth) +
+            promptText +
             " Notes: " +
             JSON.stringify(candidate),
           undefined,
-          GURU_NOTES_RESPONSE_SCHEMA,
+          responseSchema,
         );
         await this.planner.dump(stamp + "-2-repair-" + attempt, candidate);
         try {
-          repaired = validateGuruNotes(candidate, evidenceIds, blocks, language, source.sourceHash, readingLevel, depth);
+          repaired = validateNotesForBlueprint(blueprint, candidate, evidenceIds, blocks, language, source.sourceHash, readingLevel, depth);
         } catch (repairError) {
           problem = String((repairError as any)?.message || repairError);
           this.logger.warn("Repaired notes still invalid (" + stamp + ", attempt " + attempt + "): " + problem);
@@ -280,6 +295,9 @@ export class GuruNotesService {
         }
       }
       notes = repaired!;
+    }
+    if (targetAudience) {
+      notes.targetAudience = targetAudience;
     }
     onStage?.("review");
     const audit: any = await this.model.json(

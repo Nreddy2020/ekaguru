@@ -10,6 +10,7 @@ import {
   getPhysicalPageContent,
   PhysicalPageContent,
 } from './page-preservation-engine';
+import type { BookAudience } from './guru-notes-api';
 
 export type IngestionStage =
   | 'UPLOADED'
@@ -58,6 +59,7 @@ export interface IngestedBookModel {
   subject: string;
   grade: string;
   curriculum: string;
+  targetAudience?: BookAudience;
   fileName?: string;
   fileSizeBytes?: number;
   totalPages: number;

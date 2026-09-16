@@ -12,6 +12,7 @@ import { GuruUsageService } from "./guru-usage.service";
 import { PageEvidenceService } from "./page-evidence.service";
 import { DAILY_QUOTA_MESSAGE } from "./guru-model.service";
 import { GuruNotesService } from "./guru-notes.service";
+import { blueprintForAudience } from "./guru-notes.schema";
 
 export type GuruJobStatus = "QUEUED" | "RUNNING" | "DONE" | "FAILED";
 export interface GuruJobView {
@@ -135,10 +136,12 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
   }
 
   /** Notes for a page revision and language: DONE when stored, a live job, or a new queued job. */
-  async enqueueNotes(source: any, language: string, user: any, options: { reserved?: boolean; priority?: number; depth?: string } = {}): Promise<GuruJobView> {
+  async enqueueNotes(source: any, language: string, user: any, options: { reserved?: boolean; priority?: number; depth?: string; audience?: string } = {}): Promise<GuruJobView> {
     const priority = options.priority ?? DIRECT_PRIORITY;
     const depth = GuruNotesService.depthOf(options.depth);
-    const notesId = this.notes.notesIdFor(source, language, depth);
+    const targetAudience = options.audience || source?.targetAudience || source?.audience;
+    const blueprint = blueprintForAudience(targetAudience);
+    const notesId = this.notes.notesIdFor(source, language, depth, blueprint);
     const stored = await this.prisma.guruPageNotes.findUnique({ where: { id: notesId }, select: { id: true, createdAt: true } });
     if (stored)
       return { id: "notes:" + notesId, kind: "notes", status: "DONE", stage: "done", artifactId: notesId, attempts: 0, error: null, createdAt: stored.createdAt, updatedAt: stored.createdAt };
@@ -275,14 +278,15 @@ export class GuruGenerationQueueService implements OnModuleInit, OnModuleDestroy
       if (source.sourceHash !== job.sourceHash)
         throw Object.assign(new Error("The page source changed since the lesson was requested; open the page again."), { permanent: true });
       if (job.kind === "notes") {
-        await this.notes.build(
-          source,
-          job.language,
-          (stage) => {
-            this.setStage(job.id, stage).catch(() => {});
-          },
-          GuruNotesService.depthOf(job.depth),
-        );
+        const onStage = (stage: string) => {
+          this.setStage(job.id, stage).catch(() => {});
+        };
+        const depth = GuruNotesService.depthOf(job.depth);
+        if (source.targetAudience) {
+          await this.notes.build(source, job.language, onStage, depth, source.targetAudience);
+        } else {
+          await this.notes.build(source, job.language, onStage, depth);
+        }
         await this.prisma.guruLessonJob.updateMany({
           where: { id: job.id, status: "RUNNING" },
           data: { status: "DONE", stage: "done", finishedAt: new Date(), error: null },

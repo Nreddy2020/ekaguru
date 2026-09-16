@@ -45,7 +45,7 @@ export function memoryNotes(view: GuruNotesView): MemoryNotes {
   };
 }
 
-export type CardKind = "term" | "quiz" | "check" | "doubt" | "asked";
+export type CardKind = "term" | "quiz" | "check" | "doubt" | "asked" | "command" | "troubleshoot" | "interview" | "foundation" | "case_study";
 export interface FlashCard {
   id: string;
   kind: CardKind;
@@ -65,6 +65,19 @@ export function flashCards(view: GuruNotesView): FlashCard[] {
   for (const t of view.notes.topics) byTopic(t, "doubt", t.commonDoubts.map((d) => ({ front: d.question, back: d.answer })));
   for (const t of view.notes.topics)
     byTopic(t, "asked", view.extensions.filter((e) => e.topicId === t.id).map((e) => ({ front: e.question, back: e.answer + (e.beyondPage ? " (This goes beyond the page.)" : "") })));
+  for (const t of view.notes.topics) {
+    if (t.professional) {
+      const p = t.professional;
+      byTopic(t, "command", p.commands.map(c => ({ front: "Command: " + c.command, back: c.description + (c.output ? "\nOutput: " + c.output : "") })));
+      byTopic(t, "troubleshoot", p.troubleshooting.map(tr => ({ front: "Troubleshoot: " + tr.symptom, back: "Cause: " + tr.cause + "\nFix: " + tr.fix })));
+      byTopic(t, "interview", p.interviewQuestions.map(iq => ({ front: "[" + iq.difficulty.toUpperCase() + "] " + iq.question, back: iq.expectedAnswer })));
+    }
+    if (t.professor) {
+      const a = t.professor;
+      byTopic(t, "foundation", a.foundations.formalDefinitions.map((def, i) => ({ front: "Formal Definition #" + (i + 1) + " (" + t.heading + ")", back: def + "\nBasis: " + a.foundations.theoreticalBasis })));
+      byTopic(t, "case_study", a.caseStudies.map(cs => ({ front: "Case Study: " + cs.title, back: "Methodology: " + cs.methodology + "\nFindings: " + cs.findings })));
+    }
+  }
   return cards;
 }
 
@@ -95,6 +108,30 @@ export function questionBank(view: GuruNotesView): QuestionBank {
     view.extensions
       .filter((e) => e.topicId === t.id)
       .forEach((e) => bank.extended.push({ id: t.id + ":x" + e.id, topic: t.heading, question: e.question, answer: e.answer }));
+    if (t.professional) {
+      const p = t.professional;
+      p.interviewQuestions.forEach((iq, i) => {
+        const item = { id: t.id + ":iq" + i, topic: t.heading, question: "[" + iq.difficulty.toUpperCase() + "] " + iq.question, answer: iq.expectedAnswer };
+        if (iq.difficulty === "junior") bank.easy.push(item);
+        else if (iq.difficulty === "mid") bank.medium.push(item);
+        else bank.extended.push(item);
+      });
+      p.troubleshooting.forEach((tr, i) => {
+        bank.medium.push({ id: t.id + ":tr" + i, topic: t.heading, question: "Troubleshoot: " + tr.symptom, answer: "Cause: " + tr.cause + "; Fix: " + tr.fix });
+      });
+      p.labs.forEach((l, i) => {
+        bank.extended.push({ id: t.id + ":lab" + i, topic: t.heading, question: "Lab: " + l.title + " - " + l.objective, answer: "Steps:\n" + l.steps.join("\n") + "\nVerification: " + l.verification });
+      });
+    }
+    if (t.professor) {
+      const a = t.professor;
+      a.caseStudies.forEach((cs, i) => {
+        bank.medium.push({ id: t.id + ":cs" + i, topic: t.heading, question: "Case Study: " + cs.title + " (Methodology & Findings)", answer: cs.methodology + " -> " + cs.findings });
+      });
+      a.researchPerspective.openProblems.forEach((op, i) => {
+        bank.extended.push({ id: t.id + ":op" + i, topic: t.heading, question: "Open Problem: " + op, answer: "Current debate: " + a.researchPerspective.currentDebates });
+      });
+    }
   }
   return bank;
 }

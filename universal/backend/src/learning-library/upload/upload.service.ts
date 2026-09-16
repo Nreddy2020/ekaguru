@@ -149,6 +149,7 @@ export class UploadService {
           subjectName: dto.subjectName || null,
           gradeLevel: dto.gradeLevel || null,
           language: dto.language || 'en',
+          targetAudience: dto.targetAudience || 'child',
           originalFileName: file.originalname,
           mimeType: validationResult.detectedMime,
           fileSizeBytes: BigInt(storageResult.fileSizeBytes),

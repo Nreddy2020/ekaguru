@@ -35,7 +35,7 @@ import { PageTeachingBoard } from "./PageTeachingBoard";
 import { GuruNotesBoard, GuruNotesPrint } from "./GuruNotesBoard";
 import { GuruRevision } from "./GuruRevision";
 import { REVISION_FORMATS, RevisionFormat } from "../../lib/learning/notes-revision";
-import type { GuruNotesView } from "../../lib/learning/guru-notes-api";
+import type { BookAudience, GuruNotesView } from "../../lib/learning/guru-notes-api";
 import {
   GuruSessionSnapshot,
   GuruEvent,
@@ -102,11 +102,13 @@ export function PageGroundedStudio({
   const [questionReply, setQuestionReply] = useState("");
   const [questionError, setQuestionError] = useState("");
   const [questionBusy, setQuestionBusy] = useState(false);
+  const [bookAudience, setBookAudience] = useState<BookAudience | undefined>();
   const questionIdentity = useRef("");
   useEffect(() => {
     const stored = BookStorageService.getBooks().find((b) => b.id === bookId || b.guruMaterial?.id===bookId);
     setBookTitle(stored?.title || "");
     setBookSubject(stored?.subject || "");
+    setBookAudience(stored?.targetAudience);
     questionIdentity.current = "";
     setQuestionBusy(false);
     setQuestionReply("");
@@ -880,6 +882,7 @@ export function PageGroundedStudio({
               page={active}
               language={language}
               depth={depth}
+              audience={(active as any).targetAudience || bookAudience}
               learnerId={builtin.includes(bookId) && learnerId ? learnerId : undefined}
               onLoaded={setGuruNotes}
               onHighlight={setHighlight}

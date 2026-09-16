@@ -1804,3 +1804,146 @@
   color: #c4b5fd;
 }
 
+/* Step 6: Audience Editions & Specialized Blueprints */
+.editionBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+.editionBadge[data-edition="professional"] {
+  background: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+.editionBadge[data-edition="academic"] {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.4);
+}
+.profCard {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.acadCard {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+.profComponentList {
+  list-style: disc;
+  padding-left: 20px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+.codeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.codeLang {
+  font-size: 11px;
+  font-family: monospace;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #38bdf8;
+}
+.codeBlock {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  padding: 12px;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 12.5px;
+  color: #f8fafc;
+  line-height: 1.5;
+}
+.inlineCode {
+  font-family: monospace;
+  font-size: 12px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #38bdf8;
+}
+.commandItem {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid #1e293b;
+}
+.commandOutput {
+  margin-top: 4px;
+  background: #000;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #86efac;
+}
+.troubleshootTable {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.troubleshootRow {
+  padding: 10px;
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.6);
+  border-left: 3px solid #f59e0b;
+  font-size: 12.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.scenarioDetails {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid #1e293b;
+  font-size: 13px;
+}
+.scenarioDetails summary {
+  cursor: pointer;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+.diffBadge {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+}
+.diffBadge[data-diff="junior"] {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+.diffBadge[data-diff="mid"] {
+  background: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+}
+.diffBadge[data-diff="senior"] {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+

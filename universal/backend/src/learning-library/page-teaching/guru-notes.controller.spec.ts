@@ -70,4 +70,11 @@ describe("Guru notes endpoints", () => {
     expect(status).toMatchObject({ language: "en", depth: "basis", ready: [1, 2], readyCount: 2 });
     expect(status.jobs[0].physicalPage).toBe(3);
   });
+  it("forwards target audience to cached lookup and enqueueNotes", async () => {
+    const { controller, queue, notes } = controllerWith(null);
+    const res = { status: jest.fn() };
+    await controller.builtin("evs-class-5", "3", { language: "en", depth: "deep", audience: "it_professional" }, { user }, res);
+    expect(notes.cached).toHaveBeenCalledWith(expect.objectContaining({ physicalPage: 3 }), "en", "deep", "it_professional");
+    expect(queue.enqueueNotes).toHaveBeenCalledWith(expect.objectContaining({ physicalPage: 3 }), "en", user, { depth: "deep", audience: "it_professional" });
+  });
 });

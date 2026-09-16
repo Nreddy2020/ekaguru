@@ -78,3 +78,70 @@ it("includes 'Teacher & parent' in the available revision formats", () => {
   expect(REVISION_FORMATS).toContain("Teacher & parent");
 });
 
+it("generates professional cards and questions when professional data is present", () => {
+  const profView: any = {
+    ...view,
+    notes: {
+      ...view.notes,
+      topics: [
+        {
+          ...view.notes.topics[0],
+          professional: {
+            problemSolved: "State management at scale",
+            architecture: { components: ["Store", "Reducer"], dataFlow: "Action -> Reducer -> Store" },
+            implementation: { languageOrTool: "TypeScript", codeSnippet: "const s = createStore();", explanation: "Creates store" },
+            commands: [{ command: "npm test", description: "Runs test suite", output: "PASS" }],
+            troubleshooting: [{ symptom: "Memory leak", cause: "Unsubscribed listener", fix: "Call unsubscribe" }],
+            scenarios: [{ title: "High throughput", context: "10k req/sec", solution: "Add redis cache" }],
+            labs: [{ title: "Setup", objective: "Run app", steps: ["npm i", "npm start"], verification: "HTTP 200" }],
+            interviewQuestions: [
+              { question: "What is pure function?", expectedAnswer: "No side effects", difficulty: "junior" },
+              { question: "Explain redux middleware", expectedAnswer: "Intercepts actions", difficulty: "mid" },
+              { question: "How to handle concurrency in redux-saga?", expectedAnswer: "takeLatest vs takeEvery", difficulty: "senior" },
+            ],
+          },
+        },
+      ],
+    },
+  };
+  const cards = flashCards(profView);
+  expect(cards.some((c) => c.kind === "command" && c.front.includes("npm test"))).toBe(true);
+  expect(cards.some((c) => c.kind === "troubleshoot" && c.front.includes("Memory leak"))).toBe(true);
+  expect(cards.some((c) => c.kind === "interview" && c.front.includes("pure function"))).toBe(true);
+
+  const bank = questionBank(profView);
+  expect(bank.easy.some((q) => q.question.includes("pure function"))).toBe(true);
+  expect(bank.medium.some((q) => q.question.includes("redux middleware"))).toBe(true);
+  expect(bank.extended.some((q) => q.question.includes("concurrency"))).toBe(true);
+  expect(bank.medium.some((q) => q.question.includes("Troubleshoot: Memory leak"))).toBe(true);
+  expect(bank.extended.some((q) => q.question.includes("Lab: Setup"))).toBe(true);
+});
+
+it("generates academic cards and questions when professor data is present", () => {
+  const acadView: any = {
+    ...view,
+    notes: {
+      ...view.notes,
+      topics: [
+        {
+          ...view.notes.topics[0],
+          professor: {
+            foundations: { theoreticalBasis: "Category theory", formalDefinitions: ["A monad is a monoid in the category of endofunctors"] },
+            researchPerspective: { historicalContext: "1940s Mac Lane", currentDebates: "Strictness vs Laziness", openProblems: ["Automated synthesis"] },
+            caseStudies: [{ title: "CompCert", methodology: "Formal verification in Coq", findings: "Zero verified compiler bugs" }],
+            limitations: { boundaryConditions: ["Decidability constraints"], critiques: ["Steep learning curve"] },
+            references: [{ citation: "Mac Lane, 1971", relevance: "Foundational textbook" }],
+          },
+        },
+      ],
+    },
+  };
+  const cards = flashCards(acadView);
+  expect(cards.some((c) => c.kind === "foundation" && c.back.includes("Category theory"))).toBe(true);
+  expect(cards.some((c) => c.kind === "case_study" && c.front.includes("CompCert"))).toBe(true);
+
+  const bank = questionBank(acadView);
+  expect(bank.medium.some((q) => q.question.includes("Case Study: CompCert"))).toBe(true);
+  expect(bank.extended.some((q) => q.question.includes("Open Problem: Automated synthesis"))).toBe(true);
+});
+

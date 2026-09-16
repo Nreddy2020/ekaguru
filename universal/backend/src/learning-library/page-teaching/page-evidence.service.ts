@@ -164,6 +164,7 @@ export class PageEvidenceService {
       return {
         ...(await this.fromImage(materialId, page, 1, bytes, undefined, performOcr)),
         recommendedDepth,
+        targetAudience: (material as any).targetAudience || "child",
       };
     }
     if (material.mimeType !== "application/pdf")
@@ -228,6 +229,7 @@ export class PageEvidenceService {
           performOcr,
         )),
         recommendedDepth,
+        targetAudience: (material as any).targetAudience || "child",
       };
     } finally {
       await doc.destroy();
