@@ -15,6 +15,8 @@ import { GuruNotesController } from './page-teaching/guru-notes.controller';
 import { TeacherParentService } from './page-teaching/teacher-parent.service';
 import { GuruBookMapService } from './page-teaching/guru-book-map.service';
 import { GuruBookMapController } from './page-teaching/guru-book-map.controller';
+import { GuruLearningPackageService } from './page-teaching/guru-learning-package.service';
+import { GuruLearningPackageController } from './page-teaching/guru-learning-package.controller';
 import { GuruActivityService } from './page-teaching/guru-activity.service';
 import { GuruLearnerContextService } from './page-teaching/guru-learner-context.service';
 import { GuruCurationController } from './page-teaching/guru-curation.controller';
@@ -94,6 +96,7 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
     GuruController,
     GuruNotesController,
     GuruBookMapController,
+    GuruLearningPackageController,
     GuruCurationController,
     PageEvidenceController,
     LearnerController,
@@ -119,6 +122,7 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
     GuruGenerationQueueService,
     GuruNotesService,
     GuruBookMapService,
+    GuruLearningPackageService,
     TeacherParentService,
     PageEvidenceQueueService,
     GuruActivityService,

@@ -15,11 +15,13 @@ import {
   BookOpen,
   Layers,
   GitBranch,
+  Package,
 } from "lucide-react";
 import styles from "./ApprovedClassroom.module.css";
 import {ConnectBookToGuru} from "./ConnectBookToGuru";
 import { ClassroomDialog } from "./ClassroomDialog";
 import { BookKnowledgeMapModal } from "./BookKnowledgeMapModal";
+import { MasterLearningPackageModal } from "./MasterLearningPackageModal";
 import { BookStorageService } from "../../lib/learning/book-storage.service";
 import {
   readLocalPage,
@@ -234,6 +236,7 @@ export function PageGroundedStudio({
   const [full, setFull] = useState(false);
   const [index, setIndex] = useState(false);
   const [bookMapOpen, setBookMapOpen] = useState(false);
+  const [learningPackageOpen, setLearningPackageOpen] = useState(false);
   useEffect(() => {
     setPageNumber(physicalPage);
     setHighlight([]);
@@ -712,6 +715,15 @@ export function PageGroundedStudio({
             <GitBranch size={15} />
             Book Knowledge Map
           </button>
+          <button
+            className={styles.sideButton}
+            disabled={!active}
+            onClick={() => setLearningPackageOpen(true)}
+            aria-label="Master Learning Package"
+          >
+            <Package size={15} />
+            Master Learning Package
+          </button>
         </aside>
         <main className={styles.main} id="guru-board">
           <a href="#textbook-source" className={styles.mobileJump} onClick={jumpTo("textbook-source")}>
@@ -1069,6 +1081,15 @@ export function PageGroundedStudio({
             changePage(page);
             setBookMapOpen(false);
           }}
+        />
+      )}
+      {learningPackageOpen && (
+        <MasterLearningPackageModal
+          bookId={bookId}
+          initialAudience={(active as any)?.targetAudience || bookAudience}
+          initialDepth={depth}
+          initialLanguage={language}
+          onClose={() => setLearningPackageOpen(false)}
         />
       )}
       {review && (
