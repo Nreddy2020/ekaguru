@@ -69,3 +69,12 @@ it("groups the question bank by difficulty and reveals answers one at a time", (
   fireEvent.click(screen.getAllByRole("button", { name: "Show answer" })[0]);
   expect(screen.getByTestId("bank-answer")).toHaveTextContent("Breathe and grow.");
 });
+
+it("renders the Teacher & Parent edition view when requested", () => {
+  render(<GuruRevision view={view} format="Teacher & parent" />);
+  expect(screen.getByTestId("teacher-parent-edition")).toBeInTheDocument();
+  expect(screen.getByText("🍎 Teacher & Parent Edition")).toBeInTheDocument();
+  expect(screen.getByTestId("tp-board-plan")).toBeInTheDocument();
+  expect(screen.getByTestId("tp-home-guide")).toBeInTheDocument();
+});
+

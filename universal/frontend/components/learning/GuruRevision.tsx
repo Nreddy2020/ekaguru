@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import type { GuruNotesView } from "../../lib/learning/guru-notes-api";
 import { RevisionFormat, flashCards, memoryNotes, onePage, questionBank, quickNotes } from "../../lib/learning/notes-revision";
+import { TeacherParentEditionView } from "./TeacherParentEditionView";
 
 /**
  * Revision formats for the open page, all derived from the same Guru Notes: quick notes, memory
@@ -99,6 +100,9 @@ export function GuruRevision({ view, format }: { view: GuruNotesView; format: Re
         {group("Extended: questions readers asked", bank.extended)}
       </div>
     );
+  }
+  if (format === "Teacher & parent") {
+    return <TeacherParentEditionView view={view} />;
   }
   const sheet = onePage(view);
   return (

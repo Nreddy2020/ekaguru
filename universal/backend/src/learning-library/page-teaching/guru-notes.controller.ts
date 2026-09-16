@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Optional,
   Post,
   Query,
   Request,
@@ -17,6 +18,7 @@ import { GuruGenerationQueueService } from "./guru-generation-queue.service";
 import { GuruNotesService } from "./guru-notes.service";
 import { PageEvidenceQueueService } from "./page-evidence-queue.service";
 import { PageEvidenceService } from "./page-evidence.service";
+import { TeacherParentService } from "./teacher-parent.service";
 
 export class NotesRequestDto {
   @IsString() @Matches(/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/) language!: string;
@@ -49,6 +51,7 @@ export class GuruNotesController {
     private readonly notes: GuruNotesService,
     private readonly queue: GuruGenerationQueueService,
     private readonly evidenceQueue: PageEvidenceQueueService,
+    @Optional() private readonly teacherParent?: TeacherParentService,
   ) {}
 
   @Post("textbooks/:bookId/pages/:page/notes")
@@ -125,6 +128,42 @@ export class GuruNotesController {
   @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
   async ladderMaterial(@Param("materialId") id: string, @Param("page") page: string, @Body() body: NotesLadderDto, @Request() req: any) {
     return this.notes.getOrGenerateLadder(await this.evidence.material(id, page, { performOcr: false }), body.language, body, req.user);
+  }
+
+  @Get("textbooks/:bookId/pages/:page/teacher-edition")
+  @UseGuards(JwtAuthGuard)
+  async getTeacherEditionBuiltin(
+    @Param("bookId") bookId: string,
+    @Param("page") page: string,
+    @Query("language") language = "en",
+    @Query("depth") depth = "basis",
+    @Request() req: any,
+  ) {
+    return this.teacherParent?.getOrGenerateEdition(await this.evidence.builtin(bookId, page, { performOcr: false }), language, depth, req.user);
+  }
+
+  @Post("textbooks/:bookId/pages/:page/teacher-edition")
+  @UseGuards(JwtAuthGuard)
+  async teacherEditionBuiltin(@Param("bookId") bookId: string, @Param("page") page: string, @Body() body: NotesRequestDto, @Request() req: any) {
+    return this.teacherParent?.getOrGenerateEdition(await this.evidence.builtin(bookId, page, { performOcr: false }), body.language, body.depth, req.user);
+  }
+
+  @Get("learning-materials/:materialId/pages/:page/teacher-edition")
+  @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
+  async getTeacherEditionMaterial(
+    @Param("materialId") id: string,
+    @Param("page") page: string,
+    @Query("language") language = "en",
+    @Query("depth") depth = "basis",
+    @Request() req: any,
+  ) {
+    return this.teacherParent?.getOrGenerateEdition(await this.evidence.material(id, page, { performOcr: false }), language, depth, req.user);
+  }
+
+  @Post("learning-materials/:materialId/pages/:page/teacher-edition")
+  @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
+  async teacherEditionMaterial(@Param("materialId") id: string, @Param("page") page: string, @Body() body: NotesRequestDto, @Request() req: any) {
+    return this.teacherParent?.getOrGenerateEdition(await this.evidence.material(id, page, { performOcr: false }), body.language, body.depth, req.user);
   }
 
   /** Queue notes for every page of a built-in book (pages already prepared are skipped). */

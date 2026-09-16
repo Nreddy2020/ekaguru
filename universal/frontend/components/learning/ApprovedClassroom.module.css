@@ -1394,3 +1394,413 @@
   margin: 0;
 }
 
+/* ============================================================ */
+/* Teacher & Parent Edition (Step 5)                           */
+/* ============================================================ */
+.teacherParentWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #f1f5f9;
+  font-size: 13.5px;
+  line-height: 1.55;
+  padding: 4px 0 20px;
+}
+.tpHeader {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 14px;
+}
+.tpBadgeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.tpBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.tpPagePill {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+.tpTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  margin: 4px 0;
+}
+.tpSubtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0 0 12px;
+}
+.tpFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.tpFilterBtn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tpFilterBtn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.tpFilterBtn[data-active="true"] {
+  background: #3b82f6;
+  border-color: #60a5fa;
+  color: #fff;
+}
+.tpCard {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 16px;
+}
+.tpCardHeader {
+  margin-bottom: 12px;
+}
+.tpSectionTag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  margin-bottom: 4px;
+}
+.tpCardHeader h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 2px 0 4px;
+}
+.tpCardDesc {
+  font-size: 12.5px;
+  color: #94a3b8;
+  margin: 0;
+}
+.tpCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.tpColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tpSectionHeading {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 4px;
+}
+.tpList {
+  list-style: disc;
+  padding-left: 18px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tpNumberedList {
+  list-style: decimal;
+  padding-left: 18px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tpPrereqList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tpPrereqItem {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #f59e0b;
+}
+.tpPrereqItem strong {
+  color: #fde68a;
+  font-size: 12.5px;
+}
+.tpPrereqItem p {
+  margin: 2px 0;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+.tpPrereqItem em {
+  display: block;
+  font-size: 11.5px;
+  color: #93c5fd;
+}
+.tpBoardSteps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tpBoardStepItem {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.tpStepNum {
+  font-size: 11px;
+  font-weight: 800;
+  color: #38bdf8;
+  white-space: nowrap;
+  padding-top: 2px;
+}
+.tpStepContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tpStepPhase {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+.tpBoardSnippet {
+  background: #022c22;
+  border: 1px solid #059669;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.tpBoardSnippet strong {
+  display: block;
+  font-size: 11px;
+  color: #6ee7b7;
+  margin-bottom: 2px;
+}
+.tpBoardSnippet pre {
+  margin: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  color: #ecfdf5;
+}
+.tpTeacherVoice {
+  margin: 0;
+  font-size: 12.5px;
+  color: #fef08a;
+  font-style: italic;
+}
+.tpAnalogyCallout {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  margin-bottom: 12px;
+}
+.tpAnalogyCallout strong {
+  display: block;
+  color: #fbbf24;
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+.tpAnalogyCallout p {
+  margin: 0;
+  font-size: 13px;
+  color: #fef3c7;
+}
+.tpActivityGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.tpNoticeCallout {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.1);
+  border-left: 3px solid #10b981;
+  font-size: 12.5px;
+  color: #a7f3d0;
+}
+.tpQuestionList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tpQuestionItem {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #38bdf8;
+}
+.tpBloomBadge {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  margin-bottom: 3px;
+}
+.tpQuestionItem strong {
+  display: block;
+  font-size: 13px;
+  color: #f1f5f9;
+}
+.tpExpectedAnswer {
+  margin: 4px 0 2px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+.tpFollowUp {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: #93c5fd;
+}
+.tpMisconceptionList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tpMisconceptionItem {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.tpMisconceptionWrong {
+  margin: 0 0 3px;
+  color: #fca5a5;
+  font-size: 12.5px;
+}
+.tpMisconceptionWhy {
+  margin: 0 0 3px;
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+.tpMisconceptionFix {
+  margin: 0;
+  font-size: 12px;
+  color: #86efac;
+}
+.tpAssessmentList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tpAssessmentItem {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.tpAssessmentItem p {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+.tpAssessmentOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.tpOptionBadge {
+  font-size: 11.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+}
+.tpRevealBtn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #93c5fd;
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.tpRevealBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.tpAnswerKeyBlock {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.1);
+  border-left: 3px solid #22c55e;
+  font-size: 12px;
+  color: #bbf7d0;
+}
+.tpAnswerKeyBlock p {
+  margin: 2px 0 0;
+  color: #86efac;
+}
+.tpHomeworkCard {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tpHomeworkCard h5 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #d8b4fe;
+}
+.tpHomeworkTask {
+  margin: 0;
+  font-size: 12.5px;
+  color: #f1f5f9;
+}
+.tpHomeworkPrompt {
+  margin: 0;
+  font-size: 12px;
+  color: #e2e8f0;
+}
+.tpParentRole {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 11.5px;
+  color: #c4b5fd;
+}
+

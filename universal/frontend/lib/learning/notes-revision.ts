@@ -4,7 +4,7 @@ import type { GuruNotesView, NotesTopic } from "./guru-notes-api";
  * Revision formats derived from a page's Guru Notes, with no model call: the same source produces
  * quick notes, memory notes, flash cards, a question bank by difficulty and a one-page sheet.
  */
-export const REVISION_FORMATS = ["Quick notes", "Memory notes", "Flash cards", "Question bank", "One-page sheet"] as const;
+export const REVISION_FORMATS = ["Quick notes", "Memory notes", "Flash cards", "Question bank", "One-page sheet", "Teacher & parent"] as const;
 export type RevisionFormat = (typeof REVISION_FORMATS)[number];
 
 const firstSentence = (text: string, max = 180) => {

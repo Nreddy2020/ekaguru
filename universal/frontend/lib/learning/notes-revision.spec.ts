@@ -1,4 +1,4 @@
-import { flashCards, memoryNotes, onePage, questionBank, quickNotes } from "./notes-revision";
+import { REVISION_FORMATS, flashCards, memoryNotes, onePage, questionBank, quickNotes } from "./notes-revision";
 
 const view: any = {
   id: "n1",
@@ -73,3 +73,8 @@ it("fits the essentials on one page", () => {
   expect(sheet.tryNow).toEqual(["Breathe and feel"]);
   expect(sheet.questions).toHaveLength(3);
 });
+
+it("includes 'Teacher & parent' in the available revision formats", () => {
+  expect(REVISION_FORMATS).toContain("Teacher & parent");
+});
+
