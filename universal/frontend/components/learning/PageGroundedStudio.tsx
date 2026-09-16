@@ -14,10 +14,12 @@ import {
   ChevronRight,
   BookOpen,
   Layers,
+  GitBranch,
 } from "lucide-react";
 import styles from "./ApprovedClassroom.module.css";
 import {ConnectBookToGuru} from "./ConnectBookToGuru";
 import { ClassroomDialog } from "./ClassroomDialog";
+import { BookKnowledgeMapModal } from "./BookKnowledgeMapModal";
 import { BookStorageService } from "../../lib/learning/book-storage.service";
 import {
   readLocalPage,
@@ -229,6 +231,7 @@ export function PageGroundedStudio({
   const [zoom, setZoom] = useState(100);
   const [full, setFull] = useState(false);
   const [index, setIndex] = useState(false);
+  const [bookMapOpen, setBookMapOpen] = useState(false);
   useEffect(() => {
     setPageNumber(physicalPage);
     setHighlight([]);
@@ -698,6 +701,15 @@ export function PageGroundedStudio({
             <Layers size={15} />
             View Full Book Index
           </button>
+          <button
+            className={styles.sideButton}
+            disabled={!active}
+            onClick={() => setBookMapOpen(true)}
+            aria-label="Book Knowledge Map"
+          >
+            <GitBranch size={15} />
+            Book Knowledge Map
+          </button>
         </aside>
         <main className={styles.main} id="guru-board">
           <a href="#textbook-source" className={styles.mobileJump} onClick={jumpTo("textbook-source")}>
@@ -1043,6 +1055,17 @@ export function PageGroundedStudio({
             ))}
           </div>
         </ClassroomDialog>
+      )}
+      {bookMapOpen && (
+        <BookKnowledgeMapModal
+          bookId={bookId}
+          currentPage={pageNumber}
+          onClose={() => setBookMapOpen(false)}
+          onSelectPage={(page) => {
+            changePage(page);
+            setBookMapOpen(false);
+          }}
+        />
       )}
       {review && (
         <ClassroomDialog title="Task Review" onClose={() => setReview(false)}>

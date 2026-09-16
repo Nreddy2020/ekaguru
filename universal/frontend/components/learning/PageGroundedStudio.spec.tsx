@@ -388,3 +388,16 @@ it("shows the notes board by default, with the book's own picture, a drawing, a 
     localStorage.clear();
   }
 });
+
+it("opens the book knowledge map modal from the sidebar", async () => {
+  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => source });
+  render(<PageGroundedStudio bookId="maths-class-5" physicalPage={1} />);
+  await screen.findByTestId("page-teaching-board");
+
+  const mapButton = screen.getByRole("button", { name: "Book Knowledge Map" });
+  expect(mapButton).toBeInTheDocument();
+  fireEvent.click(mapButton);
+
+  expect(await screen.findByRole("dialog", { name: "Book Knowledge Map & Roadmap" })).toBeInTheDocument();
+});
+

@@ -12,6 +12,8 @@ import { GuruGenerationQueueService } from './page-teaching/guru-generation-queu
 import { PageEvidenceQueueService } from './page-teaching/page-evidence-queue.service';
 import { GuruNotesService } from './page-teaching/guru-notes.service';
 import { GuruNotesController } from './page-teaching/guru-notes.controller';
+import { GuruBookMapService } from './page-teaching/guru-book-map.service';
+import { GuruBookMapController } from './page-teaching/guru-book-map.controller';
 import { GuruActivityService } from './page-teaching/guru-activity.service';
 import { GuruLearnerContextService } from './page-teaching/guru-learner-context.service';
 import { GuruCurationController } from './page-teaching/guru-curation.controller';
@@ -90,6 +92,7 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
   controllers: [
     GuruController,
     GuruNotesController,
+    GuruBookMapController,
     GuruCurationController,
     PageEvidenceController,
     LearnerController,
@@ -114,6 +117,7 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
     GuruEvaluationService,
     GuruGenerationQueueService,
     GuruNotesService,
+    GuruBookMapService,
     PageEvidenceQueueService,
     GuruActivityService,
     GuruLearnerContextService,
@@ -218,6 +222,7 @@ import { PersonalLearningEngineController } from './learning-engine/personal-lea
     TutorOrchestratorService,
     KnowledgeActivatorService,
     MisconceptionClassifierService,
+    GuruBookMapService,
   ],
 })
 export class LearningLibraryModule {}

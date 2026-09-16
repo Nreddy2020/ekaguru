@@ -15,3 +15,4 @@ export * from './LearningOriginalBookViewer';
 export * from './LearningExplanationPanel';
 export * from './UniversalKnowledgeUniverseStudio';
 export * from './TopicKnowledgeUniverse';
+export * from './BookKnowledgeMapModal';

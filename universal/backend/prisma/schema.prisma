@@ -1978,3 +1978,18 @@ model GuruEvidenceJob {
   @@index([status, createdAt])
   @@index([bookId, physicalPage, sourceHash])
 }
+
+/// Book Knowledge Map: whole-book chapter roadmap, key terms, and concept dependencies (DAG).
+model GuruBookMap {
+  id          String   @id @default(uuid())
+  bookId      String   @unique
+  version     String   @default("book-map-v1")
+  title       String
+  totalPages  Int      @default(0)
+  payload     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([bookId])
+}
+
