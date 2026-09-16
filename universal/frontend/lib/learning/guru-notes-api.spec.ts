@@ -1,5 +1,5 @@
 import { GURU_POLL_INTERVAL_MS } from "./guru-api";
-import { askNotesQuestion, bookNotesStatus, bookPath, loadGuruNotes, prepareBookNotes } from "./guru-notes-api";
+import { askNotesQuestion, bookNotesStatus, bookPath, loadGuruNotes, prepareBookNotes, requestTopicLadder } from "./guru-notes-api";
 
 const page: any = { bookId: "evs-class-5", physicalPage: 3, sourceHash: "hash", totalPages: 5, width: 10, height: 10, status: "READY", blocks: [], omittedBlockCount: 0, version: "v1" };
 const view = {
@@ -80,4 +80,34 @@ it("posts a topic question, a whole-book preparation and reads the book status",
 it("refuses notes written at another depth than the one asked for", async () => {
   (global as any).fetch = jest.fn(async () => respond(200, { ...view, depth: "deep" }));
   await expect(loadGuruNotes(page, "en", "basis", new AbortController().signal)).rejects.toThrow(/do not match/);
+});
+
+it("requests an alternative explanation ladder rung for a topic", async () => {
+  const calls: { url: string; body?: any; method?: string }[] = [];
+  (global as any).fetch = jest.fn(async (url: string, init: any) => {
+    calls.push({ url, body: init?.body ? JSON.parse(init.body) : undefined, method: init?.method });
+    if (url.endsWith("/notes/ladder"))
+      return respond(200, {
+        topicId: "t1",
+        level: "younger",
+        label: "Explain like I'm younger",
+        explanation: "Picture a tiny seed sleeping in soil like a blanket!",
+        reused: false,
+      });
+    throw new Error("unexpected " + url);
+  });
+
+  const result = await requestTopicLadder(page, "en", "developing", "t1", "younger", "learner-1");
+  expect(result.level).toBe("younger");
+  expect(result.explanation).toContain("tiny seed sleeping");
+  expect(calls[0]).toMatchObject({
+    method: "POST",
+    body: {
+      language: "en",
+      depth: "developing",
+      topicId: "t1",
+      level: "younger",
+      learnerId: "learner-1",
+    },
+  });
 });

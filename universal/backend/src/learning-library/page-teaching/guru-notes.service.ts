@@ -17,7 +17,9 @@ import {
   GURU_NOTES_ANSWER_RESPONSE_SCHEMA,
   GURU_NOTES_RESPONSE_SCHEMA,
   GuruNotes,
+  LadderLevel,
   NOTES_BLUEPRINT,
+  TopicLadderEntry,
   notesPromptSection,
   readingLevelFor,
   uncoveredByNotes,
@@ -56,6 +58,12 @@ const normaliseQuestion = (q: string) =>
     .split(/\s+/)
     .filter(Boolean)
     .join(" ");
+
+export const LADDER_LABELS: Record<LadderLevel, string> = {
+  younger: "Explain like I'm younger",
+  analogy: "Explain with another analogy",
+  expert: "Explain like an expert",
+};
 
 /**
  * Prepares, stores and extends Guru Notes for a page revision.
@@ -151,6 +159,22 @@ export class GuruNotesService {
 
   private view(row: any): GuruNotesView {
     const payload = row.payload || {};
+    const notes = payload.notes ? { ...payload.notes } : payload.notes;
+    if (notes && Array.isArray(notes.topics)) {
+      notes.topics = notes.topics.map((t: any) => {
+        const storedLadder = payload.ladder?.[t.id] || {};
+        const ladder: TopicLadderEntry[] = Object.entries(storedLadder).map(([lvl, data]: [string, any]) => ({
+          level: lvl as LadderLevel,
+          label: LADDER_LABELS[lvl as LadderLevel] || lvl,
+          explanation: typeof data === "string" ? data : data?.explanation || "",
+          createdAt: typeof data === "object" ? data?.createdAt : undefined,
+        }));
+        return {
+          ...t,
+          ladder: ladder.length > 0 ? ladder : (t.ladder || []),
+        };
+      });
+    }
     return {
       id: row.id,
       bookId: row.bookId,
@@ -159,7 +183,7 @@ export class GuruNotesService {
       language: row.language,
       depth: GuruNotesService.depthOf(row.depth || payload.notes?.depth),
       blueprint: payload.notes?.blueprint || GuruNotesService.BLUEPRINT,
-      notes: payload.notes,
+      notes,
       page: payload.page,
       audit: payload.audit,
       extensions: (row.extensions || []).map((e: any) => ({
@@ -349,5 +373,102 @@ export class GuruNotesService {
       },
     });
     return { extension: this.view({ ...row, extensions: [created] }).extensions[0], reused: false };
+  }
+
+  /**
+   * "Explain it like I am..." ladder: generates alternative explanations per topic
+   * (younger child, fresh analogy, or expert depth), saved into the notes payload so it grows
+   * and serves all future readers for free.
+   */
+  async getOrGenerateLadder(
+    source: any,
+    language: string,
+    input: { topicId: string; level: LadderLevel; learnerId?: string; depth?: string },
+    user: any,
+  ): Promise<{ topicId: string; level: LadderLevel; label: string; explanation: string; reused: boolean }> {
+    const row = await this.prisma.guruPageNotes.findUnique({
+      where: { id: this.notesIdFor(source, language, GuruNotesService.depthOf(input.depth)) },
+      include: { extensions: { orderBy: { createdAt: "asc" } } },
+    });
+    if (!row) throw new NotFoundException("Prepare the notes for this page first.");
+
+    const payload = (row.payload as any) || {};
+    const notes: GuruNotes = payload.notes;
+    const topic = notes?.topics?.find((t) => t.id === input.topicId);
+    if (!topic) throw new BadRequestException("Unknown topic for these notes.");
+
+    const level = input.level;
+    const label = LADDER_LABELS[level] || level;
+
+    // 1. Check if already generated
+    if (payload.ladder?.[topic.id]?.[level]) {
+      const existing = payload.ladder[topic.id][level];
+      const text = typeof existing === "string" ? existing : existing?.explanation || "";
+      return {
+        topicId: topic.id,
+        level,
+        label,
+        explanation: text,
+        reused: true,
+      };
+    }
+
+    // 2. Reserve quota and generate
+    await this.usage.reserve(user?.userId, "queries");
+
+    let explanation = "";
+    if (this.model && typeof this.model.json === "function") {
+      try {
+        const prompt =
+          level === "younger"
+            ? `Explain the concept '${topic.heading}' to a child aged 6-8 in simple, cheerful words. Use sensory descriptions, relatable pictures and short sentences under 15 words each. Do not use complex jargon. Return {explanation: string} under 100 words.`
+            : level === "analogy"
+            ? `Explain the concept '${topic.heading}' using a fresh, memorable everyday analogy (from sports, cooking, building, toys, nature, or family life). Connect every part of the analogy clearly to the concept. Return {explanation: string} under 120 words.`
+            : `Explain the concept '${topic.heading}' for an older curious student or young scientist. Explain the exact mechanism, scientific principles, and why it happens in clear, engaging language. Return {explanation: string} under 140 words.`;
+
+        const reply: any = await this.model.json(
+          prompt + "\nTopic details: " + JSON.stringify({ heading: topic.heading, bigIdea: topic.bigIdea, keyPoints: topic.keyPoints, explanation: topic.explanation }),
+          undefined,
+        );
+        explanation = typeof reply?.explanation === "string" ? reply.explanation.trim() : (typeof reply === "string" ? reply.trim() : "");
+      } catch (err) {
+        this.logger.warn(`Model ladder generation fallback for ${topic.id}: ${err}`);
+      }
+    }
+
+    if (!explanation) {
+      explanation = this.fallbackLadderExplanation(topic, level);
+    }
+
+    // 3. Store into payload.ladder
+    payload.ladder = payload.ladder || {};
+    payload.ladder[topic.id] = payload.ladder[topic.id] || {};
+    payload.ladder[topic.id][level] = {
+      explanation,
+      createdAt: new Date().toISOString(),
+    };
+
+    await this.prisma.guruPageNotes.update({
+      where: { id: row.id },
+      data: { payload: payload as any },
+    });
+
+    return {
+      topicId: topic.id,
+      level,
+      label,
+      explanation,
+      reused: false,
+    };
+  }
+
+  private fallbackLadderExplanation(topic: any, level: LadderLevel): string {
+    if (level === "younger") {
+      return `Think of ${topic.heading} like a cheerful little story! ${topic.bigIdea || topic.heading}. When you look closely around you, you can see and feel it working every single day!`;
+    }
+    if (level === "analogy") {
+      return `Imagine ${topic.heading} like a team game or baking in the kitchen: ${topic.bigIdea || topic.heading}. Just like each player or ingredient has a special job to make the recipe succeed, every part here works together smoothly!`;
+    }
+    return `At an advanced level, ${topic.heading} operates through foundational scientific principles: ${topic.bigIdea || topic.heading}. ${Array.isArray(topic.explanation) ? topic.explanation[0] : ""}`;
   }
 }

@@ -35,6 +35,15 @@ export interface NotesQuiz {
   answerIndex: number;
   why: string;
 }
+export type LadderLevel = "younger" | "analogy" | "expert";
+
+export interface TopicLadderEntry {
+  level: LadderLevel;
+  label: string;
+  explanation: string;
+  createdAt?: string;
+}
+
 export interface TopicCrossPageLink {
   topicId: string;
   heading: string;
@@ -81,6 +90,8 @@ export interface NotesTopic {
   leadsTo?: TopicCrossPageLink[];
   /** A warm, teacher-voice recap connecting this topic to prior learning. */
   guruRemembers?: string;
+  /** "Explain it like I am..." ladder rungs for this topic. */
+  ladder?: TopicLadderEntry[];
 }
 export interface GuruNotes {
   title: string;

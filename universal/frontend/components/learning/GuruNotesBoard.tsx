@@ -6,12 +6,15 @@ import { GuruVoiceOrb } from "./GuruVoiceOrb";
 import { describeGuruStage } from "../../lib/learning/guru-api";
 import {
   GuruNotesView,
+  LadderLevel,
   NotesExtension,
   NotesTopic,
+  TopicLadderEntry,
   askNotesQuestion,
   bookNotesStatus,
   loadGuruNotes,
   prepareBookNotes,
+  requestTopicLadder,
 } from "../../lib/learning/guru-notes-api";
 import { OrbState, speak, voiceSupported } from "../../lib/learning/guru-voice";
 import type { PageEvidence } from "../../lib/learning/page-lesson-runtime";
@@ -234,6 +237,9 @@ export function GuruNotesBoard({
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [bookNote, setBookNote] = useState("");
+  const [busyLadder, setBusyLadder] = useState<{ topicId: string; level: LadderLevel } | null>(null);
+  const [ladderError, setLadderError] = useState<Record<string, string>>({});
+  const [activeLadder, setActiveLadder] = useState<Record<string, LadderLevel>>({});
   const [reading, setReading] = useState<{ topicId: string; text: string } | null>(null);
   const [orb, setOrb] = useState<OrbState>("idle");
   const [pulse, setPulse] = useState(0);
@@ -339,6 +345,46 @@ export function GuruNotesBoard({
       setAskError((m) => ({ ...m, [topicId]: e.message }));
     } finally {
       setBusyTopic("");
+    }
+  };
+
+  const requestLadder = async (topicId: string, level: LadderLevel) => {
+    if (!view) return;
+    if (activeLadder[topicId] === level) {
+      setActiveLadder((m) => {
+        const copy = { ...m };
+        delete copy[topicId];
+        return copy;
+      });
+      return;
+    }
+    setActiveLadder((m) => ({ ...m, [topicId]: level }));
+
+    const topic = view.notes.topics.find((t) => t.id === topicId);
+    if (topic?.ladder?.some((l) => l.level === level)) {
+      return;
+    }
+
+    setBusyLadder({ topicId, level });
+    setLadderError((m) => ({ ...m, [topicId + ":" + level]: "" }));
+    try {
+      const result = await requestTopicLadder(page, language, depth, topicId, level, learnerId);
+      setView((v) => {
+        if (!v) return v;
+        const newTopics = v.notes.topics.map((t) => {
+          if (t.id !== topicId) return t;
+          const existingLadder = t.ladder || [];
+          const updated = existingLadder.some((l) => l.level === level)
+            ? existingLadder
+            : [...existingLadder, { level: result.level, label: result.label, explanation: result.explanation }];
+          return { ...t, ladder: updated };
+        });
+        return { ...v, notes: { ...v.notes, topics: newTopics } };
+      });
+    } catch (e: any) {
+      setLadderError((m) => ({ ...m, [topicId + ":" + level]: e.message }));
+    } finally {
+      setBusyLadder(null);
     }
   };
 
@@ -531,6 +577,59 @@ export function GuruNotesBoard({
                       <p key={i}>{paragraph}</p>
                     ))}
                   </div>
+                </div>
+                {/* Step 4: "Explain it like I am..." ladder */}
+                <div className={styles.notesLadderSection} data-testid="notes-ladder-section">
+                  <div className={styles.notesLadderHeader}>
+                    <span className={styles.notesLabel}>Explain it like I am…</span>
+                    <div className={styles.notesLadderButtons}>
+                      {(["younger", "analogy", "expert"] as LadderLevel[]).map((lvl) => {
+                        const isSelected = activeLadder[topic.id] === lvl;
+                        const isBusy = busyLadder?.topicId === topic.id && busyLadder?.level === lvl;
+                        const hasRung = topic.ladder?.some((l) => l.level === lvl);
+                        const label =
+                          lvl === "younger"
+                            ? "🧸 Younger (6-8 yrs)"
+                            : lvl === "analogy"
+                            ? "💡 Another analogy"
+                            : "🔬 Expert depth";
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            className={styles.notesLadderBtn}
+                            data-active={isSelected ? "true" : undefined}
+                            data-testid={`notes-ladder-btn-${lvl}`}
+                            disabled={isBusy}
+                            onClick={() => void requestLadder(topic.id, lvl)}
+                          >
+                            {isBusy ? "Guru is explaining…" : label}
+                            {hasRung && <span className={styles.notesLadderBadge} aria-hidden="true"> ✓</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {ladderError[topic.id + ":" + activeLadder[topic.id]] && (
+                    <p role="alert" className={styles.notesAnswer}>
+                      {ladderError[topic.id + ":" + activeLadder[topic.id]]}
+                    </p>
+                  )}
+                  {activeLadder[topic.id] && (() => {
+                    const rung = topic.ladder?.find((l) => l.level === activeLadder[topic.id]);
+                    if (!rung) return null;
+                    return (
+                      <div className={styles.notesLadderCard} data-testid="notes-ladder-card" data-level={rung.level}>
+                        <div className={styles.notesLadderCardHeader}>
+                          <span className={styles.notesLadderCardTag}>
+                            {rung.level === "younger" ? "🧸 Cheerful & Simple" : rung.level === "analogy" ? "💡 Fresh Analogy" : "🔬 Advanced Science"}
+                          </span>
+                          <strong>{rung.label}</strong>
+                        </div>
+                        <p className={styles.notesLadderExplanation}>{rung.explanation}</p>
+                      </div>
+                    );
+                  })()}
                 </div>
                 {topic.chain && topic.chain.length > 0 && (
                   <ol className={styles.notesChain} data-testid="notes-chain" aria-label="Picture chain">

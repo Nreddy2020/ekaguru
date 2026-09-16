@@ -27,6 +27,11 @@ export class NotesQuestionDto extends NotesRequestDto {
   @IsString() @Length(1, 1000) question!: string;
   @IsOptional() @IsString() @Length(1, 120) learnerId?: string;
 }
+export class NotesLadderDto extends NotesRequestDto {
+  @IsString() @Length(1, 40) topicId!: string;
+  @IsString() @IsIn(["younger", "analogy", "expert"]) level!: "younger" | "analogy" | "expert";
+  @IsOptional() @IsString() @Length(1, 120) learnerId?: string;
+}
 export class PrepareNotesDto extends NotesRequestDto {
   @IsOptional() @IsInt() @Min(1) @Max(10000) from?: number;
   @IsOptional() @IsInt() @Min(1) @Max(10000) to?: number;
@@ -108,6 +113,18 @@ export class GuruNotesController {
   @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
   async askMaterial(@Param("materialId") id: string, @Param("page") page: string, @Body() body: NotesQuestionDto, @Request() req: any) {
     return this.notes.extend(await this.evidence.material(id, page, { performOcr: false }), body.language, body, req.user);
+  }
+
+  @Post("textbooks/:bookId/pages/:page/notes/ladder")
+  @UseGuards(JwtAuthGuard)
+  async ladderBuiltin(@Param("bookId") bookId: string, @Param("page") page: string, @Body() body: NotesLadderDto, @Request() req: any) {
+    return this.notes.getOrGenerateLadder(await this.evidence.builtin(bookId, page, { performOcr: false }), body.language, body, req.user);
+  }
+
+  @Post("learning-materials/:materialId/pages/:page/notes/ladder")
+  @UseGuards(JwtAuthGuard, LearningLibraryAuthGuard)
+  async ladderMaterial(@Param("materialId") id: string, @Param("page") page: string, @Body() body: NotesLadderDto, @Request() req: any) {
+    return this.notes.getOrGenerateLadder(await this.evidence.material(id, page, { performOcr: false }), body.language, body, req.user);
   }
 
   /** Queue notes for every page of a built-in book (pages already prepared are skipped). */

@@ -108,6 +108,18 @@ it("puts the teacher's notes on the board with the book's picture, a drawing, an
     if (u.endsWith("/pages/3/notes")) return { ok: true, status: 200, json: async () => view };
     if (u.endsWith("/notes/questions"))
       return { ok: true, status: 201, json: async () => ({ extension: { id: "x1", topicId: "t1", question: "How is a baby plant born?", answer: "From a seed that drinks water.", evidenceIds: ["b1"], beyondPage: false, createdAt: "" }, reused: false }) };
+    if (u.endsWith("/notes/ladder"))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          topicId: "t1",
+          level: "younger",
+          label: "Explain like I'm younger",
+          explanation: "Picture a tiny seed sleeping in soil like a blanket!",
+          reused: false,
+        }),
+      };
     return { ok: false, status: 404, json: async () => ({ message: "unexpected " + u }) };
   }) as any;
   const onLoaded = jest.fn();
@@ -156,6 +168,16 @@ it("puts the teacher's notes on the board with the book's picture, a drawing, an
   expect(screen.getByTestId("notes-chain")).toHaveTextContent("Seed");
   expect(screen.getByTestId("notes-steps")).toHaveTextContent("A root pushes down.");
   expect(screen.getByTestId("notes-did-you-know")).toHaveTextContent("hundreds of years");
+
+  // Step 4: "Explain it like I am..." ladder
+  expect(screen.getByTestId("notes-ladder-section")).toBeInTheDocument();
+  expect(screen.getByTestId("notes-ladder-btn-younger")).toBeInTheDocument();
+  expect(screen.getByTestId("notes-ladder-btn-analogy")).toBeInTheDocument();
+  expect(screen.getByTestId("notes-ladder-btn-expert")).toBeInTheDocument();
+  fireEvent.click(screen.getByTestId("notes-ladder-btn-younger"));
+  expect(await screen.findByTestId("notes-ladder-card")).toHaveTextContent("Picture a tiny seed sleeping in soil like a blanket!");
+  expect(screen.getByTestId("notes-ladder-card")).toHaveAttribute("data-level", "younger");
+
   fireEvent.click(screen.getByRole("button", { name: "B. A blanket" }));
   expect(screen.getByTestId("quiz-result")).toHaveTextContent("Not quite. The answer is A. Water wakes the seed up.");
   expect(screen.getByRole("button", { name: "A. Water" })).toHaveAttribute("data-state", "right");
@@ -167,7 +189,8 @@ it("puts the teacher's notes on the board with the book's picture, a drawing, an
   fireEvent.change(screen.getByLabelText("Ask about A seed is a baby plant"), { target: { value: "How is a baby plant born?" } });
   fireEvent.click(screen.getByRole("button", { name: "Ask Guru" }));
   await waitFor(() => expect(screen.getAllByTestId("notes-extension")).toHaveLength(2));
-  expect(calls[1]).toMatchObject({ body: { language: "en", depth: "developing", topicId: "t1", question: "How is a baby plant born?", learnerId: "learner-1" } });
+  expect(calls[1]).toMatchObject({ body: { language: "en", depth: "developing", topicId: "t1", level: "younger", learnerId: "learner-1" } });
+  expect(calls[2]).toMatchObject({ body: { language: "en", depth: "developing", topicId: "t1", question: "How is a baby plant born?", learnerId: "learner-1" } });
   // Without speech synthesis there is nothing to read aloud, so no reading controls appear.
   expect(screen.queryByRole("button", { name: "Read the notes to me" })).toBeNull();
 });

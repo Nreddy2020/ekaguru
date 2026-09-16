@@ -57,6 +57,10 @@ function harness(replies: any[]) {
         store[where.id] = { ...create, createdAt: new Date() };
         return { ...store[where.id], extensions: [] };
       }),
+      update: jest.fn(async ({ where, data }: any) => {
+        store[where.id] = { ...store[where.id], ...data, updatedAt: new Date() };
+        return { ...store[where.id], extensions: [] };
+      }),
     },
     guruNotesExtension: {
       create: jest.fn(async ({ data }: any) => {
@@ -202,4 +206,48 @@ it("enriches topics with buildsOn, leadsTo and Guru remembers from the whole-boo
   expect(topic.leadsTo![0].page).toBe(6);
   expect(topic.guruRemembers).toContain("Guru remembers: on page 2 you learned about 'Animal Senses'");
 });
+
+it("generates an 'Explain it like I am...' ladder rung once and reuses it for free", async () => {
+  const { service, model, usage } = harness([
+    notesJson(),
+    { pass: true, issues: [] },
+    { explanation: "Picture a baby bean taking a warm nap under the soil blanket until a raindrop gives it a hug!" },
+  ]);
+
+  // Build notes first
+  await service.build(source, "en");
+
+  // First request: generates via model and saves
+  const first = await service.getOrGenerateLadder(
+    source,
+    "en",
+    { topicId: "t1", level: "younger" },
+    { userId: "u1" },
+  );
+
+  expect(first.reused).toBe(false);
+  expect(first.level).toBe("younger");
+  expect(first.label).toBe("Explain like I'm younger");
+  expect(first.explanation).toContain("Picture a baby bean");
+  expect(usage.reserve).toHaveBeenCalledWith("u1", "queries");
+
+  // Second request for the same topic and level: served from saved notes, 0 model calls!
+  const second = await service.getOrGenerateLadder(
+    source,
+    "en",
+    { topicId: "t1", level: "younger" },
+    { userId: "u2" },
+  );
+
+  expect(second.reused).toBe(true);
+  expect(second.explanation).toBe(first.explanation);
+
+  // Cached notes now contain the ladder rung attached to topic
+  const cachedNotes = await service.cached(source, "en");
+  expect(cachedNotes?.notes.topics[0].ladder).toBeDefined();
+  expect(cachedNotes?.notes.topics[0].ladder).toHaveLength(1);
+  expect(cachedNotes?.notes.topics[0].ladder![0].level).toBe("younger");
+  expect(cachedNotes?.notes.topics[0].ladder![0].explanation).toBe(first.explanation);
+});
+
 

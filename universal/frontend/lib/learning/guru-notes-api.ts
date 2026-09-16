@@ -38,6 +38,16 @@ export interface NotesQuiz {
   answerIndex: number;
   why: string;
 }
+
+export type LadderLevel = "younger" | "analogy" | "expert";
+
+export interface TopicLadderEntry {
+  level: LadderLevel;
+  label: string;
+  explanation: string;
+  createdAt?: string;
+}
+
 export interface TopicCrossPageLink {
   topicId: string;
   heading: string;
@@ -84,6 +94,8 @@ export interface NotesTopic {
   leadsTo?: TopicCrossPageLink[];
   /** A warm, teacher-voice recap connecting this topic to prior learning. */
   guruRemembers?: string;
+  /** "Explain it like I am..." ladder rungs for this topic. */
+  ladder?: TopicLadderEntry[];
 }
 export interface GuruNotesDocument {
   title: string;
@@ -177,6 +189,23 @@ export function askNotesQuestion(
   return guruRequest(
     bookPath(page.bookId) + "/pages/" + page.physicalPage + "/notes/questions",
     { language, depth, topicId, question, ...(learnerId ? { learnerId } : {}) },
+    signal,
+  );
+}
+
+/** "Explain it like I am..." ladder rung: alternative explanation on demand, saved for future readers. */
+export function requestTopicLadder(
+  page: PageEvidence,
+  language: string,
+  depth: TeachingDepth,
+  topicId: string,
+  level: LadderLevel,
+  learnerId?: string,
+  signal?: AbortSignal,
+): Promise<{ topicId: string; level: LadderLevel; label: string; explanation: string; reused: boolean }> {
+  return guruRequest(
+    bookPath(page.bookId) + "/pages/" + page.physicalPage + "/notes/ladder",
+    { language, depth, topicId, level, ...(learnerId ? { learnerId } : {}) },
     signal,
   );
 }
