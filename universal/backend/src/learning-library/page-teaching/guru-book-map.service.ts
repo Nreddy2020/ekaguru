@@ -39,11 +39,15 @@ export class GuruBookMapService {
     forceRefresh = false
   ): Promise<BookKnowledgeMap> {
     if (!forceRefresh) {
-      const existing = await this.prisma.guruBookMap.findUnique({
-        where: { bookId },
-      });
-      if (existing && existing.payload) {
-        return existing.payload as unknown as BookKnowledgeMap;
+      try {
+        const existing = await this.prisma.guruBookMap.findUnique({
+          where: { bookId },
+        });
+        if (existing && existing.payload) {
+          return existing.payload as unknown as BookKnowledgeMap;
+        }
+      } catch (err) {
+        this.logger.warn(`Could not read book map from database: ${err}`);
       }
     }
 
@@ -53,23 +57,27 @@ export class GuruBookMapService {
       this.logger.warn(`Synthesized book map for ${bookId} had warnings: ${validation.errors.join(', ')}`);
     }
 
-    await this.prisma.guruBookMap.upsert({
-      where: { bookId },
-      create: {
-        bookId,
-        version: map.version,
-        title: map.title,
-        totalPages: map.totalPages,
-        payload: map as any,
-      },
-      update: {
-        version: map.version,
-        title: map.title,
-        totalPages: map.totalPages,
-        payload: map as any,
-        updatedAt: new Date(),
-      },
-    });
+    try {
+      await this.prisma.guruBookMap.upsert({
+        where: { bookId },
+        create: {
+          bookId,
+          version: map.version,
+          title: map.title,
+          totalPages: map.totalPages,
+          payload: map as any,
+        },
+        update: {
+          version: map.version,
+          title: map.title,
+          totalPages: map.totalPages,
+          payload: map as any,
+          updatedAt: new Date(),
+        },
+      });
+    } catch (err) {
+      this.logger.warn(`Could not persist book map to database: ${err}`);
+    }
 
     return map;
   }
@@ -151,10 +159,15 @@ export class GuruBookMapService {
    */
   private async synthesizeBookMap(bookId: string): Promise<BookKnowledgeMap> {
     // 1. Fetch available notes for this book
-    const notesRecords = await this.prisma.guruPageNotes.findMany({
-      where: { bookId },
-      orderBy: { physicalPage: 'asc' },
-    });
+    let notesRecords: any[] = [];
+    try {
+      notesRecords = await this.prisma.guruPageNotes.findMany({
+        where: { bookId },
+        orderBy: { physicalPage: 'asc' },
+      });
+    } catch (err) {
+      this.logger.warn(`Could not fetch page notes from database: ${err}`);
+    }
 
     const bookTitle = this.formatBookTitle(bookId);
     const totalPages = Math.max(

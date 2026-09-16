@@ -1948,22 +1948,17 @@
 }
 
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  .printMasterPackage,
-  .printMasterPackage * {
-    visibility: visible;
-  }
   .printMasterPackage {
-    position: absolute;
+    position: fixed;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 100vw;
+    min-height: 100vh;
     margin: 0;
-    padding: 16px;
+    padding: 24px;
     background: white !important;
     color: black !important;
+    z-index: 999999;
   }
 }
 

@@ -82,19 +82,24 @@ export class GuruLearningPackageService {
     };
 
     // 3. Query all ready page notes for this book & language
-    const readyNotesRecords = await this.prisma.guruPageNotes.findMany({
-      where: {
-        bookId,
-        language,
-        depth,
-      },
-      include: {
-        extensions: {
-          orderBy: { createdAt: 'asc' },
+    let readyNotesRecords: any[] = [];
+    try {
+      readyNotesRecords = await this.prisma.guruPageNotes.findMany({
+        where: {
+          bookId,
+          language,
+          depth,
         },
-      },
-      orderBy: { physicalPage: 'asc' },
-    });
+        include: {
+          extensions: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+        orderBy: { physicalPage: 'asc' },
+      });
+    } catch (err) {
+      this.logger.warn(`Could not query page notes from database: ${err}`);
+    }
 
     // 4. Chapter Notes aggregation
     const chapterNotes: PackageChapterNotes[] = this.aggregateChapterNotes(
@@ -421,22 +426,26 @@ export class GuruLearningPackageService {
       };
     }
 
-    const material = await this.prisma.learningMaterial.findUnique({
-      where: { id: bookId },
-      include: { documents: true },
-    });
+    try {
+      const material = await this.prisma.learningMaterial.findUnique({
+        where: { id: bookId },
+        include: { documents: true },
+      });
 
-    if (material) {
-      const docPages = (material.documents || []).reduce(
-        (max: number, d: any) => Math.max(max, d.pageCount || 0),
-        0,
-      );
-      return {
-        title: material.title,
-        subject: material.subjectName || 'General Studies',
-        grade: material.gradeLevel || 'General',
-        totalPages: docPages > 0 ? docPages : 50,
-      };
+      if (material) {
+        const docPages = (material.documents || []).reduce(
+          (max: number, d: any) => Math.max(max, d.pageCount || 0),
+          0,
+        );
+        return {
+          title: material.title,
+          subject: material.subjectName || 'General Studies',
+          grade: material.gradeLevel || 'General',
+          totalPages: docPages > 0 ? docPages : 50,
+        };
+      }
+    } catch (err) {
+      this.logger.warn(`Could not query learning material from database: ${err}`);
     }
 
     return {
