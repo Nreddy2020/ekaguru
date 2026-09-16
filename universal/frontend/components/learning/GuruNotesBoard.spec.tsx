@@ -53,6 +53,9 @@ const view = {
         rememberTip: "Seed, water, sun.",
         commonDoubts: [{ question: "Does a stone grow?", answer: "No, a stone is not alive." }],
         checkYourself: [{ question: "Name two things a seed needs.", answer: "Water and sunlight." }],
+        buildsOn: [{ topicId: "p2-t1", heading: "Living Earth Foundations", page: 2, reason: "Soil and water nutrients nurture seedling roots.", strength: "essential" }],
+        leadsTo: [{ topicId: "p4-t1", heading: "Plant Leaves and Sunlight", page: 4, reason: "Shoots develop green leaves to capture sunlight.", strength: "supporting" }],
+        guruRemembers: "Guru remembers: on page 2 you explored living soil and water.",
       },
     ],
     summary: ["Living things grow."],
@@ -109,12 +112,21 @@ it("puts the teacher's notes on the board with the book's picture, a drawing, an
   }) as any;
   const onLoaded = jest.fn();
   const onHighlight = jest.fn();
-  render(<GuruNotesBoard page={page} language="en" depth="developing" learnerId="learner-1" onLoaded={onLoaded} onHighlight={onHighlight} />);
+  const onSelectPage = jest.fn();
+  render(<GuruNotesBoard page={page} language="en" depth="developing" learnerId="learner-1" onLoaded={onLoaded} onHighlight={onHighlight} onSelectPage={onSelectPage} />);
   expect(screen.getByTestId("notes-stage")).toHaveTextContent("preparing the notes");
   await screen.findByTestId("guru-notes");
   expect(onLoaded).toHaveBeenLastCalledWith(expect.objectContaining({ id: "n1" }));
   expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)).toEqual({ language: "en", depth: "developing" });
   expect(screen.getByTestId("guru-notes-board")).toHaveTextContent("Developing · build understanding");
+
+  // Step 3: Guru remembers recap line and cross-page links
+  expect(screen.getByTestId("guru-remembers")).toHaveTextContent("Guru remembers: on page 2 you explored living soil and water.");
+  expect(screen.getByTestId("cross-page-links")).toBeInTheDocument();
+  expect(screen.getByText("← Living Earth Foundations (Page 2)")).toBeInTheDocument();
+  expect(screen.getByText("→ Plant Leaves and Sunlight (Page 4)")).toBeInTheDocument();
+  fireEvent.click(screen.getByText("← Living Earth Foundations (Page 2)"));
+  expect(onSelectPage).toHaveBeenCalledWith(2);
   // The one-page sheet on top: banner, outcomes, starting point, learning ladder, takeaways, remember, check, closing line.
   const poster = screen.getByTestId("notes-poster");
   expect(poster).toHaveTextContent("Exploring living things around us");

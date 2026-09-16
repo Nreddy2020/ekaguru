@@ -212,6 +212,7 @@ export function GuruNotesBoard({
   onLoaded,
   onHighlight,
   onSwitchToLive,
+  onSelectPage,
 }: {
   page: PageEvidence;
   language: string;
@@ -220,6 +221,7 @@ export function GuruNotesBoard({
   onLoaded?: (view: GuruNotesView | null) => void;
   onHighlight?: (ids: string[]) => void;
   onSwitchToLive?: () => void;
+  onSelectPage?: (page: number) => void;
 }) {
   const [view, setView] = useState<GuruNotesView | null>(null);
   const [loading, setLoading] = useState(false);
@@ -460,6 +462,57 @@ export function GuruNotesBoard({
                     </button>
                   )}
                 </h4>
+                {topic.guruRemembers && (
+                  <aside className={styles.guruRemembers} data-testid="guru-remembers">
+                    <span className={styles.guruRemembersIcon} aria-hidden="true">🧠</span>
+                    <div className={styles.guruRemembersBody}>
+                      <span className={styles.notesLabel}>Guru remembers</span>
+                      <p>{topic.guruRemembers}</p>
+                    </div>
+                  </aside>
+                )}
+                {(Boolean(topic.buildsOn?.length) || Boolean(topic.leadsTo?.length)) && (
+                  <nav aria-label="Cross-page concept links" className={styles.crossPageLinks} data-testid="cross-page-links">
+                    {topic.buildsOn && topic.buildsOn.length > 0 && (
+                      <div className={styles.crossPageGroup}>
+                        <span className={styles.notesLabel}>Builds on:</span>
+                        <div className={styles.crossPageBadges}>
+                          {topic.buildsOn.map((link) => (
+                            <button
+                              key={link.topicId}
+                              type="button"
+                              onClick={() => onSelectPage?.(link.page)}
+                              className={styles.crossPageBadge}
+                              data-strength={link.strength || "essential"}
+                              title={link.reason}
+                            >
+                              ← {link.heading} (Page {link.page})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {topic.leadsTo && topic.leadsTo.length > 0 && (
+                      <div className={styles.crossPageGroup}>
+                        <span className={styles.notesLabel}>Leads to:</span>
+                        <div className={styles.crossPageBadges}>
+                          {topic.leadsTo.map((link) => (
+                            <button
+                              key={link.topicId}
+                              type="button"
+                              onClick={() => onSelectPage?.(link.page)}
+                              className={styles.crossPageBadge}
+                              data-strength={link.strength || "supporting"}
+                              title={link.reason}
+                            >
+                              → {link.heading} (Page {link.page})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </nav>
+                )}
                 {topic.hook && (
                   <p className={styles.notesHook} data-testid="notes-hook">
                     {topic.hook}

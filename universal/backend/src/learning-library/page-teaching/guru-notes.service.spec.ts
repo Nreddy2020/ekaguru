@@ -149,3 +149,57 @@ it("writes deeper notes as a separate artifact with the depth in the prompt", as
   expect(model.json.mock.calls[0][0]).toMatch(/Depth developing/);
   expect(prisma.guruPageNotes.upsert.mock.calls[0][0].create.depth).toBe("developing");
 });
+
+it("enriches topics with buildsOn, leadsTo and Guru remembers from the whole-book map", async () => {
+  const mockBookMapService: any = {
+    getOrBuildBookMap: jest.fn(async () => ({
+      version: "book-map-v1",
+      bookId: "evs-class-5",
+      title: "Looking Around",
+      totalPages: 10,
+      chapters: [],
+      keyTerms: [],
+      dependencies: [
+        {
+          id: "dep-1",
+          sourceTopicId: "topic-p2-1",
+          sourceTopicTitle: "Animal Senses",
+          sourcePage: 2,
+          targetTopicId: "t1",
+          targetTopicTitle: "A seed is a baby plant",
+          targetPage: 4,
+          reason: "Seed sensing of moisture connects to animal sensitivity.",
+          strength: "essential",
+        },
+        {
+          id: "dep-2",
+          sourceTopicId: "t1",
+          sourceTopicTitle: "A seed is a baby plant",
+          sourcePage: 4,
+          targetTopicId: "topic-p6-1",
+          targetTopicTitle: "Forest Trees",
+          targetPage: 6,
+          reason: "Growing trees begins with seed sprouting.",
+          strength: "supporting",
+        },
+      ],
+      generatedAt: new Date().toISOString(),
+    })),
+  };
+
+  const { prisma, model, planner, usage } = harness([notesJson(), { pass: true, issues: [] }]);
+  const serviceWithMap = new GuruNotesService(prisma, model, planner, usage, mockBookMapService);
+  const view = await serviceWithMap.build(source, "en");
+
+  const topic = view.notes.topics[0];
+  expect(topic.buildsOn).toBeDefined();
+  expect(topic.buildsOn).toHaveLength(1);
+  expect(topic.buildsOn![0].heading).toBe("Animal Senses");
+  expect(topic.buildsOn![0].page).toBe(2);
+  expect(topic.leadsTo).toBeDefined();
+  expect(topic.leadsTo).toHaveLength(1);
+  expect(topic.leadsTo![0].heading).toBe("Forest Trees");
+  expect(topic.leadsTo![0].page).toBe(6);
+  expect(topic.guruRemembers).toContain("Guru remembers: on page 2 you learned about 'Animal Senses'");
+});
+

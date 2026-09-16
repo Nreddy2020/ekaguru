@@ -4,12 +4,14 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { GuruModelService } from "./guru-model.service";
 import { GuruPlannerService } from "./guru-planner.service";
 import { GuruUsageService } from "./guru-usage.service";
+import { GuruBookMapService } from "./guru-book-map.service";
 import { DEPTHS, Depth } from "./guru-plan.schema";
 import {
   GURU_NOTES_ANSWER_RESPONSE_SCHEMA,
@@ -73,8 +75,69 @@ export class GuruNotesService {
     baseModel: GuruModelService,
     private readonly planner: GuruPlannerService,
     private readonly usage: GuruUsageService,
+    @Optional() private readonly bookMapService?: GuruBookMapService,
   ) {
     this.model = typeof baseModel?.forRole === "function" ? baseModel.forRole("notes") : baseModel;
+  }
+
+  private async enrichWithCrossPageLinks(notesView: GuruNotesView): Promise<GuruNotesView> {
+    if (!notesView.notes || !Array.isArray(notesView.notes.topics) || notesView.notes.topics.length === 0) {
+      return notesView;
+    }
+
+    try {
+      if (this.bookMapService) {
+        const bookMap = await this.bookMapService.getOrBuildBookMap(notesView.bookId);
+        if (bookMap && Array.isArray(bookMap.dependencies)) {
+          for (const topic of notesView.notes.topics) {
+            const incoming = bookMap.dependencies.filter(
+              (d) =>
+                d.targetPage === notesView.physicalPage &&
+                (d.targetTopicId === topic.id ||
+                  d.targetTopicTitle.toLowerCase().includes(topic.heading.toLowerCase()) ||
+                  topic.heading.toLowerCase().includes(d.targetTopicTitle.toLowerCase())),
+            );
+
+            const outgoing = bookMap.dependencies.filter(
+              (d) =>
+                d.sourcePage === notesView.physicalPage &&
+                (d.sourceTopicId === topic.id ||
+                  d.sourceTopicTitle.toLowerCase().includes(topic.heading.toLowerCase()) ||
+                  topic.heading.toLowerCase().includes(d.sourceTopicTitle.toLowerCase())),
+            );
+
+            if (incoming.length > 0) {
+              topic.buildsOn = incoming.map((d) => ({
+                topicId: d.sourceTopicId,
+                heading: d.sourceTopicTitle,
+                page: d.sourcePage,
+                reason: d.reason,
+                strength: d.strength,
+              }));
+
+              if (!topic.guruRemembers) {
+                const primary = incoming[0];
+                topic.guruRemembers = `Guru remembers: on page ${primary.sourcePage} you learned about '${primary.sourceTopicTitle}'. ${primary.reason}`;
+              }
+            }
+
+            if (outgoing.length > 0) {
+              topic.leadsTo = outgoing.map((d) => ({
+                topicId: d.targetTopicId,
+                heading: d.targetTopicTitle,
+                page: d.targetPage,
+                reason: d.reason,
+                strength: d.strength,
+              }));
+            }
+          }
+        }
+      }
+    } catch (err) {
+      this.logger.debug(`Could not enrich notes with cross-page links: ${err}`);
+    }
+
+    return notesView;
   }
 
   static depthOf(value: unknown): Depth {
@@ -117,7 +180,7 @@ export class GuruNotesService {
       where: { id: this.notesIdFor(source, language, depth) },
       include: { extensions: { orderBy: { createdAt: "asc" } } },
     });
-    return row ? this.view(row) : null;
+    return row ? await this.enrichWithCrossPageLinks(this.view(row)) : null;
   }
 
   /** Notes ready for a book in a language and depth, by page, without payloads. */
@@ -224,7 +287,7 @@ export class GuruNotesService {
       update: {},
       include: { extensions: true },
     });
-    return this.view(row);
+    return await this.enrichWithCrossPageLinks(this.view(row));
   }
 
   /**

@@ -884,6 +884,7 @@ export function PageGroundedStudio({
               onLoaded={setGuruNotes}
               onHighlight={setHighlight}
               onSwitchToLive={() => switchBoard("live")}
+              onSelectPage={changePage}
             />
           ) : compiled && active ? (
             <>

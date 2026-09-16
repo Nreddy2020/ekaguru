@@ -1237,3 +1237,72 @@
 .posterClosing p {
   margin: 0;
 }
+
+/* Cross-page links & Guru remembers */
+.guruRemembers {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0 12px;
+}
+.guruRemembersIcon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.guruRemembersBody {
+  flex: 1;
+  min-width: 0;
+}
+.guruRemembersBody p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #fef08a;
+}
+.crossPageLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+.crossPageGroup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.crossPageBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.crossPageBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.crossPageBadge:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.crossPageBadge[data-strength="essential"] {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.15);
+  color: #fef08a;
+}
+

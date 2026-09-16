@@ -38,6 +38,14 @@ export interface NotesQuiz {
   answerIndex: number;
   why: string;
 }
+export interface TopicCrossPageLink {
+  topicId: string;
+  heading: string;
+  page: number;
+  reason: string;
+  strength?: 'essential' | 'supporting';
+}
+
 export interface NotesTopic {
   id: string;
   heading: string;
@@ -70,6 +78,12 @@ export interface NotesTopic {
   rememberTip: string;
   commonDoubts: NotesQA[];
   checkYourself: NotesQA[];
+  /** Topics this concept builds on (earlier pages/foundations). */
+  buildsOn?: TopicCrossPageLink[];
+  /** Topics this concept leads to (later pages/progressions). */
+  leadsTo?: TopicCrossPageLink[];
+  /** A warm, teacher-voice recap connecting this topic to prior learning. */
+  guruRemembers?: string;
 }
 export interface GuruNotesDocument {
   title: string;
